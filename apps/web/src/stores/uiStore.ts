@@ -8,7 +8,8 @@ export interface Toast {
 
 export interface ConfirmState {
   isOpen: boolean;
-  message: string;
+  title: string;
+  message?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,7 +19,7 @@ interface UIState {
   confirmState: ConfirmState | null;
   ztteam_showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   ztteam_removeToast: (id: string) => void;
-  ztteam_showConfirm: (message: string) => Promise<boolean>;
+  ztteam_showConfirm: (title: string, message?: string) => Promise<boolean>;
   ztteam_closeConfirm: () => void;
 }
 
@@ -44,11 +45,12 @@ export const useUIStore = create<UIState>((set) => ({
     }));
   },
 
-  ztteam_showConfirm: (message) => {
+  ztteam_showConfirm: (title, message) => {
     return new Promise((resolve) => {
       set({
         confirmState: {
           isOpen: true,
+          title,
           message,
           onConfirm: () => {
             set({ confirmState: null });

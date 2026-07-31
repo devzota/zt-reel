@@ -20,7 +20,6 @@ interface WordpressState {
   ztteam_createSite: (data: { wpUrl: string; wpUsername: string; wpAppPassword: string }) => Promise<void>;
   ztteam_updateSite: (id: string, data: { wpUrl: string; wpUsername: string; wpAppPassword?: string }) => Promise<void>;
   ztteam_deleteSite: (id: string) => Promise<void>;
-  ztteam_deleteSource: (siteId: string, sourceId: string) => Promise<void>;
   ztteam_testConnection: (data: { wpUrl: string; wpUsername: string; wpAppPassword?: string }) => Promise<any>;
   ztteam_testPost: (siteId: string, data: { title: string; content: string; excerpt?: string }) => Promise<any>;
   ztteam_fetchCategories: (siteId: string) => Promise<any[]>;

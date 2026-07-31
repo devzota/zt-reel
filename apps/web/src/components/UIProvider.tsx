@@ -38,8 +38,8 @@ export default function UIProvider() {
               <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
                 <span className="material-symbols-outlined text-[28px]" data-icon="warning">warning</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận</h3>
-              <p className="text-sm text-gray-500">{confirmState.message}</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmState.title}</h3>
+              {confirmState.message && <p className="text-sm text-gray-500">{confirmState.message}</p>}
             </div>
             <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
               <button
