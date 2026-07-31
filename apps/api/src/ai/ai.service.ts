@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
 
+import { PrismaService } from '../prisma/prisma.service';
+
 /**
  * ZTTeamAIService — Provider adapter for AI text generation.
  * Currently supports OpenAI GPT. Expandable to Claude/Gemini via env config.
@@ -8,19 +10,27 @@ import OpenAI from 'openai';
 @Injectable()
 export class ZTTeamAIService {
   private readonly logger = new Logger('ZTTeamAIService');
-  private openai: OpenAI;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async getOpenAIClient(): Promise<OpenAI | null> {
     if (process.env.DEEPSEEK_API_KEY) {
-      this.openai = new OpenAI({
+      return new OpenAI({
         apiKey: process.env.DEEPSEEK_API_KEY,
         baseURL: 'https://api.deepseek.com',
       });
-    } else {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY || '',
-      });
     }
+
+    const dbKey = await this.prisma.ztteam_settings.findUnique({
+      where: { key: 'openai_api_key' }
+    });
+    
+    const key = dbKey?.value || process.env.OPENAI_API_KEY;
+    if (key) {
+      return new OpenAI({ apiKey: key });
+    }
+
+    return null;
   }
 
   /**
@@ -38,7 +48,8 @@ export class ZTTeamAIService {
   ): Promise<{ caption: string; hook: string; sub_voice: string }> {
     this.logger.log(`Generating reel script (tone: ${tone}, maxWords: ${maxWords})`);
 
-    if (!process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY) {
+    const openai = await this.getOpenAIClient();
+    if (!openai) {
       this.logger.warn('No API key found, returning mock script');
       const mockScript = await this.ztteam_getMockScript(postContent);
       return { caption: 'Mock Caption', hook: 'Mock Hook', sub_voice: mockScript };
@@ -57,7 +68,7 @@ QUY TẮC TUYỆT ĐỐI CẦN TUÂN THỦ:
     const systemPrompt = customPrompt ? customPrompt : defaultSystemPrompt;
 
     try {
-      const response = await this.openai.chat.completions.create({
+      const response = await openai.chat.completions.create({
         model: process.env.DEEPSEEK_API_KEY ? 'deepseek-chat' : 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         messages: [
