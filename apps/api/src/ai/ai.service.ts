@@ -99,7 +99,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
           sub_voice: jsonResult.sub_voice || ''
         };
       } else {
-        // Fallback or explicit choice for OpenAI / Deepseek
+        /** Fallback or explicit choice for OpenAI / Deepseek */
         const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
         const apiKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
         const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;

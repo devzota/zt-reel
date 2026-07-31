@@ -16,6 +16,8 @@ export default function FacebookPageSettings() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [pageName, setPageName] = useState('');
+  const [fbPageId, setFbPageId] = useState('');
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   /** Settings State */
   const [tags, setTags] = useState<string[]>([]);
@@ -79,6 +81,17 @@ export default function FacebookPageSettings() {
     ztteam_fetchSites();
     fetchSettings();
     fetchTemplates();
+    api.get('facebook/pages').then(res => {
+      const allTags = new Set<string>();
+      if (res.data && Array.isArray(res.data)) {
+        res.data.forEach((p: any) => {
+          if (p.tags && Array.isArray(p.tags)) {
+            p.tags.forEach((t: string) => allTags.add(t));
+          }
+        });
+      }
+      setAvailableTags(Array.from(allTags));
+    }).catch(console.error);
   }, [id]);
 
   useEffect(() => {
@@ -285,6 +298,7 @@ export default function FacebookPageSettings() {
       const res = await api.get(`facebook/pages/${id}/settings?_t=${Date.now()}`);
       const data = res.data;
       setPageName(data.name || 'Fanpage Settings');
+      setFbPageId(data.fb_page_id || '');
       setTags(data.tags || []);
       setPostFormat(data.post_format || 'reel');
       setAddLinkToCaption(data.add_link_to_caption || false);
@@ -408,7 +422,14 @@ export default function FacebookPageSettings() {
           <button onClick={() => navigate('/facebook')} className="text-gray-500 hover:text-primary flex items-center gap-1 text-sm font-bold mb-2 transition-colors">
             <span className="material-symbols-outlined text-sm">arrow_back</span> Quay lại danh sách
           </button>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">Cấu hình Fanpage: {pageName}</h3>
+          <h3 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-3">
+            Cấu hình Fanpage: {pageName}
+            {fbPageId && (
+              <a href={`https://facebook.com/${fbPageId}`} target="_blank" rel="noopener noreferrer" className="text-sm px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 flex items-center gap-1 font-semibold border border-blue-100 transition-colors">
+                <span className="material-symbols-outlined text-[18px]">open_in_new</span> Xem Fanpage
+              </a>
+            )}
+          </h3>
           <p className="text-gray-500 text-sm">Tùy chỉnh toàn diện chiến lược phân phối nội dung và tự động hóa.</p>
         </div>
         <div>
@@ -449,7 +470,10 @@ export default function FacebookPageSettings() {
               <div className="mb-4">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Tags (Gom nhóm Fanpage)</label>
                 <div className="flex gap-2 mb-3">
-                  <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTag()} placeholder="VD: Giải trí, Tin tức..." className="flex-1 bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none" />
+                  <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTag()} placeholder="VD: Giải trí, Tin tức..." list="available-tags" className="flex-1 bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none" />
+                  <datalist id="available-tags">
+                    {availableTags.map(t => <option key={t} value={t} />)}
+                  </datalist>
                   <button onClick={addTag} className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100">Thêm</button>
                 </div>
                 <div className="flex flex-wrap gap-2">

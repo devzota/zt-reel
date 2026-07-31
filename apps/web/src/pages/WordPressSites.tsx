@@ -206,6 +206,7 @@ export default function WordPressSites() {
         title: scrapeResult.title,
         content: scrapeResult.contentHtml,
         excerpt: scrapeResult.excerpt,
+        imageUrl: scrapeResult.image || undefined
       });
       ztteam_showToast(`Đăng bài thành công! URL: ${response.url}`, 'success');
     } catch (err: any) {

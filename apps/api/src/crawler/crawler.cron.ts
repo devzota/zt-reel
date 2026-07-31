@@ -196,7 +196,8 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
           title: fetchedData.title,
           content: fetchedData.contentHtml || fetchedData.content,
           excerpt: fetchedData.excerpt,
-          categories: source.source_category ? [Number(source.source_category)] : undefined
+          categories: source.source_category ? [Number(source.source_category)] : undefined,
+          imageUrl: fetchedData.image || null
         });
 
         await this.prisma.ztteam_crawl_history.create({

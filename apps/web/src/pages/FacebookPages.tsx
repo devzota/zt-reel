@@ -173,9 +173,15 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
           >
             <span className="material-symbols-outlined text-[20px]">query_stats</span>
           </button>
-          <button className="w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Ngắt kết nối">
-            <span className="material-symbols-outlined text-[20px]">link_off</span>
-          </button>
+          <a 
+            href={`https://facebook.com/${page.fb_page_id || page.id}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-10 h-10 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-full transition-colors" 
+            title="Xem page"
+          >
+            <span className="material-symbols-outlined text-[20px]">open_in_new</span>
+          </a>
         </div>
       </td>
     </tr>

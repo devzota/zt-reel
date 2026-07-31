@@ -124,7 +124,7 @@ export class ZTTeamWordpressService {
     buffer: Buffer, 
     filename: string, 
     mimeType: string
-  ): Promise<string> {
+  ): Promise<{ id: number; source_url: string }> {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${wpUrl}/wp-json/wp/v2/media`, buffer, {
@@ -135,14 +135,17 @@ export class ZTTeamWordpressService {
           }
         })
       );
-      return response.data.source_url;
+      return {
+        id: response.data.id,
+        source_url: response.data.source_url
+      };
     } catch (error: any) {
       this.logger.error(`Failed to upload media to WordPress at ${wpUrl}/wp-json/wp/v2/media`, error.response?.data || error.message);
       throw error;
     }
   }
 
-  async ztteam_createPost(siteId: string, data: { title: string; content: string; excerpt?: string; categories?: number[]; tags?: number[] }) {
+  async ztteam_createPost(siteId: string, data: { title: string; content: string; excerpt?: string; categories?: number[]; tags?: number[]; imageUrl?: string | null }) {
     const site = await this.prisma.ztteam_target_sites.findUnique({
       where: { id: siteId }
     });
@@ -160,7 +163,10 @@ export class ZTTeamWordpressService {
     try {
       cleanContent = await this.htmlCleaner.ztteam_cleanHtmlAndUploadImages(
         data.content,
-        (buffer, filename, mimeType) => this.ztteam_uploadMedia(cleanUrl, authHeader, buffer, filename, mimeType)
+        async (buffer, filename, mimeType) => {
+          const res = await this.ztteam_uploadMedia(cleanUrl, authHeader, buffer, filename, mimeType);
+          return res.source_url;
+        }
       );
     } catch (err: any) {
       this.logger.warn(`Failed to clean HTML or upload images: ${err.message}`);
@@ -176,6 +182,33 @@ export class ZTTeamWordpressService {
       if (data.excerpt) payload.excerpt = data.excerpt;
       if (data.categories && data.categories.length > 0) payload.categories = data.categories;
       if (data.tags && data.tags.length > 0) payload.tags = data.tags;
+
+      /** Handle featured image (thumbnail) */
+      if (data.imageUrl) {
+        try {
+          /** Download the image */
+          const imageRes = await firstValueFrom(
+            this.httpService.get(data.imageUrl, { 
+              responseType: 'arraybuffer', 
+              timeout: 15000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+              }
+            })
+          );
+          const buffer = Buffer.from(imageRes.data);
+          const ext = data.imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+          const mimeType = ext.toLowerCase() === 'png' ? 'image/png' : ext.toLowerCase() === 'webp' ? 'image/webp' : 'image/jpeg';
+          
+          /** Upload to WP and set featured_media */
+          const media = await this.ztteam_uploadMedia(cleanUrl, authHeader, buffer, `thumbnail_${Date.now()}.${ext}`, mimeType);
+          if (media && media.id) {
+            payload.featured_media = media.id;
+          }
+        } catch (mediaErr: any) {
+          this.logger.warn(`Failed to upload featured image for post: ${mediaErr.message}`);
+        }
+      }
 
       /** 1. Check if post with same title already exists */
       const searchResponse = await firstValueFrom(

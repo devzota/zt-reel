@@ -33,7 +33,7 @@ export class ZTTeamWordpressController {
   }
 
   @Post('sites/:siteId/test-post')
-  ztteam_testPost(@Param('siteId') siteId: string, @Body() body: { title: string; content: string; excerpt?: string }) {
+  ztteam_testPost(@Param('siteId') siteId: string, @Body() body: { title: string; content: string; excerpt?: string; imageUrl?: string }) {
     return this.wordpressService.ztteam_createPost(siteId, body);
   }
 
