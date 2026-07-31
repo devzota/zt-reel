@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3GjRrA8lYmv3fv2vLfv62ZihP8ov5I5UbprLeeRe1qnLRhbcdMaIefvg77ilpNV
+\restrict dW62B379F6Vl93zAiZugrgkhdVC4KqADTtW8QRwOBpJo1O8gFQb6u0Ceb9oXE5D
 
 -- Dumped from database version 15.18 (Debian 15.18-1.pgdg13+1)
 -- Dumped by pg_dump version 15.18 (Debian 15.18-1.pgdg13+1)
@@ -22,7 +22,7 @@ SET row_security = off;
 -- Data for Name: ztteam_templates; Type: TABLE DATA; Schema: public; Owner: root
 --
 
-INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaking News Modern', 'video', 'teaser', 'nova', 0, 0, '<style>
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms7gju870000a0w784w6piia', 'Breaking News Modern', 'video', 'teaser', 'nova', 0, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -67,7 +67,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaki
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -99,7 +99,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaki
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -113,10 +113,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaki
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -152,7 +152,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaki
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -163,7 +163,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7gju870000a0w784w6piia', 'Breaki
   </div>
 </div>
 ', '{"hook": {"x": 156, "y": 1398}, "header": {"x": 40, "y": 40}, "breaking": {"x": 40, "y": 1310}, "subtitles": {"x": 0, "y": 1238}, "bg_image_url": "/storage/templates/cms7gju870000a0w784w6piia-1785425235232-816425108.png"}', false, '2026-07-30 11:56:18.247', '2026-07-30 14:04:55.922', NULL);
-INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n├│ng 5s', 'video', 'teaser', NULL, 200, 0, '<style>
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n├óΓÇ¥┼ô├óΓÇ¥ΓÇÜng 5s', 'video', 'teaser', NULL, 200, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -208,7 +208,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n�
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -240,7 +240,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n�
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -254,10 +254,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n�
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -293,7 +293,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n�
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -304,7 +304,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa0w0000eww7b8x92y2f', 'Tin n�
   </div>
 </div>
 ', '{"hook": {"x": 22, "y": 1530}, "video": {"h": 1080, "w": 1080, "x": 0}, "header": {"x": 668, "y": 70}, "breaking": {"x": 40, "y": 26}, "subtitles": {"x": 36, "y": 1146}, "bg_image_url": "/storage/templates/cms46pa0w0000eww7b8x92y2f-1785423696395-607825218.png"}', true, '2026-07-28 04:57:17.312', '2026-07-28 04:57:17.312', NULL);
-INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n├│ng 5s', 'image', 'teaser', NULL, 184, 0, '<style>
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n├óΓÇ¥┼ô├óΓÇ¥ΓÇÜng 5s', 'image', 'teaser', NULL, 184, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -349,7 +349,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n�
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -381,7 +381,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n�
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -395,10 +395,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n�
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -434,7 +434,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n�
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -445,7 +445,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms46pa110001eww7kuivfkvl', 'Tin n�
   </div>
 </div>
 ', '{"hook": {"x": 90, "y": 1450}, "header": {"x": 84, "y": 1362}, "breaking": {"x": 40, "y": 26}}', true, '2026-07-28 04:57:17.317', '2026-07-28 04:57:17.317', NULL);
-INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaking News Modern (Bß║ún sao)', 'video', 'teaser', 'nova', -24, 0, '<style>
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaking News Modern (B├â┼╕├óΓÇóΓÇÿ├â┬║n sao)', 'video', 'teaser', 'nova', -24, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -490,7 +490,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaki
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -522,7 +522,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaki
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -536,10 +536,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaki
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -575,7 +575,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaki
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -585,8 +585,8 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ss2xu0003fww7vzaoonef', 'Breaki
     <span>(AI Subtitles Placeholder)</span>
   </div>
 </div>
-', '{"hook": {"x": 160, "y": 1390}, "video": {"h": 1080, "w": 1080, "x": 0}, "header": {"x": 40, "y": 40}, "breaking": {"x": 40, "y": 1310}, "subtitles": {"x": 12, "y": 1122}, "bg_image_url": "/storage/templates/cms7ss2xu0003fww7vzaoonef-1785433729457-58147197.png"}', false, '2026-07-30 17:38:38.178', '2026-07-30 17:38:38.178', '106516707520268');
-INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n├│ng 5s (Bß║ún sao)', 'video', 'teaser', 'nova', 220, 0, '<style>
+', '{"hook": {"x": 160, "y": 1390}, "video": {"h": 1080, "w": 1080, "x": 0}, "header": {"x": 40, "y": 40}, "breaking": {"x": 40, "y": 1310}, "subtitles": {"x": 12, "y": 1122}, "bg_image_url": "/storage/templates/cms7ss2xu0003fww7vzaoonef-1785433729457-58147197.png"}', false, '2026-07-30 17:38:38.178', '2026-07-30 17:38:38.178', NULL);
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n├óΓÇ¥┼ô├óΓÇ¥ΓÇÜng 5s (B├â┼╕├óΓÇóΓÇÿ├â┬║n sao)', 'video', 'teaser', 'nova', 220, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -631,7 +631,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n�
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -663,7 +663,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n�
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -677,10 +677,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n�
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -716,7 +716,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n�
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -726,8 +726,8 @@ INSERT INTO public.ztteam_templates VALUES ('cms7sp7wa0000fww7wfy4nw5m', 'Tin n�
     <span>(AI Subtitles Placeholder)</span>
   </div>
 </div>
-', '{"hook": {"x": 22, "y": 1530}, "video": {"h": 864, "w": 852, "x": 108}, "header": {"x": 668, "y": 70}, "breaking": {"x": 40, "y": 26}, "subtitles": {"x": 36, "y": 1146}, "bg_image_url": "/storage/templates/cms7sp7wa0000fww7wfy4nw5m-1785433073903-782725516.png"}', false, '2026-07-30 17:36:24.634', '2026-07-30 17:36:24.634', '2035536043371781');
-INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaking News Modern (Bß║ún sao)', 'video', 'teaser', 'shimmer', 252, 0, '<style>
+', '{"hook": {"x": 22, "y": 1530}, "video": {"h": 864, "w": 852, "x": 108}, "header": {"x": 668, "y": 70}, "breaking": {"x": 40, "y": 26}, "subtitles": {"x": 36, "y": 1146}, "bg_image_url": "/storage/templates/cms7sp7wa0000fww7wfy4nw5m-1785433073903-782725516.png"}', false, '2026-07-30 17:36:24.634', '2026-07-30 17:36:24.634', NULL);
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaking News Modern (B├â┼╕├óΓÇóΓÇÿ├â┬║n sao)', 'video', 'teaser', 'shimmer', 252, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -772,7 +772,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaki
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -804,7 +804,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaki
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -818,10 +818,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaki
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -857,7 +857,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaki
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -867,8 +867,8 @@ INSERT INTO public.ztteam_templates VALUES ('cms7ssq6j0004fww7gpsxcstw', 'Breaki
     <span>(AI Subtitles Placeholder)</span>
   </div>
 </div>
-', '{"hook": {"x": 156, "y": 1398}, "video": {"h": 904, "w": 916, "x": 84}, "header": {"x": 40, "y": 40}, "breaking": {"x": 40, "y": 1310}, "subtitles": {"x": 28, "y": 1234}, "bg_image_url": "/storage/templates/cms7gju870000a0w784w6piia-1785425235232-816425108.png"}', false, '2026-07-30 17:39:08.299', '2026-07-30 17:39:08.299', '2035536043371781');
-INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n├│ng 5s (Bß║ún sao)', 'video', 'teaser', NULL, 280, 0, '<style>
+', '{"hook": {"x": 156, "y": 1398}, "video": {"h": 904, "w": 916, "x": 84}, "header": {"x": 40, "y": 40}, "breaking": {"x": 40, "y": 1310}, "subtitles": {"x": 28, "y": 1234}, "bg_image_url": "/storage/templates/cms7gju870000a0w784w6piia-1785425235232-816425108.png"}', false, '2026-07-30 17:39:08.299', '2026-07-30 17:39:08.299', NULL);
+INSERT INTO public.ztteam_templates (id, name, format, content_type, voice_id, video_y, video_radius, html_content, layout, is_default, created_at, updated_at, fb_page_id) VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n├óΓÇ¥┼ô├óΓÇ¥ΓÇÜng 5s (B├â┼╕├óΓÇóΓÇÿ├â┬║n sao)', 'video', 'teaser', NULL, 280, 0, '<style>
   @import url(''https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Oswald:wght@500;700&display=swap'');
 
   {{{fontFace}}}
@@ -913,7 +913,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n�
     overflow: hidden;
   }
 
-  /* Header (Avatar & T∩┐╜n Fanpage) */
+  /* Header (Avatar & T├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôn Fanpage) */
   .header {
     position: absolute;
     left: {{layout.header.x}}px;
@@ -945,7 +945,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n�
     text-shadow: 0 4px 8px rgba(0,0,0,0.6);
   }
 
-  /* Ti∩┐╜u d? (Hook) */
+  /* Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d? (Hook) */
   .hook {
     position: absolute;
     left: {{layout.hook.x}}px;
@@ -959,10 +959,10 @@ INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n�
     z-index: 10;
   }
   .hook .accent {
-    color: #ef4444; /* M∩┐╜u n?i b?t */
+    color: #ef4444; /* M├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu n?i b?t */
   }
 
-  /* Ph? d? (Subtitles) - D∩┐╜ng cho Preview */
+  /* Ph? d? (Subtitles) - D├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ông cho Preview */
   .subtitles-preview {
     display: none; /* ?n khi render th?t */
     position: absolute;
@@ -998,7 +998,7 @@ INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n�
     <div class="name">{{fanpageName}}</div>
   </div>
 
-  <!-- Hook (Ti∩┐╜u d?) -->
+  <!-- Hook (Ti├ó╦å┬⌐├óΓÇ¥┬É├óΓÇó┼ôu d?) -->
   <div class="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}</span><br/>{{/each}}
   </div>
@@ -1008,12 +1008,12 @@ INSERT INTO public.ztteam_templates VALUES ('cms7t9xet000efww7mqahc6he', 'Tin n�
     <span>(AI Subtitles Placeholder)</span>
   </div>
 </div>
-', '{"hook": {"x": 34, "y": 1534}, "video": {"h": 760, "w": 796, "x": 132}, "header": {"x": 668, "y": 70}, "breaking": {"x": 40, "y": 26}, "subtitles": {"x": 36, "y": 1146}, "bg_image_url": "/storage/templates/cms46pa0w0000eww7b8x92y2f-1785423696395-607825218.png"}', false, '2026-07-30 17:52:30.821', '2026-07-30 17:52:30.821', '106516707520268');
+', '{"hook": {"x": 34, "y": 1534}, "video": {"h": 760, "w": 796, "x": 132}, "header": {"x": 668, "y": 70}, "breaking": {"x": 40, "y": 26}, "subtitles": {"x": 36, "y": 1146}, "bg_image_url": "/storage/templates/cms46pa0w0000eww7b8x92y2f-1785423696395-607825218.png"}', false, '2026-07-30 17:52:30.821', '2026-07-30 17:52:30.821', NULL);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3GjRrA8lYmv3fv2vLfv62ZihP8ov5I5UbprLeeRe1qnLRhbcdMaIefvg77ilpNV
+\unrestrict dW62B379F6Vl93zAiZugrgkhdVC4KqADTtW8QRwOBpJo1O8gFQb6u0Ceb9oXE5D
 
