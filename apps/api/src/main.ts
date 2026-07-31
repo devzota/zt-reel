@@ -6,6 +6,7 @@ import * as fs from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.setGlobalPrefix('api');
   app.enableCors();
 
   /** Ensure storage directories exist */
