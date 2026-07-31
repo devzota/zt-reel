@@ -204,6 +204,8 @@ export class ZTTeamRenderController {
              }
              if (found) break;
            }
+         } else {
+           scheduledAt = null;
          }
        } else {
          const gap = p.schedule_immediate_gap_minutes || 0;
@@ -226,28 +228,11 @@ export class ZTTeamRenderController {
       const trackingLink = r.wp_post_url ? `${r.wp_post_url}${r.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}` : '';
       
       if (r.wp_post_url && r.page?.add_link_to_caption && !finalCaption.includes('utm_source=reel')) {
-        const prefixes = [
-          '👉 Discover more here:',
-          '🔥 Read the full story:',
-          '📌 Check out the details:',
-          '👇 Full article link:',
-          '🔗 Learn more at:'
-        ];
-        const prefixIndex = r.id.charCodeAt(r.id.length - 1) % prefixes.length;
-        const prefix = prefixes[prefixIndex];
-        finalCaption = `${prefix} ${trackingLink}\n\n${finalCaption}`;
+        finalCaption = `${trackingLink}\n\n${finalCaption}`;
       }
       
       if (r.wp_post_url && r.page?.add_link_to_comment) {
-        const commentPrefixes = [
-            '👉 Discover more here:',
-            '🔥 Read the full story:',
-            '📌 Check out the details:',
-            '👇 Full article link:',
-            '🔗 Learn more at:'
-          ];
-        const prefixIndex = r.id.charCodeAt(r.id.length - 2) % commentPrefixes.length;
-        finalComment = `${commentPrefixes[prefixIndex]} ${trackingLink}`;
+        finalComment = trackingLink;
       }
 
       let posted_at = null;
@@ -361,15 +346,7 @@ export class ZTTeamRenderController {
         trackingLinkManual = `${reel.wp_post_url}${reel.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
         
         if (pageData?.add_link_to_caption) {
-          const prefixes = [
-          '👉 Discover more here:',
-          '🔥 Read the full story:',
-          '📌 Check out the details:',
-          '👇 Full article link:',
-          '🔗 Learn more at:'
-        ];
-          const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-          description = `${prefix} ${trackingLinkManual}\n\n${description}`;
+          description = `${trackingLinkManual}\n\n${description}`;
         }
       }
 
@@ -382,18 +359,10 @@ export class ZTTeamRenderController {
       /** Check if we should add link to comment */
       if (reel.page.add_link_to_comment && trackingLinkManual && response.id) {
         try {
-          const commentPrefixes = [
-            '👉 Discover more here:',
-            '🔥 Read the full story:',
-            '📌 Check out the details:',
-            '👇 Full article link:',
-            '🔗 Learn more at:'
-          ];
-          const commentPrefix = commentPrefixes[Math.floor(Math.random() * commentPrefixes.length)];
           await this.facebookService.ztteam_publishComment(
             reel.page.fb_page_id,
             response.id,
-            `${commentPrefix} ${trackingLinkManual}`
+            trackingLinkManual
           );
         } catch (e: any) {
           /** Ignore comment error so it doesn't fail the post status */

@@ -111,6 +111,21 @@ export default function ReelFactory() {
 
       <div className="glass-card p-4 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-600">Trạng thái:</span>
+          <select
+            value={filterStatus}
+            onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+            className="bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-4 py-2 text-sm appearance-none cursor-pointer font-medium"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="QUEUED">Đang chờ (Queued)</option>
+            <option value="RENDERING">Đang render (Rendering)</option>
+            <option value="COMPLETED">Hoàn thành (Completed)</option>
+            <option value="POSTED">Đã đăng (Posted)</option>
+            <option value="FAILED">Lỗi (Failed)</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-600">Fanpage:</span>
           <select
             value={filterPage}
@@ -252,7 +267,7 @@ export default function ReelFactory() {
                   ) : (
                     <>
                       {reel.thumbnail_url ? (
-                        <img src={reel.thumbnail_url} alt="Reel thumb" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                        <img src={reel.thumbnail_url} alt="Reel thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
                       ) : (
                         <span className="material-symbols-outlined text-4xl text-gray-600">movie</span>
                       )}
