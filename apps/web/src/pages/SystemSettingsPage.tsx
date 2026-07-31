@@ -6,6 +6,9 @@ export default function SystemSettingsPage() {
   const { ztteam_showToast } = useUIStore();
   const [settings, setSettings] = useState({
     openai_api_key: '',
+    deepseek_api_key: '',
+    gemini_api_key: '',
+    active_ai_provider: 'openai',
     remotion_license: '',
     max_concurrent_jobs: '2',
     video_retention_days: '7'
@@ -63,7 +66,23 @@ export default function SystemSettingsPage() {
       </div>
 
       <div className="glass-card p-6">
-        <h3 className="text-lg font-bold text-gray-900 border-b border-slate-100 pb-2 mb-4">Kết nối API bên thứ 3</h3>
+        <h3 className="text-lg font-bold text-gray-900 border-b border-slate-100 pb-2 mb-4">Cấu hình AI Tạo Kịch Bản</h3>
+        
+        <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <label className="block text-sm font-bold text-gray-700 mb-2">AI Xử Lý Chính</label>
+          <select 
+            name="active_ai_provider"
+            value={settings.active_ai_provider || 'openai'} 
+            onChange={handleChange as any}
+            className="w-full bg-white border-2 border-slate-200 focus:border-primary rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-0 outline-none"
+          >
+            <option value="openai">OpenAI (GPT-4o-mini)</option>
+            <option value="deepseek">Deepseek (deepseek-chat)</option>
+            <option value="gemini">Google Gemini (gemini-1.5-flash)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-2">Chọn hệ thống AI sẽ được sử dụng để tự động sinh nội dung video.</p>
+        </div>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">OpenAI API Key</label>
@@ -72,11 +91,38 @@ export default function SystemSettingsPage() {
               name="openai_api_key"
               value={settings.openai_api_key} 
               onChange={handleChange}
-              className="w-full bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none"
+              className={`w-full bg-slate-50 border-2 focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none transition-colors ${settings.active_ai_provider === 'openai' ? 'border-primary/50 bg-blue-50/30' : 'border-transparent'}`}
               placeholder="sk-..."
             />
-            <p className="text-xs text-gray-500 mt-1">Dùng để tạo kịch bản tự động cho Reels.</p>
           </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Deepseek API Key</label>
+            <input 
+              type="password" 
+              name="deepseek_api_key"
+              value={settings.deepseek_api_key} 
+              onChange={handleChange}
+              className={`w-full bg-slate-50 border-2 focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none transition-colors ${settings.active_ai_provider === 'deepseek' ? 'border-primary/50 bg-blue-50/30' : 'border-transparent'}`}
+              placeholder="sk-..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Google Gemini API Key</label>
+            <input 
+              type="password" 
+              name="gemini_api_key"
+              value={settings.gemini_api_key} 
+              onChange={handleChange}
+              className={`w-full bg-slate-50 border-2 focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none transition-colors ${settings.active_ai_provider === 'gemini' ? 'border-primary/50 bg-blue-50/30' : 'border-transparent'}`}
+              placeholder="AIza..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-gray-900 border-b border-slate-100 pb-2 mb-4">Kết nối Dịch vụ Báo chí</h3>
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">Remotion License Key</label>
             <input 

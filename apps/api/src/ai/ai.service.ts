@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -13,24 +14,23 @@ export class ZTTeamAIService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getOpenAIClient(): Promise<OpenAI | null> {
-    if (process.env.DEEPSEEK_API_KEY) {
-      return new OpenAI({
-        apiKey: process.env.DEEPSEEK_API_KEY,
-        baseURL: 'https://api.deepseek.com',
-      });
-    }
-
-    const dbKey = await this.prisma.ztteam_settings.findUnique({
-      where: { key: 'openai_api_key' }
+  private async getSettings() {
+    const records = await this.prisma.ztteam_settings.findMany({
+      where: {
+        key: {
+          in: ['active_ai_provider', 'openai_api_key', 'deepseek_api_key', 'gemini_api_key']
+        }
+      }
     });
+    const settings: Record<string, string> = {};
+    records.forEach(r => settings[r.key] = r.value);
     
-    const key = dbKey?.value || process.env.OPENAI_API_KEY;
-    if (key) {
-      return new OpenAI({ apiKey: key });
-    }
-
-    return null;
+    return {
+      activeProvider: settings['active_ai_provider'] || 'openai',
+      openaiKey: settings['openai_api_key'] || process.env.OPENAI_API_KEY,
+      deepseekKey: settings['deepseek_api_key'] || process.env.DEEPSEEK_API_KEY,
+      geminiKey: settings['gemini_api_key'] || process.env.GEMINI_API_KEY
+    };
   }
 
   /**
@@ -48,9 +48,9 @@ export class ZTTeamAIService {
   ): Promise<{ caption: string; hook: string; sub_voice: string }> {
     this.logger.log(`Generating reel script (tone: ${tone}, maxWords: ${maxWords})`);
 
-    const openai = await this.getOpenAIClient();
-    if (!openai) {
-      this.logger.warn('No API key found, returning mock script');
+    const settings = await this.getSettings();
+    if (!settings.openaiKey && !settings.deepseekKey && !settings.geminiKey) {
+      this.logger.warn('No API keys found, returning mock script');
       const mockScript = await this.ztteam_getMockScript(postContent);
       return { caption: 'Mock Caption', hook: 'Mock Hook', sub_voice: mockScript };
     }
@@ -63,18 +63,10 @@ QUY TẮC TUYỆT ĐỐI CẦN TUÂN THỦ:
 - Giọng văn: ${tone}
 - Phải có hook mạnh ở câu đầu (gây tò mò)
 - Kết thúc bằng CTA ngắn gọn
-- KHÔNG dùng emoji, hashtag, hay ký tự đặc biệt trong kịch bản giọng đọc`;
+- KHÔNG dùng emoji, hashtag, hay kí tự đặc biệt trong kịch bản giọng đọc`;
 
     const systemPrompt = customPrompt ? customPrompt : defaultSystemPrompt;
-
-    try {
-      const response = await openai.chat.completions.create({
-        model: process.env.DEEPSEEK_API_KEY ? 'deepseek-chat' : 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: `${systemPrompt}
+    const promptWithRules = `${systemPrompt}
 
 IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH.
 YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
@@ -82,26 +74,61 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
   "caption": "A catchy social media caption (with hashtags if appropriate)",
   "hook": "A short, engaging text hook (title) to display on the video",
   "sub_voice": "The spoken script for the voiceover"
-}`,
-          },
-          {
-            role: 'user',
-            content: `Generate Reel content from the following article:\n\n${postContent.substring(0, 2000)}`,
-          },
-        ],
-        max_tokens: Math.max(150, Math.round(maxWords * 2.5)),
-        temperature: 0.8,
-      });
+}`;
 
-      const resultString = response.choices[0]?.message?.content?.trim() || '{}';
-      const result = JSON.parse(resultString);
-      
-      this.logger.log(`Script generated: Hook="${result.hook}"`);
-      return {
-        caption: result.caption || '',
-        hook: result.hook || '',
-        sub_voice: result.sub_voice || ''
-      };
+    const userContent = `Generate Reel content from the following article:\n\n${postContent.substring(0, 2000)}`;
+
+    try {
+      if (settings.activeProvider === 'gemini' && settings.geminiKey) {
+        const genAI = new GoogleGenerativeAI(settings.geminiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.8,
+            maxOutputTokens: Math.max(150, Math.round(maxWords * 2.5)),
+          }
+        });
+        
+        const result = await model.generateContent(`${promptWithRules}\n\n${userContent}`);
+        const text = result.response.text();
+        const jsonResult = JSON.parse(text || '{}');
+        return {
+          caption: jsonResult.caption || '',
+          hook: jsonResult.hook || '',
+          sub_voice: jsonResult.sub_voice || ''
+        };
+      } else {
+        // Fallback or explicit choice for OpenAI / Deepseek
+        const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
+        const apiKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
+        const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
+
+        if (!apiKey) throw new Error(`Missing API Key for ${settings.activeProvider}`);
+
+        const openai = new OpenAI({ apiKey, baseURL });
+        const response = await openai.chat.completions.create({
+          model: modelName,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: promptWithRules },
+            { role: 'user', content: userContent },
+          ],
+          max_tokens: Math.max(150, Math.round(maxWords * 2.5)),
+          temperature: 0.8,
+        });
+
+        const resultString = response.choices[0]?.message?.content?.trim() || '{}';
+        const result = JSON.parse(resultString);
+        
+        this.logger.log(`Script generated: Hook="${result.hook}"`);
+        return {
+          caption: result.caption || '',
+          hook: result.hook || '',
+          sub_voice: result.sub_voice || ''
+        };
+      }
     } catch (error: any) {
       this.logger.error(`AI script generation failed: ${error.message}`);
       throw new Error('Lỗi tạo kịch bản AI: ' + error.message);

@@ -177,16 +177,12 @@ export class ZTTeamRenderController {
     const path = require('path');
     
     try {
-      if (reel.video_url) {
-        const videoPath = path.join(process.cwd(), reel.video_url);
-        if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
-      }
-      if (reel.thumbnail_url) {
-        const thumbPath = path.join(process.cwd(), reel.thumbnail_url);
-        if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+      const reelDir = path.join(process.cwd(), 'storage', 'reels', id);
+      if (fs.existsSync(reelDir)) {
+        fs.rmSync(reelDir, { recursive: true, force: true });
       }
     } catch (e) {
-      /** Ignore file deletion errors */
+      console.error('Error deleting files', e);
     }
 
     /** Delete reel record */
