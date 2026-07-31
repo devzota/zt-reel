@@ -69,8 +69,7 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
     
     if (lastScanTime) {
       const hoursSinceLastScan = (now.getTime() - lastScanTime.getTime()) / (1000 * 60 * 60);
-      const bypassInterval = process.env.NODE_ENV !== 'production';
-      if (!bypassInterval && hoursSinceLastScan < intervalHours) {
+      if (hoursSinceLastScan < intervalHours) {
         this.logger.debug(`Skipping page ${page.name}, interval not reached (${hoursSinceLastScan.toFixed(2)} / ${intervalHours} hours)`);
         return;
       }

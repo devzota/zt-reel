@@ -69,8 +69,7 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
 
         if (lastCrawl) {
           const timeSinceLastCrawl = Date.now() - new Date(lastCrawl.created_at).getTime();
-          const bypassInterval = process.env.NODE_ENV !== 'production'; /** Bypass interval in dev mode to test */
-          if (!bypassInterval && timeSinceLastCrawl < intervalMs) {
+          if (timeSinceLastCrawl < intervalMs) {
             this.logger.debug(`Skipping source ${source.source_url} (Crawled recently. Next run in ${Math.round((intervalMs - timeSinceLastCrawl) / 60000)} mins)`);
             continue;
           }

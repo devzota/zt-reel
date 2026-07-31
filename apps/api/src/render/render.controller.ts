@@ -136,7 +136,7 @@ export class ZTTeamRenderController {
     const [reels, total] = await Promise.all([
       this.prisma.ztteam_reels.findMany({
         where,
-        orderBy: { created_at: 'desc' },
+        orderBy: { updated_at: 'desc' },
         take,
         skip,
         include: { 

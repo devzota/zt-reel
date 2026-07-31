@@ -16,7 +16,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly facebookService: ZTTeamFacebookService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   onApplicationBootstrap() {
     this.logger.log('Application started, triggering initial publisher cron...');
@@ -45,23 +45,39 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
       });
 
       const now = new Date();
+      const postedInThisTick = new Set<string>();
 
       for (const reel of reels) {
         if (!reel.page) continue;
         
+        /** KHÓA BỘ NHỚ: Đảm bảo vòng lặp chỉ đăng 1 video cho 1 Page trong 1 phút */
+        if (postedInThisTick.has(reel.page_id)) continue;
+
         const { schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes } = reel.page;
         let shouldPublish = false;
 
+        /** KHÓA DATABASE: Lấy thời gian đăng của video gần nhất CỦA PAGE NÀY */
+        const lastPostedReel = await this.prisma.ztteam_reels.findFirst({
+          where: { page_id: reel.page_id, status: 'POSTED' },
+          orderBy: { updated_at: 'desc' }
+        });
+        const lastPostTime = lastPostedReel ? new Date(lastPostedReel.updated_at) : null;
+        const diffMinutesFromLastPost = lastPostTime ? Math.floor((now.getTime() - lastPostTime.getTime()) / 60000) : Infinity;
+
         if (schedule_mode === 'fixed') {
           if (schedule_fixed_times && Array.isArray(schedule_fixed_times)) {
-            const currentHourMinutes = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            /** Example: if time is 15:05 and fixed time is "15:00", we should allow a buffer */
             for (const time of schedule_fixed_times as string[]) {
               const [h, m] = time.split(':').map(Number);
               const fixedTimeMinutes = h * 60 + m;
               const currentMinutes = now.getHours() * 60 + now.getMinutes();
-              /** If current time is within 5 minutes after the fixed time */
+              
+              /** Nếu giờ hiện tại nằm trong cửa sổ 5 phút của khung giờ anh đã cài */
               if (currentMinutes >= fixedTimeMinutes && currentMinutes < fixedTimeMinutes + 5) {
+                /** Nếu vừa có 1 video đăng cách đây chưa tới 10 phút -> Khung giờ này ĐÃ DÙNG! Bỏ qua! */
+                if (diffMinutesFromLastPost < 10) {
+                  this.logger.log(`Skipping reel ${reel.id}: A video was already posted ${diffMinutesFromLastPost} mins ago for this time slot.`);
+                  break; 
+                }
                 shouldPublish = true;
                 break;
               }
@@ -71,21 +87,13 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
           /** immediate or gap mode */
           const gapMinutes = schedule_immediate_gap_minutes || 0;
           
-          /** Find the last posted reel for this page */
-          const lastPostedReel = await this.prisma.ztteam_reels.findFirst({
-            where: { page_id: reel.page_id, status: 'POSTED' },
-            orderBy: { updated_at: 'desc' }
-          });
-
           if (!lastPostedReel) {
             shouldPublish = true;
           } else {
-            const lastPostTime = new Date(lastPostedReel.updated_at);
-            const diffMinutes = Math.floor((now.getTime() - lastPostTime.getTime()) / 60000);
-            if (diffMinutes >= gapMinutes) {
+            if (diffMinutesFromLastPost >= gapMinutes) {
               shouldPublish = true;
             } else {
-              this.logger.log(`Skipping reel ${reel.id} due to gap setting (${diffMinutes}/${gapMinutes} mins)`);
+              this.logger.log(`Skipping reel ${reel.id} due to gap setting (${diffMinutesFromLastPost}/${gapMinutes} mins)`);
             }
           }
         }
@@ -93,6 +101,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         if (shouldPublish) {
           try {
             await this.ztteam_publishReel(reel);
+            postedInThisTick.add(reel.page_id);
           } catch (error: any) {
             this.logger.error(`Failed to auto-publish reel ${reel.id}: ${error.message}`);
           }
@@ -108,15 +117,15 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
 
   private async ztteam_publishReel(reel: any) {
     this.logger.log(`Auto-publishing reel ${reel.id} to page ${reel.page.name}...`);
-    
+
     const videoPath = path.join(process.cwd(), 'storage', 'reels', reel.id, 'output.mp4');
-    
+
     if (!fs.existsSync(videoPath)) {
       throw new Error('File video không tồn tại trên server');
     }
 
     let description = reel.ai_caption || reel.wp_post_title || '';
-    
+
     /** Clean up any old tracking links that might have been baked into the database */
     if (description.includes('utm_source=reel')) {
       const parts = description.split(/(👉|🔥|📌|👇|🔗|Read more:)/);
@@ -126,14 +135,14 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         description = description.split(/\n\n.*utm_source=reel/)[0].trim();
       }
     }
-    
+
     const slugify = (text: string) => {
       if (!text) return '';
       return text.toString().toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
     };
-    
+
     const utmMedium = slugify(reel.page?.fb_account?.name || 'account');
     const utmCampaign = slugify(reel.page?.name || 'page');
     const trackingLink = reel.wp_post_url ? `${reel.wp_post_url}${reel.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}` : '';
@@ -178,13 +187,13 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
 
     await this.prisma.ztteam_reels.update({
       where: { id: reel.id },
-      data: { 
+      data: {
         status: 'POSTED',
         is_posted: true,
-        fb_post_id: response.id 
+        fb_post_id: response.id
       }
     });
-    
+
     this.eventEmitter.emit('reel.updated', { id: reel.id, status: 'POSTED', fb_post_id: response.id });
     this.logger.log(`Reel ${reel.id} successfully auto-published`);
   }
