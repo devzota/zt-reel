@@ -117,6 +117,16 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
 
     let description = reel.ai_caption || reel.wp_post_title || '';
     
+    /** Clean up any old tracking links that might have been baked into the database */
+    if (description.includes('utm_source=reel')) {
+      const parts = description.split(/(👉|🔥|📌|👇|🔗|Read more:)/);
+      if (parts.length > 1) {
+        description = parts[0].trim();
+      } else {
+        description = description.split(/\n\n.*utm_source=reel/)[0].trim();
+      }
+    }
+    
     const slugify = (text: string) => {
       if (!text) return '';
       return text.toString().toLowerCase()

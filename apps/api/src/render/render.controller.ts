@@ -222,12 +222,22 @@ export class ZTTeamRenderController {
     const reelsWithDetails = reels.map(r => {
       let finalCaption = r.ai_caption || r.wp_post_title || '';
       let finalComment = null;
+
+      /** Clean up any old tracking links that might have been baked into the database */
+      if (finalCaption.includes('utm_source=reel')) {
+        const parts = finalCaption.split(/(👉|🔥|📌|👇|🔗|Read more:)/);
+        if (parts.length > 1) {
+          finalCaption = parts[0].trim();
+        } else {
+          finalCaption = finalCaption.split(/\n\n.*utm_source=reel/)[0].trim();
+        }
+      }
       
       const utmMedium = slugify(r.page?.fb_account?.name || 'account');
       const utmCampaign = slugify(r.page?.name || 'page');
       const trackingLink = r.wp_post_url ? `${r.wp_post_url}${r.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}` : '';
       
-      if (r.wp_post_url && r.page?.add_link_to_caption && !finalCaption.includes('utm_source=reel')) {
+      if (r.wp_post_url && r.page?.add_link_to_caption) {
         const prefixes = [
           '👉 Discover more here:',
           '🔥 Read the full story:',
@@ -345,6 +355,16 @@ export class ZTTeamRenderController {
     try {
       let description = reel.ai_caption || reel.wp_post_title || '';
       let trackingLinkManual = '';
+      
+      /** Clean up any old tracking links that might have been baked into the database */
+      if (description.includes('utm_source=reel')) {
+        const parts = description.split(/(👉|🔥|📌|👇|🔗|Read more:)/);
+        if (parts.length > 1) {
+          description = parts[0].trim();
+        } else {
+          description = description.split(/\n\n.*utm_source=reel/)[0].trim();
+        }
+      }
       
       if (reel.wp_post_url) {
         const slugify = (text: string) => {
