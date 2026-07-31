@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM node:20-bullseye-slim
 
 # Cài đặt các thư viện hệ thống cần thiết cho FFmpeg và Chromium (Puppeteer)
 RUN apt-get update && apt-get install -y \
