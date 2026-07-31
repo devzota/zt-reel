@@ -219,13 +219,35 @@ export class ZTTeamRenderController {
     /** Generate final_caption dynamically for UI preview and add timestamps */
     const reelsWithDetails = reels.map(r => {
       let finalCaption = r.ai_caption || r.wp_post_title || '';
+      let finalComment = null;
+      
       const utmMedium = slugify(r.page?.fb_account?.name || 'account');
       const utmCampaign = slugify(r.page?.name || 'page');
+      const trackingLink = r.wp_post_url ? `${r.wp_post_url}${r.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}` : '';
       
       if (r.wp_post_url && r.page?.add_link_to_caption && !finalCaption.includes('utm_source=reel')) {
-        const separator = r.wp_post_url.includes('?') ? '&' : '?';
-        const trackingLink = `${r.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
-        finalCaption = `${finalCaption}\n\nRead more: ${trackingLink}`;
+        const prefixes = [
+          '👉 Discover more here:',
+          '🔥 Read the full story:',
+          '📌 Check out the details:',
+          '👇 Full article link:',
+          '🔗 Learn more at:'
+        ];
+        const prefixIndex = r.id.charCodeAt(r.id.length - 1) % prefixes.length;
+        const prefix = prefixes[prefixIndex];
+        finalCaption = `${prefix} ${trackingLink}\n\n${finalCaption}`;
+      }
+      
+      if (r.wp_post_url && r.page?.add_link_to_comment) {
+        const commentPrefixes = [
+            '👉 Discover more here:',
+            '🔥 Read the full story:',
+            '📌 Check out the details:',
+            '👇 Full article link:',
+            '🔗 Learn more at:'
+          ];
+        const prefixIndex = r.id.charCodeAt(r.id.length - 2) % commentPrefixes.length;
+        finalComment = `${commentPrefixes[prefixIndex]} ${trackingLink}`;
       }
 
       let posted_at = null;
@@ -237,7 +259,7 @@ export class ZTTeamRenderController {
         scheduled_at = reelScheduledTimeMap.get(r.id) || r.updated_at;
       }
 
-      return { ...r, final_caption: finalCaption, posted_at, scheduled_at };
+      return { ...r, final_caption: finalCaption, final_comment: finalComment, posted_at, scheduled_at };
     });
 
     return { reels: reelsWithDetails, total, page: parseInt(page || '1', 10), limit: take };
@@ -320,8 +342,8 @@ export class ZTTeamRenderController {
 
     try {
       let description = reel.ai_caption || reel.wp_post_title || '';
+      let trackingLinkManual = '';
       
-      /** Generate UTM Tracking Link for Post */
       if (reel.wp_post_url) {
         const slugify = (text: string) => {
           if (!text) return '';
@@ -334,12 +356,20 @@ export class ZTTeamRenderController {
           include: { fb_account: true }
         });
         
+        const utmMedium = slugify(pageData?.fb_account?.name || 'account');
+        const utmCampaign = slugify(pageData?.name || 'page');
+        trackingLinkManual = `${reel.wp_post_url}${reel.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+        
         if (pageData?.add_link_to_caption) {
-          const utmMedium = slugify(pageData?.fb_account?.name || 'account');
-          const utmCampaign = slugify(pageData?.name || 'page');
-          const separator = reel.wp_post_url.includes('?') ? '&' : '?';
-          const trackingLink = `${reel.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
-          description = `${description}\n\nRead more: ${trackingLink}`;
+          const prefixes = [
+          '👉 Discover more here:',
+          '🔥 Read the full story:',
+          '📌 Check out the details:',
+          '👇 Full article link:',
+          '🔗 Learn more at:'
+        ];
+          const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+          description = `${prefix} ${trackingLinkManual}\n\n${description}`;
         }
       }
 
@@ -350,14 +380,20 @@ export class ZTTeamRenderController {
       );
 
       /** Check if we should add link to comment */
-      if (reel.page.add_link_to_comment && reel.wp_post_url && response.id) {
+      if (reel.page.add_link_to_comment && trackingLinkManual && response.id) {
         try {
-          const commentPrefixes = ['Read the full story here:', 'More details at:', 'Check out the full article:'];
+          const commentPrefixes = [
+            '👉 Discover more here:',
+            '🔥 Read the full story:',
+            '📌 Check out the details:',
+            '👇 Full article link:',
+            '🔗 Learn more at:'
+          ];
           const commentPrefix = commentPrefixes[Math.floor(Math.random() * commentPrefixes.length)];
           await this.facebookService.ztteam_publishComment(
             reel.page.fb_page_id,
             response.id,
-            `${commentPrefix} ${reel.wp_post_url}`
+            `${commentPrefix} ${trackingLinkManual}`
           );
         } catch (e: any) {
           /** Ignore comment error so it doesn't fail the post status */
