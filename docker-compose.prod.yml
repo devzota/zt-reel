@@ -55,7 +55,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_FB_APP_ID: "1346835604110691"
+        VITE_FB_APP_ID: ${FB_APP_ID}
     container_name: ztreel_web_prod
     ports:
       - "8080:80"
