@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards, Sse, MessageEvent } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, Sse, MessageEvent, Header } from '@nestjs/common';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ZTTeamRenderProcessor } from './render.processor';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +23,8 @@ export class ZTTeamRenderController {
    * SSE endpoint for live updates. No auth guard so the browser EventSource can connect easily.
    */
   @Sse('events')
+  @Header('Cache-Control', 'no-cache')
+  @Header('X-Accel-Buffering', 'no')
   ztteam_renderEvents(): Observable<MessageEvent> {
     return fromEvent(this.eventEmitter, 'reel.updated').pipe(
       map((payload) => {
