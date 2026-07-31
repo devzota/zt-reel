@@ -132,12 +132,43 @@ export class ZTTeamRenderController {
         orderBy: { created_at: 'desc' },
         take,
         skip,
-        include: { page: { select: { name: true, avatar: true, fb_page_id: true } } },
+        include: { 
+          page: { 
+            select: { 
+              name: true, 
+              avatar: true, 
+              fb_page_id: true,
+              add_link_to_caption: true,
+              fb_account: { select: { name: true } }
+            } 
+          } 
+        },
       }),
       this.prisma.ztteam_reels.count({ where }),
     ]);
 
-    return { reels, total, page: parseInt(page || '1', 10), limit: take };
+    const slugify = (text: string) => {
+      if (!text) return '';
+      return text.toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
+    };
+
+    /** Generate final_caption dynamically for UI preview */
+    const reelsWithFinalCaption = reels.map(r => {
+      let finalCaption = r.ai_caption || r.wp_post_title || '';
+      const utmMedium = slugify(r.page?.fb_account?.name || 'account');
+      const utmCampaign = slugify(r.page?.name || 'page');
+      
+      if (r.wp_post_url) {
+        const separator = r.wp_post_url.includes('?') ? '&' : '?';
+        const trackingLink = `${r.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+        finalCaption = `${finalCaption}\n\nChi tiết bài viết: ${trackingLink}`;
+      }
+      return { ...r, final_caption: finalCaption };
+    });
+
+    return { reels: reelsWithFinalCaption, total, page: parseInt(page || '1', 10), limit: take };
   }
 
   /**
@@ -218,11 +249,24 @@ export class ZTTeamRenderController {
     try {
       let description = reel.ai_caption || reel.wp_post_title || '';
       
-      /** Check if we should add link to caption */
-      if (reel.page.add_link_to_caption && reel.wp_post_url) {
-        const prefixes = ['Source:', 'Read more:', 'Click here:', 'More info:', 'Full article:', 'Discover more:'];
-        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-        description = `${prefix} ${reel.wp_post_url}\n\n${description}`;
+      /** Generate UTM Tracking Link for Post */
+      if (reel.wp_post_url) {
+        const slugify = (text: string) => {
+          if (!text) return '';
+          return text.toString().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
+        };
+        const pageData = await this.prisma.ztteam_pages.findUnique({
+          where: { id: reel.page_id },
+          include: { fb_account: true }
+        });
+        
+        const utmMedium = slugify(pageData?.fb_account?.name || 'account');
+        const utmCampaign = slugify(pageData?.name || 'page');
+        const separator = reel.wp_post_url.includes('?') ? '&' : '?';
+        const trackingLink = `${reel.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+        description = `${description}\n\nChi tiết bài viết: ${trackingLink}`;
       }
 
       const response = await this.facebookService.ztteam_publishReel(

@@ -99,6 +99,11 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     /** Update status to RENDERING */
     await this.ztteam_updateReel(reelId, { status: 'RENDERING', progress: 0 });
+    
+    /** Fetch reel to get original wp_post_url */
+    const reelRecord = await this.prisma.ztteam_reels.findUnique({
+      where: { id: reelId }
+    });
 
     /** Create working directory */
     const workDir = path.join(this.storageRoot, reelId);
@@ -120,7 +125,25 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         page.ai_custom_prompt,
         page.voice_speed || 1.0,
       );
-      await this.ztteam_updateReel(reelId, { ai_script: script, ai_caption: caption, ai_hook: hook, progress: 35 });
+
+      /** Construct UTM tracking link */
+      let finalCaption = caption;
+      if (reelRecord?.wp_post_url) {
+        const slugify = (text: string) => {
+          return text.toString().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
+        };
+        const fbAccountName = (page as any).fb_account?.name || 'account';
+        const pageName = page.name || 'page';
+        const utmMedium = slugify(fbAccountName);
+        const utmCampaign = slugify(pageName);
+        const separator = reelRecord.wp_post_url.includes('?') ? '&' : '?';
+        const trackingLink = `${reelRecord.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+        finalCaption = caption ? `${caption}\n\nChi tiết bài viết: ${trackingLink}` : `Chi tiết bài viết: ${trackingLink}`;
+      }
+
+      await this.ztteam_updateReel(reelId, { ai_script: script, ai_caption: finalCaption, ai_hook: hook, progress: 35 });
 
       /** ========== STEP 3: Prepare images ========== */
       await this.ztteam_updateReel(reelId, { progress: 45 });
@@ -183,14 +206,14 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     let page = await this.prisma.ztteam_pages.findUnique({
       where: { id: pageId },
-      include: { sources: true },
+      include: { sources: true, fb_account: true },
     });
 
     if (!page) {
       /** Fallback for old job payloads that used fb_page_id */
       page = await this.prisma.ztteam_pages.findFirst({
         where: { fb_page_id: pageId },
-        include: { sources: true },
+        include: { sources: true, fb_account: true },
       });
     }
 

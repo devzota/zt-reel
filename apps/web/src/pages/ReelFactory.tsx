@@ -217,7 +217,16 @@ export default function ReelFactory() {
 
                 {/** AI Script preview */}
                 {reel.ai_script && (
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-2 italic">"{reel.ai_script}"</p>
+                  <div className="mt-2 text-sm">
+                    <p className="text-gray-600 line-clamp-2 italic mb-2">Lời đọc: "{reel.ai_script}"</p>
+                  </div>
+                )}
+                {/** AI Caption preview */}
+                {reel.final_caption && (
+                  <div className="p-3 bg-gray-50 rounded-lg text-sm border border-gray-100 mt-2">
+                    <p className="font-semibold text-gray-700 mb-1 text-xs">Nội dung đăng Page:</p>
+                    <p className="text-gray-800 whitespace-pre-wrap">{reel.final_caption}</p>
+                  </div>
                 )}
 
                 {/** Actions */}
