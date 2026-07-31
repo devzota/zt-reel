@@ -1,0 +1,19 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1234,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,372,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.05,Default,,0,0,0,,{\k20}What {\k20}if {\k20}I {\k20}told {\k20}you {\k20}Jalen {\k20}Carter's {\k20}big {\k20}contract {\k20}is {\k20}about {\k20}more {\k20}than {\k20}just {\k20}money?
+Dialogue: 0,0:00:03.05,0:00:06.10,Default,,0,0,0,,{\k22}It's {\k22}about {\k22}a {\k22}bond {\k22}with {\k22}Jordan {\k22}Davis, {\k22}forged {\k22}through {\k22}years {\k22}of {\k22}teamwork {\k22}at {\k22}Georgia.
+Dialogue: 0,0:00:06.10,0:00:09.14,Default,,0,0,0,,{\k18}The {\k18}Eagles {\k18}didn’t {\k18}just {\k18}secure {\k18}a {\k18}player, {\k18}they {\k18}preserved {\k18}a {\k18}powerful {\k18}defensive {\k18}partnership {\k18}for {\k18}years {\k18}to {\k18}come.
+Dialogue: 0,0:00:09.14,0:00:12.19,Default,,0,0,0,,{\k38}Want {\k38}to {\k38}know {\k38}how {\k38}that {\k38}impacts {\k38}the {\k38}team?
+Dialogue: 0,0:00:12.19,0:00:15.24,Default,,0,0,0,,{\k153}Stay {\k153}tuned!

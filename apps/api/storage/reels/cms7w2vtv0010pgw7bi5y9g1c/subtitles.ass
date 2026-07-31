@@ -1,0 +1,22 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1234,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,372,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:02.41,Default,,0,0,0,,{\k34}Tim {\k34}Conway {\k34}transformed {\k34}silence {\k34}into {\k34}comedy {\k34}gold.
+Dialogue: 0,0:00:02.41,0:00:04.82,Default,,0,0,0,,{\k15}With {\k15}just {\k15}a {\k15}pause, {\k15}he {\k15}built {\k15}tension {\k15}that {\k15}left {\k15}audiences {\k15}on {\k15}the {\k15}edge {\k15}of {\k15}their {\k15}seats.
+Dialogue: 0,0:00:04.82,0:00:07.23,Default,,0,0,0,,{\k30}Imagine {\k30}waiting {\k30}for {\k30}a {\k30}punchline {\k30}that {\k30}never {\k30}comes.
+Dialogue: 0,0:00:07.23,0:00:09.64,Default,,0,0,0,,{\k80}That’s {\k80}Conway's {\k80}brilliance.
+Dialogue: 0,0:00:09.64,0:00:12.04,Default,,0,0,0,,{\k17}He {\k17}didn’t {\k17}rush {\k17}to {\k17}the {\k17}laugh; {\k17}he {\k17}let {\k17}the {\k17}suspense {\k17}do {\k17}the {\k17}heavy {\k17}lifting.
+Dialogue: 0,0:00:12.04,0:00:14.45,Default,,0,0,0,,{\k24}Watch {\k24}how {\k24}his {\k24}partner, {\k24}Harvey {\k24}Korman, {\k24}became {\k24}the {\k24}ultimate {\k24}punchline.
+Dialogue: 0,0:00:14.45,0:00:16.86,Default,,0,0,0,,{\k34}Want {\k34}to {\k34}learn {\k34}more {\k34}about {\k34}comedic {\k34}timing?
+Dialogue: 0,0:00:16.86,0:00:19.27,Default,,0,0,0,,{\k121}Stay {\k121}tuned!

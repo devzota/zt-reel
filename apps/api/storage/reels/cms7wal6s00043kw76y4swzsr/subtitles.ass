@@ -1,0 +1,20 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1238,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,120,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.50,Default,,0,0,0,,{\k32}The {\k32}WNBA {\k32}is {\k32}facing {\k32}backlash {\k32}for {\k32}banning {\k32}the {\k32}viral {\k32}pointing {\k32}meme.
+Dialogue: 0,0:00:03.50,0:00:06.99,Default,,0,0,0,,{\k27}It's {\k27}not {\k27}just {\k27}a {\k27}gesture; {\k27}it's {\k27}a {\k27}money-making {\k27}opportunity {\k27}they {\k27}refuse {\k27}to {\k27}embrace.
+Dialogue: 0,0:00:06.99,0:00:10.49,Default,,0,0,0,,{\k32}By {\k32}labeling {\k32}it {\k32}'derogatory,' {\k32}the {\k32}league {\k32}is {\k32}stifling {\k32}creativity {\k32}and {\k32}demand.
+Dialogue: 0,0:00:10.49,0:00:13.98,Default,,0,0,0,,{\k70}Why {\k70}would {\k70}they {\k70}do {\k70}this?
+Dialogue: 0,0:00:13.98,0:00:17.48,Default,,0,0,0,,{\k44}Dive {\k44}into {\k44}the {\k44}controversy {\k44}and {\k44}discover {\k44}the {\k44}implications.
+Dialogue: 0,0:00:17.48,0:00:20.98,Default,,0,0,0,,{\k50}Don’t {\k50}miss {\k50}out, {\k50}follow {\k50}for {\k50}more {\k50}insights.

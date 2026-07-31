@@ -1,0 +1,19 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1238,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,120,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.88,Default,,0,0,0,,{\k32}What {\k32}if {\k32}everything {\k32}you {\k32}believed {\k32}about {\k32}Will {\k32}Roberts' {\k32}battle {\k32}was {\k32}a {\k32}lie?
+Dialogue: 0,0:00:03.88,0:00:07.76,Default,,0,0,0,,{\k39}Brittney's {\k39}shocking {\k39}confession {\k39}revealed {\k39}that {\k39}he {\k39}could {\k39}have {\k39}stayed {\k39}longer.
+Dialogue: 0,0:00:07.76,0:00:11.64,Default,,0,0,0,,{\k35}The {\k35}real {\k35}reason {\k35}for {\k35}stopping {\k35}his {\k35}treatment {\k35}will {\k35}leave {\k35}you {\k35}heartbroken.
+Dialogue: 0,0:00:11.64,0:00:15.51,Default,,0,0,0,,{\k35}Join {\k35}us {\k35}as {\k35}we {\k35}uncover {\k35}the {\k35}truth {\k35}behind {\k35}this {\k35}tragic {\k35}decision.
+Dialogue: 0,0:00:15.51,0:00:19.39,Default,,0,0,0,,{\k55}Watch {\k55}till {\k55}the {\k55}end {\k55}for {\k55}more {\k55}details.

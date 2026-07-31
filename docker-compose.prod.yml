@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: ztreel_postgres_prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      POSTGRES_DB: ${DB_NAME:-ztreel}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - ztreel_network
+
+  redis:
+    image: redis:7
+    container_name: ztreel_redis_prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    networks:
+      - ztreel_network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ztreel_api_prod
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-root}:${DB_PASSWORD:-rootpassword}@postgres:5432/${DB_NAME:-ztreel}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-ztreel_super_secret_key_change_me_in_prod}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ztreel_uploads:/usr/src/app/apps/api/uploads
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - ztreel_network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_FB_APP_ID: "1346835604110691"
+    container_name: ztreel_web_prod
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: always
+    networks:
+      - ztreel_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  ztreel_uploads:
+
+networks:
+  ztreel_network:
+    driver: bridge

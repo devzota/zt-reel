@@ -1,0 +1,19 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1234,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,372,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:04.15,Default,,0,0,0,,{\k30}Dating {\k30}back {\k30}to {\k30}the {\k30}Roman {\k30}era, {\k30}an {\k30}astonishing {\k30}artifact {\k30}reveals {\k30}ancient {\k30}dentistry's {\k30}hidden {\k30}sophistication.
+Dialogue: 0,0:00:04.15,0:00:08.30,Default,,0,0,0,,{\k26}This {\k26}intricately {\k26}designed {\k26}gold {\k26}wire {\k26}dental {\k26}appliance {\k26}challenges {\k26}everything {\k26}we {\k26}know {\k26}about {\k26}medical {\k26}technology {\k26}in {\k26}antiquity.
+Dialogue: 0,0:00:08.30,0:00:12.46,Default,,0,0,0,,{\k35}Crafted {\k35}with {\k35}expert {\k35}skill, {\k35}it {\k35}illustrates {\k35}a {\k35}deep {\k35}understanding {\k35}of {\k35}oral {\k35}health.
+Dialogue: 0,0:00:12.46,0:00:16.61,Default,,0,0,0,,{\k41}But {\k41}was {\k41}this {\k41}innovation {\k41}for {\k41}treatment {\k41}or {\k41}to {\k41}showcase {\k41}status?
+Dialogue: 0,0:00:16.61,0:00:20.76,Default,,0,0,0,,{\k52}Discover {\k52}the {\k52}surprising {\k52}truth {\k52}about {\k52}ancient {\k52}dental {\k52}practices.

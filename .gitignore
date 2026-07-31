@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+apps/api/node_modules/
+apps/web/node_modules/
+
+# Build and Temp folders
+dist/
+build/
+.next/
+out/
+.cache/
+apps/api/dist/
+apps/web/dist/
+
+# Env files
+.env
+.env.local
+.env.development
+*.env
+!.env.example
+
+# Logs and DB
+*.log
+npm-debug.log*
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
