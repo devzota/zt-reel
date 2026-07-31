@@ -28,3 +28,7 @@ apps/api/prisma/*.db-journal
 # OS files
 .DS_Store
 Thumbs.db
+
+# Security - Ignore local admin scripts
+apps/api/change_pass.js
+apps/api/checkConfig.js
