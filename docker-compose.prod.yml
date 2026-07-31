@@ -39,6 +39,8 @@ services:
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET:-ztreel_super_secret_key_change_me_in_prod}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - FB_APP_ID=${FB_APP_ID}
+      - FB_APP_SECRET=${FB_APP_SECRET}
     ports:
       - "3000:3000"
     volumes:
