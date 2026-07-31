@@ -33,6 +33,7 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: ztreel_api_prod
     environment:
+      - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-root}:${DB_PASSWORD:-rootpassword}@postgres:5432/${DB_NAME:-ztreel}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
