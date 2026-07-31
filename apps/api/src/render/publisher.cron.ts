@@ -129,7 +129,15 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
     const trackingLink = reel.wp_post_url ? `${reel.wp_post_url}${reel.wp_post_url.includes('?') ? '&' : '?'}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}` : '';
 
     if (reel.page.add_link_to_caption && reel.wp_post_url) {
-      description = `${trackingLink}\n\n${description}`;
+      const prefixes = [
+        '👉 Discover more here:',
+        '🔥 Read the full story:',
+        '📌 Check out the details:',
+        '👇 Full article link:',
+        '🔗 Learn more at:'
+      ];
+      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      description = `${prefix} ${trackingLink}\n\n${description}`;
     }
 
     const response = await this.facebookService.ztteam_publishReel(
@@ -140,10 +148,18 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
 
     if (reel.page.add_link_to_comment && reel.wp_post_url && response.id) {
       try {
+        const commentPrefixes = [
+          '👉 Discover more here:',
+          '🔥 Read the full story:',
+          '📌 Check out the details:',
+          '👇 Full article link:',
+          '🔗 Learn more at:'
+        ];
+        const commentPrefix = commentPrefixes[Math.floor(Math.random() * commentPrefixes.length)];
         await this.facebookService.ztteam_publishComment(
           reel.page.fb_page_id,
           response.id,
-          trackingLink
+          `${commentPrefix} ${trackingLink}`
         );
       } catch (e: any) {
         this.logger.error(`Failed to post comment for reel ${reel.id}: ${e.message}`);
