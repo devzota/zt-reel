@@ -139,6 +139,7 @@ export class ZTTeamRenderController {
               avatar: true, 
               fb_page_id: true,
               add_link_to_caption: true,
+              add_link_to_comment: true,
               fb_account: { select: { name: true } }
             } 
           } 
@@ -170,8 +171,8 @@ export class ZTTeamRenderController {
        include: { page: true }
     });
     
-    const pageNextTimeMap = new Map<string, Date>();
-    const reelScheduledTimeMap = new Map<string, Date>();
+    const pageNextTimeMap = new Map<string, Date | null>();
+    const reelScheduledTimeMap = new Map<string, Date | null>();
 
     for (const pending of allPending) {
        const pageId = pending.page_id;
@@ -183,7 +184,7 @@ export class ZTTeamRenderController {
          baseTime = lastPostedMap.get(pageId) || pending.updated_at;
        }
 
-       let scheduledAt = pending.updated_at;
+       let scheduledAt: Date | null = pending.updated_at;
 
        if (p.schedule_mode === 'fixed') {
          const times = p.schedule_fixed_times || [];

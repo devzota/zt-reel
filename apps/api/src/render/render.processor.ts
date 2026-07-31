@@ -4,7 +4,7 @@ import IORedis from 'ioredis';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { ZTTeamAIService } from '../ai/ai.service';
 import { ZTTeamTTSService } from '../audio/tts.service';
