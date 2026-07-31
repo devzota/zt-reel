@@ -57,7 +57,7 @@ services:
         VITE_FB_APP_ID: "1346835604110691"
     container_name: ztreel_web_prod
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - api
     restart: always
