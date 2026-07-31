@@ -8,13 +8,8 @@ import 'dotenv/config';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
-    const pool = new Pool({
-      host: 'localhost',
-      port: 5432,
-      user: 'root',
-      password: 'rootpassword',
-      database: 'ztreel',
-    });
+    const connectionString = process.env.DATABASE_URL || 'postgresql://root:rootpassword@localhost:5432/ztreel?schema=public';
+    const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     super({ adapter });
   }
