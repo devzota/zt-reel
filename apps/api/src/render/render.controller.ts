@@ -162,7 +162,59 @@ export class ZTTeamRenderController {
       distinct: ['page_id']
     });
     const lastPostedMap = new Map(lastPostedReels.map(r => [r.page_id, r.updated_at]));
-    const now = new Date();
+    
+    /** Simulate queue to get precise scheduled times for all pending reels */
+    const allPending = await this.prisma.ztteam_reels.findMany({
+       where: { status: 'COMPLETED', is_posted: false, page_id: { in: pageIds } },
+       orderBy: { created_at: 'asc' },
+       include: { page: true }
+    });
+    
+    const pageNextTimeMap = new Map<string, Date>();
+    const reelScheduledTimeMap = new Map<string, Date>();
+
+    for (const pending of allPending) {
+       const pageId = pending.page_id;
+       const p = pending.page as any;
+       if (!p) continue;
+
+       let baseTime = pageNextTimeMap.get(pageId);
+       if (!baseTime) {
+         baseTime = lastPostedMap.get(pageId) || pending.updated_at;
+       }
+
+       let scheduledAt = pending.updated_at;
+
+       if (p.schedule_mode === 'fixed') {
+         const times = p.schedule_fixed_times || [];
+         if (times.length > 0) {
+           times.sort();
+           let found = false;
+           for (let dayOffset = 0; dayOffset <= 7; dayOffset++) {
+             for (const time of times) {
+               const [h, m] = time.split(':').map(Number);
+               const testDate = new Date(baseTime);
+               testDate.setDate(testDate.getDate() + dayOffset);
+               testDate.setHours(h, m, 0, 0);
+               if (testDate > baseTime) {
+                 scheduledAt = testDate;
+                 found = true;
+                 break;
+               }
+             }
+             if (found) break;
+           }
+         }
+       } else {
+         const gap = p.schedule_immediate_gap_minutes || 0;
+         const diff = gap * 60000;
+         const candidate = new Date(baseTime.getTime() + diff);
+         scheduledAt = candidate > pending.updated_at ? candidate : pending.updated_at;
+       }
+
+       reelScheduledTimeMap.set(pending.id, scheduledAt);
+       pageNextTimeMap.set(pageId, scheduledAt);
+    }
 
     /** Generate final_caption dynamically for UI preview and add timestamps */
     const reelsWithDetails = reels.map(r => {
@@ -182,43 +234,7 @@ export class ZTTeamRenderController {
       if (r.status === 'POSTED') {
         posted_at = r.updated_at;
       } else if (r.status === 'COMPLETED' && !r.is_posted) {
-        if (r.page) {
-          const { schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes } = r.page as any;
-          if (schedule_mode === 'fixed' && Array.isArray(schedule_fixed_times) && schedule_fixed_times.length > 0) {
-            let nextDate = null;
-            let nextTimeMinutes = Infinity;
-            let earliestTimeMinutes = Infinity;
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            
-            for (const time of schedule_fixed_times) {
-               const [h, m] = time.split(':').map(Number);
-               const fixedTimeMins = h * 60 + m;
-               if (fixedTimeMins < earliestTimeMinutes) earliestTimeMinutes = fixedTimeMins;
-               if (fixedTimeMins > currentMinutes && fixedTimeMins < nextTimeMinutes) {
-                 nextTimeMinutes = fixedTimeMins;
-               }
-            }
-            if (nextTimeMinutes !== Infinity) {
-               nextDate = new Date(now);
-               nextDate.setHours(Math.floor(nextTimeMinutes / 60), nextTimeMinutes % 60, 0, 0);
-            } else {
-               nextDate = new Date(now);
-               nextDate.setDate(nextDate.getDate() + 1);
-               nextDate.setHours(Math.floor(earliestTimeMinutes / 60), earliestTimeMinutes % 60, 0, 0);
-            }
-            scheduled_at = nextDate;
-          } else {
-            const gap = schedule_immediate_gap_minutes || 0;
-            const lastTime = lastPostedMap.get(r.page_id);
-            if (!lastTime) {
-              scheduled_at = now;
-            } else {
-              const diff = gap * 60000;
-              const nextTime = new Date(lastTime.getTime() + diff);
-              scheduled_at = nextTime > now ? nextTime : now;
-            }
-          }
-        }
+        scheduled_at = reelScheduledTimeMap.get(r.id) || r.updated_at;
       }
 
       return { ...r, final_caption: finalCaption, posted_at, scheduled_at };
