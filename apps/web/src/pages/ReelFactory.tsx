@@ -230,9 +230,9 @@ export default function ReelFactory() {
                     <p className="font-bold text-[13px] text-gray-900 leading-tight truncate">{reel.page?.name || 'Fanpage'}</p>
                     <div className="text-[10px] text-gray-500 flex flex-col mt-0.5 leading-tight">
                       <span className="truncate">Tạo: {ztteam_formatDate(reel.created_at)}</span>
-                      <span className="font-semibold text-primary truncate">
-                        {reel.status === 'POSTED' ? 'Đã đăng: ' : 'Tiếp theo: '} 
-                        {reel.status === 'POSTED' && reel.posted_at ? ztteam_formatDate(reel.posted_at) : (reel.scheduled_at ? ztteam_formatDate(reel.scheduled_at) : 'Đang đợi')}
+                      <span className={`font-semibold truncate ${reel.status === 'POSTED' ? 'text-emerald-600' : (reel.scheduled_at ? 'text-primary' : 'text-amber-600')}`}>
+                        {reel.status === 'POSTED' ? 'Đã đăng: ' : (reel.scheduled_at ? 'Tiếp theo: ' : '')} 
+                        {reel.status === 'POSTED' && reel.posted_at ? ztteam_formatDate(reel.posted_at) : (reel.scheduled_at ? ztteam_formatDate(reel.scheduled_at) : 'Chưa cấu hình')}
                       </span>
                     </div>
                   </div>
