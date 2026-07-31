@@ -1,0 +1,19 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1234,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,372,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:02.87,Default,,0,0,0,,{\k19}When {\k19}the {\k19}Governor {\k19}announced {\k19}a {\k19}day {\k19}of {\k19}remembrance {\k19}for {\k19}Will, {\k19}his {\k19}mother {\k19}stood {\k19}in {\k19}silence.
+Dialogue: 0,0:00:02.87,0:00:05.74,Default,,0,0,0,,{\k22}In {\k22}that {\k22}moment, {\k22}she {\k22}longed {\k22}for {\k22}just {\k22}one {\k22}more {\k22}hug {\k22}from {\k22}her {\k22}son.
+Dialogue: 0,0:00:05.74,0:00:08.61,Default,,0,0,0,,{\k24}Will, {\k24}just {\k24}15, {\k24}had {\k24}a {\k24}secret {\k24}decision {\k24}that {\k24}would {\k24}touch {\k24}Alabama's {\k24}heart.
+Dialogue: 0,0:00:08.61,0:00:11.48,Default,,0,0,0,,{\k29}What {\k29}did {\k29}this {\k29}boy {\k29}do {\k29}that {\k29}created {\k29}such {\k29}an {\k29}impact?
+Dialogue: 0,0:00:11.48,0:00:14.35,Default,,0,0,0,,{\k57}Stay {\k57}tuned {\k57}to {\k57}find {\k57}out.

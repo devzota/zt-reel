@@ -1,0 +1,19 @@
+[Script Info]
+Title: ZTReel Subtitles
+ScriptType: v4.00+
+WrapStyle: 1
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,1238,1
+Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,120,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.49,Default,,0,0,0,,{\k35}When {\k35}the {\k35}Governor {\k35}honored {\k35}Will, {\k35}his {\k35}mother {\k35}felt {\k35}only {\k35}numbness.
+Dialogue: 0,0:00:03.49,0:00:06.99,Default,,0,0,0,,{\k44}In {\k44}that {\k44}moment, {\k44}she {\k44}longed {\k44}for {\k44}her {\k44}son.
+Dialogue: 0,0:00:06.99,0:00:10.48,Default,,0,0,0,,{\k25}Unbeknownst {\k25}to {\k25}her, {\k25}Will {\k25}made {\k25}a {\k25}silent {\k25}choice {\k25}that {\k25}would {\k25}leave {\k25}a {\k25}lasting {\k25}legacy.
+Dialogue: 0,0:00:10.48,0:00:13.98,Default,,0,0,0,,{\k58}What {\k58}power {\k58}did {\k58}this {\k58}15-year-old {\k58}hold?
+Dialogue: 0,0:00:13.98,0:00:17.47,Default,,0,0,0,,{\k32}Dive {\k32}into {\k32}the {\k32}story {\k32}that {\k32}moved {\k32}an {\k32}entire {\k32}state {\k32}to {\k32}tears.

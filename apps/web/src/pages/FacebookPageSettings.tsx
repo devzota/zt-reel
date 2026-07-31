@@ -914,7 +914,7 @@ export default function FacebookPageSettings() {
                       {/** Thumbnail */}
                       <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                         {reel.thumbnail_url ? (
-                          <img src={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${reel.thumbnail_url}`} alt="" className="w-full h-full object-cover" />
+                          <img src={reel.thumbnail_url} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-2xl text-gray-400">movie</span>
@@ -972,7 +972,7 @@ export default function FacebookPageSettings() {
                           {reel.status === 'COMPLETED' && reel.video_url && (
                             <>
                               <a
-                                href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${reel.video_url}`}
+                                href={reel.video_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full text-[11px] font-bold transition-colors"

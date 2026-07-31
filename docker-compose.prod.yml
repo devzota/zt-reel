@@ -45,6 +45,7 @@ services:
       - "3000:3000"
     volumes:
       - ztreel_uploads:/usr/src/app/apps/api/uploads
+      - ztreel_storage:/usr/src/app/apps/api/storage
     depends_on:
       - postgres
       - redis
@@ -71,6 +72,7 @@ volumes:
   postgres_data:
   redis_data:
   ztreel_uploads:
+  ztreel_storage:
 
 networks:
   ztreel_network:
