@@ -183,11 +183,17 @@ export default function ReelFactory() {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
                     <h4 className="font-bold text-gray-900 truncate">{reel.wp_post_title || 'Untitled'}</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
                       <span className="font-semibold">{reel.page?.name || 'Unknown Page'}</span>
-                      <span className="mx-1.5">•</span>
-                      {ztteam_formatDate(reel.created_at)}
-                    </p>
+                      <span>•</span>
+                      {reel.status === 'POSTED' && reel.posted_at ? (
+                        <span className="text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded">Đã đăng lúc: {ztteam_formatDate(reel.posted_at)}</span>
+                      ) : reel.status === 'COMPLETED' && reel.scheduled_at ? (
+                        <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded">Dự kiến đăng: {ztteam_formatDate(reel.scheduled_at)}</span>
+                      ) : (
+                        <span>Tạo lúc: {ztteam_formatDate(reel.created_at)}</span>
+                      )}
+                    </div>
                   </div>
                   {ztteam_getStatusBadge(reel.status)}
                 </div>

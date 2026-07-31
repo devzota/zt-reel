@@ -154,21 +154,77 @@ export class ZTTeamRenderController {
         .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
     };
 
-    /** Generate final_caption dynamically for UI preview */
-    const reelsWithFinalCaption = reels.map(r => {
+    /** Fetch last posted reels for scheduling calculation */
+    const pageIds = [...new Set(reels.map(r => r.page_id))];
+    const lastPostedReels = await this.prisma.ztteam_reels.findMany({
+      where: { page_id: { in: pageIds }, status: 'POSTED' },
+      orderBy: { updated_at: 'desc' },
+      distinct: ['page_id']
+    });
+    const lastPostedMap = new Map(lastPostedReels.map(r => [r.page_id, r.updated_at]));
+    const now = new Date();
+
+    /** Generate final_caption dynamically for UI preview and add timestamps */
+    const reelsWithDetails = reels.map(r => {
       let finalCaption = r.ai_caption || r.wp_post_title || '';
       const utmMedium = slugify(r.page?.fb_account?.name || 'account');
       const utmCampaign = slugify(r.page?.name || 'page');
       
-      if (r.wp_post_url) {
+      if (r.wp_post_url && !finalCaption.includes('utm_source=reel')) {
         const separator = r.wp_post_url.includes('?') ? '&' : '?';
         const trackingLink = `${r.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
         finalCaption = `${finalCaption}\n\nChi tiết bài viết: ${trackingLink}`;
       }
-      return { ...r, final_caption: finalCaption };
+
+      let posted_at = null;
+      let scheduled_at = null;
+
+      if (r.status === 'POSTED') {
+        posted_at = r.updated_at;
+      } else if (r.status === 'COMPLETED' && !r.is_posted) {
+        if (r.page) {
+          const { schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes } = r.page as any;
+          if (schedule_mode === 'fixed' && Array.isArray(schedule_fixed_times) && schedule_fixed_times.length > 0) {
+            let nextDate = null;
+            let nextTimeMinutes = Infinity;
+            let earliestTimeMinutes = Infinity;
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            
+            for (const time of schedule_fixed_times) {
+               const [h, m] = time.split(':').map(Number);
+               const fixedTimeMins = h * 60 + m;
+               if (fixedTimeMins < earliestTimeMinutes) earliestTimeMinutes = fixedTimeMins;
+               if (fixedTimeMins > currentMinutes && fixedTimeMins < nextTimeMinutes) {
+                 nextTimeMinutes = fixedTimeMins;
+               }
+            }
+            if (nextTimeMinutes !== Infinity) {
+               nextDate = new Date(now);
+               nextDate.setHours(Math.floor(nextTimeMinutes / 60), nextTimeMinutes % 60, 0, 0);
+            } else {
+               nextDate = new Date(now);
+               nextDate.setDate(nextDate.getDate() + 1);
+               nextDate.setHours(Math.floor(earliestTimeMinutes / 60), earliestTimeMinutes % 60, 0, 0);
+            }
+            scheduled_at = nextDate;
+          } else {
+            const gap = schedule_immediate_gap_minutes || 0;
+            const lastTime = lastPostedMap.get(r.page_id);
+            if (!lastTime) {
+              scheduled_at = now;
+            } else {
+              const diff = gap * 60000;
+              const nextTime = new Date(lastTime.getTime() + diff);
+              scheduled_at = nextTime > now ? nextTime : now;
+            }
+          }
+        }
+      }
+
+      return { ...r, final_caption: finalCaption, posted_at, scheduled_at };
     });
 
-    return { reels: reelsWithFinalCaption, total, page: parseInt(page || '1', 10), limit: take };
+    return { reels: reelsWithDetails, total, page: parseInt(page || '1', 10), limit: take };
   }
 
   /**
