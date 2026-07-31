@@ -131,51 +131,7 @@ export class ZTTeamFacebookService {
     }
   }
 
-  async ztteam_getConnectedPages(userId: string) {
-    const fbAccounts = await this.prisma.ztteam_fb_accounts.findMany({
-      where: { owner_user_id: userId },
-      select: { id: true }
-    });
-
-    if (fbAccounts.length === 0) return [];
-
-    const accountIds = fbAccounts.map(a => a.id);
-
-    const pages = await this.prisma.ztteam_pages.findMany({
-      where: { fb_account_id: { in: accountIds } },
-      include: { fb_account: true }
-    });
-
-    return pages.map(p => ({
-      id: p.fb_page_id,
-      name: p.name,
-      category: p.category,
-      followersCount: p.follower_count,
-      avatar: p.avatar,
-      ownerName: p.fb_account.name,
-      status: p.token_status,
-      tags: p.tags,
-      postFormat: p.post_format,
-      scheduleMode: p.schedule_mode,
-      autoCreateEnabled: p.auto_create_enabled,
-      /** We do not send accessToken back to frontend for security */
-    }));
-  }
-
-
-  async ztteam_getPageSettings(pageId: string, userId: string) {
-    const page = await this.prisma.ztteam_pages.findFirst({
-      where: { fb_page_id: pageId },
-      include: {
-        fb_account: true,
-        sources: true
-      }
-    });
-
-    if (!page || page.fb_account.owner_user_id !== userId) {
-      throw new Error('Fanpage không tồn tại hoặc bạn không có quyền');
-    }
-
+  private async ztteam_computePageTimesAndNextVideo(page: any) {
     let lastRenderTime = page.last_auto_scan_at ? page.last_auto_scan_at : null;
     let nextRenderTime = null;
     if (page.auto_create_enabled) {
@@ -186,7 +142,6 @@ export class ZTTeamFacebookService {
       }
     }
 
-    /** Compute Last/Next Publish Time */
     const lastPublishedReel = await this.prisma.ztteam_reels.findFirst({
       where: { page_id: page.id, status: 'POSTED' },
       orderBy: { updated_at: 'desc' }
@@ -225,6 +180,79 @@ export class ZTTeamFacebookService {
       }
       nextPublishTime = nextTime;
     }
+
+    const nextReelToPublish = await this.prisma.ztteam_reels.findFirst({
+      where: { page_id: page.id, status: 'COMPLETED', is_posted: false },
+      orderBy: { created_at: 'asc' }
+    });
+
+    return {
+      lastRenderTime,
+      nextRenderTime,
+      lastPublishTime,
+      nextPublishTime,
+      nextVideoTitle: nextReelToPublish ? (nextReelToPublish.title || 'Video AI') : null
+    };
+  }
+
+  async ztteam_getConnectedPages(userId: string) {
+    const fbAccounts = await this.prisma.ztteam_fb_accounts.findMany({
+      where: { owner_user_id: userId },
+      select: { id: true }
+    });
+
+    if (fbAccounts.length === 0) return [];
+
+    const accountIds = fbAccounts.map(a => a.id);
+
+    const pages = await this.prisma.ztteam_pages.findMany({
+      where: { fb_account_id: { in: accountIds } },
+      include: { fb_account: true }
+    });
+
+    const result = await Promise.all(pages.map(async p => {
+      const times = await this.ztteam_computePageTimesAndNextVideo(p);
+      return {
+        id: p.fb_page_id,
+        name: p.name,
+        category: p.category,
+        followersCount: p.follower_count,
+        avatar: p.avatar,
+        ownerName: p.fb_account.name,
+        status: p.token_status,
+        tags: p.tags,
+        postFormat: p.post_format,
+        scheduleMode: p.schedule_mode,
+        autoCreateEnabled: p.auto_create_enabled,
+        nextPublishTime: times.nextPublishTime,
+        nextRenderTime: times.nextRenderTime,
+        scheduleFixedTimes: p.schedule_fixed_times,
+        scheduleImmediateGapMinutes: p.schedule_immediate_gap_minutes,
+        autoScanIntervalHours: p.auto_scan_interval_hours,
+        defaultReelTemplateId: p.default_reel_template_id,
+        nextVideoTitle: times.nextVideoTitle
+        /** We do not send accessToken back to frontend for security */
+      };
+    }));
+    return result;
+  }
+
+
+  async ztteam_getPageSettings(pageId: string, userId: string) {
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: { fb_page_id: pageId },
+      include: {
+        fb_account: true,
+        sources: true
+      }
+    });
+
+    if (!page || page.fb_account.owner_user_id !== userId) {
+      throw new Error('Fanpage không tồn tại hoặc bạn không có quyền');
+    }
+
+    const times = await this.ztteam_computePageTimesAndNextVideo(page);
+
     return {
       id: page.id,
       fb_page_id: page.fb_page_id,
@@ -247,10 +275,11 @@ export class ZTTeamFacebookService {
       ai_caption_length: page.ai_caption_length,
       ai_custom_prompt: page.ai_custom_prompt,
       voice_speed: page.voice_speed,
-      last_render_time: lastRenderTime,
-      next_render_time: nextRenderTime,
-      last_publish_time: lastPublishTime,
-      next_publish_time: nextPublishTime,
+      last_render_time: times.lastRenderTime,
+      next_render_time: times.nextRenderTime,
+      last_publish_time: times.lastPublishTime,
+      next_publish_time: times.nextPublishTime,
+      next_video_title: times.nextVideoTitle,
       sources: page.sources.map(s => ({
         id: s.id,
         target_site_id: s.target_site_id,

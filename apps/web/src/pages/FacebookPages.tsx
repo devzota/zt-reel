@@ -60,8 +60,16 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
     chartData = Array(28).fill(0).map((_, i) => ({ name: `Ngày ${i + 1}`, value: 0 }));
   }
 
+  const ztteam_formatDate = (dateStr: string | null | undefined, allowPast = false) => {
+    if (!dateStr) return 'Đang chờ...';
+    const d = new Date(dateStr);
+    if (!allowPast && d.getTime() < Date.now()) return 'Đang chờ...';
+    return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  };
+
   return (
-    <tr className="hover:bg-slate-50/50 transition-colors group">
+    <React.Fragment>
+      <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           {page.avatar ? (
@@ -185,6 +193,69 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
         </div>
       </td>
     </tr>
+    <tr>
+        <td colSpan={6} className="px-6 pb-6 pt-2 border-b border-slate-100">
+          <div className="bg-slate-50/50 border border-slate-200/60 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Cấu hình Đăng bài</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-semibold text-gray-700">
+                  {page.scheduleMode === 'immediate' ? 'Đăng ngay có giãn cách' : 'Khung giờ cố định'}
+                </span>
+                {page.scheduleMode === 'immediate' && (
+                  <span className="text-xs text-gray-500">Giãn cách: {page.scheduleImmediateGapMinutes} phút</span>
+                )}
+                {page.scheduleMode === 'fixed' && page.scheduleFixedTimes && (
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {page.scheduleFixedTimes.map((t: string) => (
+                      <span key={t} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Cấu hình Tạo Video</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-semibold text-gray-700">
+                  {page.autoCreateEnabled ? 'Đang bật tự động tạo' : 'Đang tắt'}
+                </span>
+                {page.autoCreateEnabled && (
+                  <span className="text-xs text-gray-500">Chu kỳ: {page.autoScanIntervalHours} tiếng/lần</span>
+                )}
+                {page.defaultReelTemplateId && (
+                  <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max mt-0.5 font-medium truncate max-w-[150px]">
+                    Mẫu: {page.defaultReelTemplateId}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Bài chuẩn bị đăng</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold text-gray-900 truncate" title={page.nextVideoTitle || ''}>
+                  {page.nextVideoTitle ? page.nextVideoTitle : 'Không có bài chờ'}
+                </span>
+                <span className="text-xs font-semibold text-emerald-600">
+                  {ztteam_formatDate(page.nextPublishTime)}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">Lần lấy bài tiếp theo</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold text-gray-900 truncate">
+                  {page.autoCreateEnabled ? ztteam_formatDate(page.nextRenderTime) : 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </React.Fragment>
   );
 }
 

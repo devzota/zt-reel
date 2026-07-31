@@ -14,7 +14,17 @@ export interface ZTTeamFanpage {
   targetCategoryId?: string;
   reelFrequencyCron?: string;
   captionTone?: string;
+  tags?: string[];
+  postFormat?: string;
+  scheduleMode?: string;
   autoCreateEnabled?: boolean;
+  nextPublishTime?: string | null;
+  nextRenderTime?: string | null;
+  scheduleFixedTimes?: string[];
+  scheduleImmediateGapMinutes?: number;
+  autoScanIntervalHours?: number;
+  defaultReelTemplateId?: string;
+  nextVideoTitle?: string | null;
 }
 
 interface ZTTeamFacebookState {
