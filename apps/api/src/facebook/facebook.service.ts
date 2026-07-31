@@ -11,7 +11,7 @@ export class ZTTeamFacebookService {
   constructor(
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async ztteam_exchangeLongLivedToken(shortToken: string, userId: string) {
     /** In a real scenario, appId and appSecret should come from DB or .env */
@@ -29,16 +29,16 @@ export class ZTTeamFacebookService {
           }
         })
       );
-      
+
       const longLivedToken = response.data.access_token;
-      
+
       /** Get FB user id */
       const meResponse = await firstValueFrom(
         this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/me`, {
           params: { access_token: longLivedToken }
         })
       );
-      
+
       const fbUserId = meResponse.data.id;
       const fbName = meResponse.data.name;
 
@@ -62,7 +62,7 @@ export class ZTTeamFacebookService {
           }
         });
       }
-      
+
       return fbAccount;
     } catch (error) {
       this.logger.error('Error exchanging Facebook token', error);
@@ -83,7 +83,7 @@ export class ZTTeamFacebookService {
       /** GET /me/accounts with user long lived token gives page access tokens that do not expire */
       const response = await firstValueFrom(
         this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/me/accounts`, {
-          params: { 
+          params: {
             access_token: fbAccount.user_token_encrypted,
             fields: 'id,name,picture,category,followers_count,fan_count,access_token'
           }
@@ -101,7 +101,7 @@ export class ZTTeamFacebookService {
       await this.prisma.ztteam_pages.deleteMany({
         where: { fb_account_id: fbAccount.id }
       });
-      
+
       for (const page of pages) {
         const pageData: any = {
           name: page.name,
@@ -162,11 +162,11 @@ export class ZTTeamFacebookService {
     }));
   }
 
-  
+
   async ztteam_getPageSettings(pageId: string, userId: string) {
     const page = await this.prisma.ztteam_pages.findFirst({
       where: { fb_page_id: pageId },
-      include: { 
+      include: {
         fb_account: true,
         sources: true
       }
@@ -191,10 +191,10 @@ export class ZTTeamFacebookService {
       where: { page_id: page.id, status: 'POSTED' },
       orderBy: { updated_at: 'desc' }
     });
-    
+
     let lastPublishTime = lastPublishedReel ? lastPublishedReel.updated_at : null;
     let nextPublishTime = null;
-    
+
     if (page.schedule_mode === 'immediate') {
       if (lastPublishTime) {
         nextPublishTime = new Date(new Date(lastPublishTime).getTime() + page.schedule_immediate_gap_minutes * 60000);
@@ -204,10 +204,10 @@ export class ZTTeamFacebookService {
     } else if (page.schedule_mode === 'fixed' && page.schedule_fixed_times.length > 0) {
       const now = new Date();
       const nowMs = now.getHours() * 60 + now.getMinutes();
-      
+
       let nextTime = null;
       let minDiff = Infinity;
-      
+
       for (const t of page.schedule_fixed_times) {
         const [h, m] = t.split(':').map(Number);
         const tMs = h * 60 + m;
@@ -223,6 +223,7 @@ export class ZTTeamFacebookService {
           }
         }
       }
+      nextPublishTime = nextTime;
     }
     return {
       id: page.id,
@@ -360,14 +361,14 @@ export class ZTTeamFacebookService {
     try {
       const metrics = ['page_media_view', 'page_total_media_view_unique', 'page_views_total', 'page_post_engagements', 'page_daily_follows'];
       const results = [];
-      
+
       for (const metric of metrics) {
         try {
           const res = await firstValueFrom(
             this.httpService.get(
               `https://graph.facebook.com/${this.API_VERSION}/${pageId}/insights`,
-              { 
-                params: { metric, period: 'day', date_preset: 'last_28d', access_token: page.page_token_encrypted } 
+              {
+                params: { metric, period: 'day', date_preset: 'last_28d', access_token: page.page_token_encrypted }
               }
             )
           );
@@ -403,12 +404,12 @@ export class ZTTeamFacebookService {
         response = await firstValueFrom(
           this.httpService.get(
             `https://graph.facebook.com/${this.API_VERSION}/${pageId}/published_posts`,
-            { 
-              params: { 
+            {
+              params: {
                 fields: 'id,message,created_time,full_picture,reactions.summary(true),comments.summary(true),shares',
                 limit: 50,
-                access_token: page.page_token_encrypted 
-              } 
+                access_token: page.page_token_encrypted
+              }
             }
           )
         );
@@ -417,17 +418,17 @@ export class ZTTeamFacebookService {
         response = await firstValueFrom(
           this.httpService.get(
             `https://graph.facebook.com/${this.API_VERSION}/${pageId}/published_posts`,
-            { 
-              params: { 
+            {
+              params: {
                 fields: 'id,message,created_time,full_picture',
                 limit: 50,
-                access_token: page.page_token_encrypted 
-              } 
+                access_token: page.page_token_encrypted
+              }
             }
           )
         );
       }
-      
+
       /** Lấy danh sách videos từ Facebook để có con số lượt xem (video views) chuẩn xác */
       let videoViewsMap: Record<string, number> = {};
       try {
@@ -467,9 +468,9 @@ export class ZTTeamFacebookService {
             this.httpService.get(
               `https://graph.facebook.com/${this.API_VERSION}/${post.id}/insights`,
               {
-                params: { 
+                params: {
                   metric: 'post_media_view,post_total_media_view_unique,post_video_views,post_clicks,post_clicks_by_type,post_activity_by_action_type',
-                  access_token: page.page_token_encrypted 
+                  access_token: page.page_token_encrypted
                 }
               }
             )
