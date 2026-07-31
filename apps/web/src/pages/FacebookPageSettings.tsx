@@ -225,20 +225,24 @@ export default function FacebookPageSettings() {
       setIsCreatingReel(true);
       const selectedPost = createPosts.find(p => String(p.id) === String(createPostId));
 
-      await api.post('render/create', {
+      const res = await api.post('render/create', {
         pageId: id,
         wpPostId: String(createPostId),
         wpPostTitle: createPostTitle,
         wpPostUrl: selectedPost ? selectedPost.link : undefined,
         templateId: template
       });
+
+      if (res.data && res.data.error) {
+        throw new Error(res.data.error);
+      }
       ztteam_showToast('Đã thêm lệnh tạo Reel vào hàng đợi', 'success');
       setShowCreateModal(false);
       setCreatePostId('');
       setCreatePostTitle('');
       ztteam_loadReels();
     } catch (err: any) {
-      ztteam_showToast(err.response?.data?.error || err.response?.data?.message || 'Lỗi tạo Reel', 'error');
+      ztteam_showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Lỗi tạo Reel', 'error');
     } finally {
       setIsCreatingReel(false);
     }

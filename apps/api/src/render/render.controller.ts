@@ -78,6 +78,13 @@ export class ZTTeamRenderController {
       },
     });
 
+    /** Mark post as used IMMEDIATELY to prevent duplicates */
+    await this.prisma.ztteam_reel_history.upsert({
+      where: { page_id_wp_post_id: { page_id: page.id, wp_post_id: body.wpPostId } },
+      create: { page_id: page.id, wp_post_id: body.wpPostId },
+      update: {},
+    });
+
     /** Enqueue the job */
     await this.renderProcessor.ztteam_addJob({
       reelId: reel.id,
@@ -330,6 +337,15 @@ export class ZTTeamRenderController {
 
     /** Delete reel record */
     await this.prisma.ztteam_reels.delete({ where: { id } });
+
+    /** Also delete from history so it can be recreated */
+    try {
+      await this.prisma.ztteam_reel_history.deleteMany({
+        where: { page_id: reel.page_id, wp_post_id: reel.wp_post_id }
+      });
+    } catch (e) {
+      console.error('Error deleting reel history', e);
+    }
 
     return { message: 'Đã xóa reel thành công' };
   }
