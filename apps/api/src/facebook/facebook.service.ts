@@ -191,7 +191,7 @@ export class ZTTeamFacebookService {
       nextRenderTime,
       lastPublishTime,
       nextPublishTime,
-      nextVideoTitle: nextReelToPublish ? (nextReelToPublish.title || 'Video AI') : null
+      nextVideoTitle: nextReelToPublish ? (nextReelToPublish.wp_post_title || 'Video AI') : null
     };
   }
 
