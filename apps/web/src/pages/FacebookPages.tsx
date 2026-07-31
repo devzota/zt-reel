@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useZTTeamFacebookStore } from '../stores/facebookStore';
 import { useUIStore } from '../stores/uiStore';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
   const navigate = useNavigate();
@@ -225,8 +226,8 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
                   <span className="text-xs text-gray-500">Chu kỳ: {page.autoScanIntervalHours} tiếng/lần</span>
                 )}
                 {page.defaultReelTemplateId && (
-                  <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max mt-0.5 font-medium truncate max-w-[150px]">
-                    Mẫu: {page.defaultReelTemplateId}
+                  <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max mt-0.5 font-medium truncate max-w-[150px]" title={page.defaultReelTemplateName || page.defaultReelTemplateId}>
+                    Mẫu: {page.defaultReelTemplateName || page.defaultReelTemplateId}
                   </span>
                 )}
               </div>
@@ -235,10 +236,10 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
             <div>
               <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Bài chuẩn bị đăng</p>
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-bold text-gray-900 truncate" title={page.nextVideoTitle || ''}>
-                  {page.nextVideoTitle ? page.nextVideoTitle : 'Không có bài chờ'}
+                <span className="text-[12px] font-medium text-gray-900 leading-snug" title={ztteam_decodeHtmlEntity(page.nextVideoTitle) || ''}>
+                  {page.nextVideoTitle ? ztteam_decodeHtmlEntity(page.nextVideoTitle) : 'Không có bài chờ'}
                 </span>
-                <span className="text-xs font-semibold text-emerald-600">
+                <span className="text-[11px] font-semibold text-emerald-600 mt-0.5">
                   {ztteam_formatDate(page.nextPublishTime)}
                 </span>
               </div>

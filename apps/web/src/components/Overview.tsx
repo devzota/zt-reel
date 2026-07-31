@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
+import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 export default function Overview() {
   const [stats, setStats] = useState({
@@ -218,7 +219,9 @@ export default function Overview() {
                                   )}
                               </div>
                               <div className="flex flex-col justify-between w-full">
-                                  <p className="text-sm font-semibold line-clamp-1">{activity.title}</p>
+                                  <p className="text-sm font-semibold line-clamp-1" title={ztteam_decodeHtmlEntity(activity.title) || ''}>
+                                    {ztteam_decodeHtmlEntity(activity.title)}
+                                  </p>
                                   <div className="flex items-center gap-2 text-[10px] text-gray-400">
                                       <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${
                                         activity.status === 'SUCCESS' || activity.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700' : 

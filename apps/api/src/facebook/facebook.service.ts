@@ -186,12 +186,22 @@ export class ZTTeamFacebookService {
       orderBy: { created_at: 'asc' }
     });
 
+    let templateName = null;
+    if (page.default_reel_template_id) {
+      const tpl = await this.prisma.ztteam_templates.findUnique({
+        where: { id: page.default_reel_template_id },
+        select: { name: true }
+      });
+      templateName = tpl ? tpl.name : null;
+    }
+
     return {
       lastRenderTime,
       nextRenderTime,
       lastPublishTime,
       nextPublishTime,
-      nextVideoTitle: nextReelToPublish ? (nextReelToPublish.wp_post_title || 'Video AI') : null
+      nextVideoTitle: nextReelToPublish ? (nextReelToPublish.wp_post_title || 'Video AI') : null,
+      templateName
     };
   }
 
@@ -230,6 +240,7 @@ export class ZTTeamFacebookService {
         scheduleImmediateGapMinutes: p.schedule_immediate_gap_minutes,
         autoScanIntervalHours: p.auto_scan_interval_hours,
         defaultReelTemplateId: p.default_reel_template_id,
+        defaultReelTemplateName: times.templateName,
         nextVideoTitle: times.nextVideoTitle
         /** We do not send accessToken back to frontend for security */
       };

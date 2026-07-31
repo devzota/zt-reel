@@ -3,6 +3,7 @@ import { useWordpressStore } from '../stores/wordpressStore';
 import { useCrawlerStore } from '../stores/crawlerStore';
 import type { CrawlSource } from '../stores/crawlerStore';
 import { useUIStore } from '../stores/uiStore';
+import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 /** Cron value → human-readable label */
 function ztteam_cronToLabel(cron: string): string {
@@ -552,7 +553,7 @@ export default function WordPressSites() {
                         {scrapeResult && (
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-slate-50 p-5 rounded-xl">
                             <div className="lg:col-span-2 space-y-3">
-                              <h3 className="text-title-md font-bold text-gray-900">{scrapeResult.title}</h3>
+                              <h3 className="text-title-md font-bold text-gray-900">{ztteam_decodeHtmlEntity(scrapeResult.title)}</h3>
                               <div className="prose prose-sm max-w-none text-gray-600 overflow-y-auto max-h-[300px] p-3 bg-white rounded-lg shadow-inner">
                                 <div dangerouslySetInnerHTML={{ __html: scrapeResult.contentHtml }} />
                               </div>
@@ -648,7 +649,7 @@ export default function WordPressSites() {
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-6">
                           <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-gray-900 hover:text-primary transition-colors flex flex-col gap-1">
-                            {item.title || 'Đang lấy tiêu đề...'}
+                            {ztteam_decodeHtmlEntity(item.title) || 'Đang lấy tiêu đề...'}
                             <span className="text-[11px] text-gray-400 font-normal truncate max-w-lg block">{item.url}</span>
                           </a>
                         </td>

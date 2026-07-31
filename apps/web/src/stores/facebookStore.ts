@@ -24,6 +24,7 @@ export interface ZTTeamFanpage {
   scheduleImmediateGapMinutes?: number;
   autoScanIntervalHours?: number;
   defaultReelTemplateId?: string;
+  defaultReelTemplateName?: string | null;
   nextVideoTitle?: string | null;
 }
 

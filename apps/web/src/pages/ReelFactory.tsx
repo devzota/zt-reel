@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useUIStore } from '../stores/uiStore';
+import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 export default function ReelFactory() {
   const [reels, setReels] = useState<any[]>([]);
@@ -217,7 +218,6 @@ export default function ReelFactory() {
                   </div>
                 </div>
 
-                {/* FB Post Preview Header */}
                 <div className="px-3 py-2 flex items-center gap-2.5">
                   <div className="w-9 h-9 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm overflow-hidden shadow-sm border border-gray-100">
                     {reel.page?.avatar ? (
@@ -227,7 +227,10 @@ export default function ReelFactory() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-[13px] text-gray-900 leading-tight truncate">{reel.page?.name || 'Fanpage'}</p>
+                    <p className="font-bold text-[13px] text-gray-900 leading-tight" title={ztteam_decodeHtmlEntity(reel.wp_post_title) || 'Reel'}>
+                      {ztteam_decodeHtmlEntity(reel.wp_post_title) || 'Reel AI'}
+                    </p>
+                    <p className="font-semibold text-[11px] text-gray-500 leading-tight truncate mt-0.5">{reel.page?.name || 'Fanpage'}</p>
                     <div className="text-[10px] text-gray-500 flex flex-col mt-0.5 leading-tight">
                       <span className="truncate">Tạo: {ztteam_formatDate(reel.created_at)}</span>
                       <span className={`font-semibold truncate ${reel.status === 'POSTED' ? 'text-emerald-600' : (reel.scheduled_at ? 'text-primary' : 'text-amber-600')}`}>
