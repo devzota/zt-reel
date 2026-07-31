@@ -35,7 +35,7 @@ export default function ReelFactory() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (filterStatus) params.append('status', filterStatus);
-      if (filterPage) params.append('pageId', filterPage);
+      if (filterPage) params.append('fbPageId', filterPage);
       params.append('page', String(currentPage));
       params.append('limit', '20');
 

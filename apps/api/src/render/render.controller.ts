@@ -166,7 +166,7 @@ export class ZTTeamRenderController {
     
     /** Simulate queue to get precise scheduled times for all pending reels */
     const allPending = await this.prisma.ztteam_reels.findMany({
-       where: { status: 'COMPLETED', is_posted: false, page_id: { in: pageIds } },
+       where: { status: { in: ['QUEUED', 'RENDERING', 'COMPLETED'] }, is_posted: false },
        orderBy: { created_at: 'asc' },
        include: { page: true }
     });
@@ -270,8 +270,9 @@ export class ZTTeamRenderController {
 
       if (r.status === 'POSTED') {
         posted_at = r.updated_at;
-      } else if (r.status === 'COMPLETED' && !r.is_posted) {
-        scheduled_at = reelScheduledTimeMap.get(r.id) || r.updated_at;
+      } else if (!r.is_posted) {
+        const val = reelScheduledTimeMap.get(r.id);
+        scheduled_at = val !== undefined ? val : null;
       }
 
       return { ...r, final_caption: finalCaption, final_comment: finalComment, posted_at, scheduled_at };
