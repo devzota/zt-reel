@@ -222,10 +222,10 @@ export class ZTTeamRenderController {
       const utmMedium = slugify(r.page?.fb_account?.name || 'account');
       const utmCampaign = slugify(r.page?.name || 'page');
       
-      if (r.wp_post_url && !finalCaption.includes('utm_source=reel')) {
+      if (r.wp_post_url && r.page?.add_link_to_caption && !finalCaption.includes('utm_source=reel')) {
         const separator = r.wp_post_url.includes('?') ? '&' : '?';
         const trackingLink = `${r.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
-        finalCaption = `${finalCaption}\n\nChi tiết bài viết: ${trackingLink}`;
+        finalCaption = `${finalCaption}\n\nRead more: ${trackingLink}`;
       }
 
       let posted_at = null;
@@ -334,11 +334,13 @@ export class ZTTeamRenderController {
           include: { fb_account: true }
         });
         
-        const utmMedium = slugify(pageData?.fb_account?.name || 'account');
-        const utmCampaign = slugify(pageData?.name || 'page');
-        const separator = reel.wp_post_url.includes('?') ? '&' : '?';
-        const trackingLink = `${reel.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
-        description = `${description}\n\nChi tiết bài viết: ${trackingLink}`;
+        if (pageData?.add_link_to_caption) {
+          const utmMedium = slugify(pageData?.fb_account?.name || 'account');
+          const utmCampaign = slugify(pageData?.name || 'page');
+          const separator = reel.wp_post_url.includes('?') ? '&' : '?';
+          const trackingLink = `${reel.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+          description = `${description}\n\nRead more: ${trackingLink}`;
+        }
       }
 
       const response = await this.facebookService.ztteam_publishReel(

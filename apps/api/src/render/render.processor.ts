@@ -4,6 +4,7 @@ import IORedis from 'ioredis';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
+import * as sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { ZTTeamAIService } from '../ai/ai.service';
 import { ZTTeamTTSService } from '../audio/tts.service';
@@ -126,22 +127,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         page.voice_speed || 1.0,
       );
 
-      /** Construct UTM tracking link */
       let finalCaption = caption;
-      if (reelRecord?.wp_post_url) {
-        const slugify = (text: string) => {
-          return text.toString().toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
-        };
-        const fbAccountName = (page as any).fb_account?.name || 'account';
-        const pageName = page.name || 'page';
-        const utmMedium = slugify(fbAccountName);
-        const utmCampaign = slugify(pageName);
-        const separator = reelRecord.wp_post_url.includes('?') ? '&' : '?';
-        const trackingLink = `${reelRecord.wp_post_url}${separator}utm_source=reel&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
-        finalCaption = caption ? `${caption}\n\nChi tiết bài viết: ${trackingLink}` : `Chi tiết bài viết: ${trackingLink}`;
-      }
 
       await this.ztteam_updateReel(reelId, { ai_script: script, ai_caption: finalCaption, ai_hook: hook, progress: 35 });
 
@@ -324,7 +310,13 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
           responseType: 'arraybuffer',
           timeout: 15000,
         });
-        fs.writeFileSync(rawPath, response.data);
+        
+        /** Convert to pure JPEG using sharp to support avif, webp, etc. */
+        const jpegBuffer = await sharp(response.data)
+          .jpeg({ quality: 90 })
+          .toBuffer();
+          
+        fs.writeFileSync(rawPath, jpegBuffer);
 
         /** Prepare for dimensions with blur background */
         await this.ffmpegService.ztteam_prepareImage(rawPath, prepPath, vw, vh, vx, vy);
