@@ -97,7 +97,10 @@ export class ZTTeamCrawlerService {
 
   async ztteam_getHistory(sourceId: string, limit = 50) {
     return this.prisma.ztteam_crawl_history.findMany({
-      where: { source_id: sourceId },
+      where: { 
+        source_id: sourceId,
+        url: { not: 'SYNC_CHECK' }
+      },
       orderBy: { created_at: 'desc' },
       take: limit
     });
