@@ -171,7 +171,7 @@ export default function ReelFactory() {
                         <span className="material-symbols-outlined text-[16px]">link</span>
                       </a>
                     )}
-                    {reel.status === 'POSTED' && reel.fb_post_id && (
+                    {reel.status === 'POSTED' && reel.fb_post_id && reel.page?.fb_page_id && (
                       <a href={`https://www.facebook.com/${reel.page.fb_page_id}/videos/${reel.fb_post_id}`} target="_blank" rel="noreferrer" title="Xem bài đã đăng trên Fanpage" className="w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 flex items-center justify-center text-purple-700 transition-colors">
                         <span className="material-symbols-outlined text-[16px]">open_in_new</span>
                       </a>
@@ -184,7 +184,7 @@ export default function ReelFactory() {
                         <span className="material-symbols-outlined text-[18px]">download</span>
                       </a>
                     )}
-                    {reel.status === 'COMPLETED' && (
+                    {reel.status === 'COMPLETED' && reel.page && (
                       <button
                         title="Đăng ngay lên Fanpage"
                         disabled={isPosting[reel.id]}
@@ -230,7 +230,9 @@ export default function ReelFactory() {
                     <p className="font-bold text-[13px] text-gray-900 leading-tight" title={ztteam_decodeHtmlEntity(reel.wp_post_title) || 'Reel'}>
                       {ztteam_decodeHtmlEntity(reel.wp_post_title) || 'Reel AI'}
                     </p>
-                    <p className="font-semibold text-[11px] text-gray-500 leading-tight truncate mt-0.5">{reel.page?.name || 'Fanpage'}</p>
+                    <p className="font-semibold text-[11px] text-gray-500 leading-tight truncate mt-0.5">
+                      {reel.page ? reel.page.name : <span className="text-red-500">[Fanpage đã gỡ]</span>}
+                    </p>
                     <div className="text-[10px] text-gray-500 flex flex-col mt-0.5 leading-tight">
                       <span className="truncate">Tạo: {ztteam_formatDate(reel.created_at)}</span>
                       <span className={`font-semibold truncate ${reel.status === 'POSTED' ? 'text-emerald-600' : (reel.scheduled_at ? 'text-primary' : 'text-amber-600')}`}>
