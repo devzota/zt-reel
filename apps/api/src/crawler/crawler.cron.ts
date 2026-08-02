@@ -153,8 +153,8 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
           }
         });
 
-        /** Take top 5 */
-        urlsToFetch.push(...Array.from(extractedUrls).slice(0, 5));
+        /** Take top 10 instead of 5 to get more articles */
+        urlsToFetch.push(...Array.from(extractedUrls).slice(0, 10));
         
         if (urlsToFetch.length === 0) {
           /** Absolute fallback, just the URL itself if we found nothing */
@@ -219,6 +219,26 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
           /** Ignore upsert error */
         }
       }
+    }
+    /** Update SYNC_CHECK record to mark the last time we checked this source */
+    try {
+      const syncUrl = 'SYNC_CHECK';
+      const existingSync = await this.prisma.ztteam_crawl_history.findUnique({
+        where: { source_id_url: { source_id: source.id, url: syncUrl } }
+      });
+
+      if (existingSync) {
+        /** We use delete + create because updated_at is not available, and created_at is default(now()) */
+        await this.prisma.ztteam_crawl_history.delete({
+          where: { source_id_url: { source_id: source.id, url: syncUrl } }
+        });
+      }
+      
+      await this.prisma.ztteam_crawl_history.create({
+        data: { source_id: source.id, url: syncUrl, status: 'SYNC' }
+      });
+    } catch (e) {
+      /** Ignore */
     }
   }
 }
