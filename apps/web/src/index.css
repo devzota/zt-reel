@@ -24,10 +24,22 @@
   .dark .bg-white { @apply !bg-dark-card; }
   .dark .bg-slate-50, .dark .bg-gray-50 { @apply !bg-dark-surface; }
   .dark .bg-slate-100, .dark .bg-gray-100 { @apply !bg-dark-bg; }
-  .dark .text-gray-900, .dark .text-gray-800, .dark .text-slate-900 { @apply !text-dark-text; }
-  .dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400 { @apply !text-dark-text-muted; }
-  .dark .border-gray-100, .dark .border-gray-200, .dark .border-slate-200, .dark .border-slate-300 { @apply !border-dark-border; }
-  .dark input, .dark select, .dark textarea { @apply !bg-dark-surface !border-dark-border !text-dark-text; }
+  .dark .bg-slate-200, .dark .bg-gray-200 { @apply !bg-dark-border; }
+  .dark .bg-gray-900, .dark .bg-slate-900 { @apply !bg-primary text-white; }
+  .dark .hover\:bg-gray-800:hover, .dark .hover\:bg-gray-900:hover { @apply !bg-primary-dark; }
+  
+  .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover, .dark .hover\:bg-slate-100:hover { @apply !bg-dark-card-alt; }
+  
+  .dark .text-gray-900, .dark .text-gray-800, .dark .text-slate-900, .dark .text-slate-800, .dark .text-gray-700, .dark .text-slate-700 { @apply !text-dark-text; }
+  .dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400, .dark .text-slate-600, .dark .text-slate-500, .dark .text-slate-400 { @apply !text-dark-text-muted; }
+  
+  .dark .border-gray-50, .dark .border-gray-100, .dark .border-gray-200, .dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-300 { @apply !border-dark-border; }
+  
+  .dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]), .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]), .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]), .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { 
+    @apply !border-dark-border; 
+  }
+  
+  .dark input, .dark select, .dark textarea { @apply !bg-dark-surface !border-dark-border !text-dark-text placeholder:!text-dark-text-muted; }
   .dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl { @apply !shadow-none; }
 }
 
