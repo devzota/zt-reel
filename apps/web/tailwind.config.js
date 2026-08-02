@@ -17,14 +17,6 @@ export default {
         card: "#FFFFFF",
         border: "#EBEBF0",
         "border-input": "#DDDDE3",
-        
-        "dark-bg": "#0a1628",
-        "dark-surface": "#0c1a2e",
-        "dark-card": "#0f2035",
-        "dark-card-alt": "#122a42",
-        "dark-border": "#1a3550",
-        "dark-text": "#E8F0FE",
-        "dark-text-muted": "#8BA4C4",
       },
       "spacing": {
         "gutter": "24px",
