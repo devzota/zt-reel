@@ -139,11 +139,14 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
             if (linkUrl.hostname === baseUrl.hostname) {
               const path = linkUrl.pathname;
               if (
-                path.length > 20 && 
-                path.includes('-') &&
+                path !== '/' &&
+                path.length > 5 &&
                 !path.includes('/category/') &&
                 !path.includes('/tag/') &&
-                !path.includes('/author/')
+                !path.includes('/author/') &&
+                !path.includes('/page/') &&
+                !path.includes('wp-admin') &&
+                !path.includes('wp-login')
               ) {
                 extractedUrls.add(linkUrl.href);
               }
@@ -157,8 +160,9 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         urlsToFetch.push(...Array.from(extractedUrls).slice(0, 10));
         
         if (urlsToFetch.length === 0) {
-          /** Absolute fallback, just the URL itself if we found nothing */
-          urlsToFetch.push(source.source_url);
+          this.logger.warn(`Could not find any article links on ${source.source_url}`);
+        } else {
+          this.logger.log(`Extracted ${urlsToFetch.length} links from ${source.source_url}`);
         }
       } catch (htmlError: any) {
         this.logger.error(`Failed to scrape HTML for ${source.source_url}: ${htmlError.message}`);
