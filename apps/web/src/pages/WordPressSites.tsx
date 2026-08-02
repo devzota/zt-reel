@@ -4,7 +4,7 @@ import { useCrawlerStore } from '../stores/crawlerStore';
 import type { CrawlSource } from '../stores/crawlerStore';
 import { useUIStore } from '../stores/uiStore';
 import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
-
+import api from '../services/api';
 /** Cron value → human-readable label */
 function ztteam_cronToLabel(cron: string): string {
   const map: Record<string, string> = {
@@ -69,6 +69,20 @@ export default function WordPressSites() {
       ztteam_showToast('Lỗi khi tải lịch sử', 'error');
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  const ztteam_handleDeleteHistory = async () => {
+    if (!historyModalSourceId) return;
+    const confirmed = await ztteam_showConfirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử cào bài của nguồn này?');
+    if (!confirmed) return;
+    
+    try {
+      await api.delete(`/crawler/sources/${historyModalSourceId}/history`);
+      ztteam_showToast('Đã xóa lịch sử thành công', 'success');
+      setHistoryData([]);
+    } catch (e) {
+      ztteam_showToast('Lỗi khi xóa lịch sử', 'error');
     }
   };
 
@@ -678,7 +692,10 @@ export default function WordPressSites() {
                 </table>
               )}
             </div>
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between">
+              <button onClick={ztteam_handleDeleteHistory} className="px-6 py-2 bg-red-50 text-red-600 text-sm font-bold rounded-full hover:bg-red-100 transition-colors">
+                Xóa lịch sử
+              </button>
               <button onClick={() => setHistoryModalSourceId(null)} className="px-6 py-2 bg-gray-900 text-white text-sm font-bold rounded-full hover:bg-gray-800 transition-colors shadow-sm">
                 Đóng
               </button>

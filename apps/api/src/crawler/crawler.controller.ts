@@ -54,4 +54,9 @@ export class ZTTeamCrawlerController {
   ztteam_getHistory(@Param('sourceId') sourceId: string) {
     return this.crawlerService.ztteam_getHistory(sourceId);
   }
+
+  @Delete('sources/:sourceId/history')
+  ztteam_deleteHistory(@Param('sourceId') sourceId: string) {
+    return this.crawlerService.ztteam_deleteHistory(sourceId);
+  }
 }

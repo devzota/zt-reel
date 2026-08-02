@@ -105,4 +105,11 @@ export class ZTTeamCrawlerService {
       take: limit
     });
   }
+
+  async ztteam_deleteHistory(sourceId: string) {
+    await this.prisma.ztteam_crawl_history.deleteMany({
+      where: { source_id: sourceId }
+    });
+    return { success: true };
+  }
 }
