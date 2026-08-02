@@ -8,7 +8,7 @@ const pool = new Pool({ connectionString });
 async function fixDatabase() {
   console.log('Bắt đầu dọn dẹp và sửa lỗi trùng lặp dữ liệu...');
   try {
-    // 1. Xoá lịch sử bị đúp (giữ lại bản ghi cũ nhất)
+  /** 1. Xoá lịch sử bị đúp (giữ lại bản ghi cũ nhất) */
     const resHistory = await pool.query(`
       DELETE FROM ztteam_reel_history a USING (
         SELECT MIN(ctid) as ctid, page_id, wp_post_id
@@ -21,7 +21,7 @@ async function fixDatabase() {
     `);
     console.log(`Đã dọn dẹp xong ${resHistory.rowCount} bản ghi lịch sử đúp.`);
 
-    // 2. Xoá video (reels) bị đúp (giữ lại bản ghi cũ nhất)
+    /** 2. Xoá video (reels) bị đúp (giữ lại bản ghi cũ nhất) */
     const resReels = await pool.query(`
       DELETE FROM ztteam_reels a USING (
         SELECT MIN(ctid) as ctid, page_id, wp_post_id
@@ -34,7 +34,7 @@ async function fixDatabase() {
     `);
     console.log(`Đã dọn dẹp xong ${resReels.rowCount} video đúp.`);
 
-    // 3. Ép tạo UNIQUE INDEX để khoá chặn (nếu chưa có)
+    /** 3. Ép tạo UNIQUE INDEX để khoá chặn (nếu chưa có) */
     try {
       await pool.query(`
         CREATE UNIQUE INDEX ztteam_reel_history_page_id_wp_post_id_key 

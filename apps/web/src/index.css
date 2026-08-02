@@ -7,7 +7,7 @@
     @apply font-sans bg-slate-100 text-gray-900 transition-colors duration-300;
   }
   .dark body {
-    @apply bg-dark-bg text-dark-text;
+    @apply bg-slate-900 text-slate-100;
   }
   input, select, textarea {
     outline: none;
