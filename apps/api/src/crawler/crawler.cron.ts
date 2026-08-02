@@ -52,13 +52,16 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         /** Determine the interval in milliseconds based on frequency_cron */
         let intervalMs = 0;
         switch (source.frequency_cron) {
+          case '0 */5 * * * *': intervalMs = 5 * 60 * 1000; break;
+          case '0 */15 * * * *': intervalMs = 15 * 60 * 1000; break;
+          case '0 */30 * * * *': intervalMs = 30 * 60 * 1000; break;
           case '0 */1 * * *': intervalMs = 1 * 60 * 60 * 1000; break;
           case '0 */2 * * *': intervalMs = 2 * 60 * 60 * 1000; break;
           case '0 */3 * * *': intervalMs = 3 * 60 * 60 * 1000; break;
           case '0 */6 * * *': intervalMs = 6 * 60 * 60 * 1000; break;
           case '0 */12 * * *': intervalMs = 12 * 60 * 60 * 1000; break;
           case '0 0 * * *': intervalMs = 24 * 60 * 60 * 1000; break;
-          default: intervalMs = 2 * 60 * 1000; /** Default 2 minutes for testing (was 1 hour) */
+          default: intervalMs = 60 * 60 * 1000; /** Default 1 hour instead of 2 mins */
         }
 
         /** Check last crawl time */

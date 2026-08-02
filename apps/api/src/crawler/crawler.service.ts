@@ -55,6 +55,9 @@ export class ZTTeamCrawlerService {
       if (source.enabled) {
         let intervalMs = 1 * 60 * 60 * 1000;
         switch (source.frequency_cron) {
+          case '0 */5 * * * *': intervalMs = 5 * 60 * 1000; break;
+          case '0 */15 * * * *': intervalMs = 15 * 60 * 1000; break;
+          case '0 */30 * * * *': intervalMs = 30 * 60 * 1000; break;
           case '0 */1 * * *': intervalMs = 1 * 60 * 60 * 1000; break;
           case '0 */2 * * *': intervalMs = 2 * 60 * 60 * 1000; break;
           case '0 */3 * * *': intervalMs = 3 * 60 * 60 * 1000; break;

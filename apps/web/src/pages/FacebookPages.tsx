@@ -275,6 +275,20 @@ export default function FacebookPages() {
   const navigate = useNavigate();
 
   const [testingPageId, setTestingPageId] = useState<string | null>(null);
+  
+  /** Lọc dữ liệu */
+  const [filterOwner, setFilterOwner] = useState('');
+  const [filterTag, setFilterTag] = useState('');
+  
+  const uniqueOwners = Array.from(new Set(pages.map(p => p.ownerName).filter(Boolean)));
+  const uniqueTags = Array.from(new Set(pages.flatMap(p => p.tags || [])));
+
+  const filteredPages = pages.filter(p => {
+    let match = true;
+    if (filterOwner && p.ownerName !== filterOwner) match = false;
+    if (filterTag && (!p.tags || !p.tags.includes(filterTag))) match = false;
+    return match;
+  });
 
   useEffect(() => {
     const handleSDKLoad = () => {
@@ -385,6 +399,36 @@ export default function FacebookPages() {
               </select>
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
             </div>
+            {uniqueOwners.length > 0 && (
+              <div className="relative">
+                <select 
+                  value={filterOwner}
+                  onChange={(e) => setFilterOwner(e.target.value)}
+                  className="appearance-none bg-slate-50 border-2 border-transparent focus:border-primary rounded-full pl-4 pr-10 py-2 text-sm font-medium focus:ring-0 outline-none"
+                >
+                  <option value="">Tất cả Nick</option>
+                  {uniqueOwners.map((owner: any) => (
+                    <option key={owner} value={owner}>{owner}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
+              </div>
+            )}
+            {uniqueTags.length > 0 && (
+              <div className="relative">
+                <select 
+                  value={filterTag}
+                  onChange={(e) => setFilterTag(e.target.value)}
+                  className="appearance-none bg-slate-50 border-2 border-transparent focus:border-primary rounded-full pl-4 pr-10 py-2 text-sm font-medium focus:ring-0 outline-none"
+                >
+                  <option value="">Tất cả Thẻ</option>
+                  {uniqueTags.map((tag: any) => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={ztteam_fetchPages} disabled={isLoading} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-600 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50">
@@ -408,18 +452,17 @@ export default function FacebookPages() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {pages.length === 0 ? (
+              {filteredPages.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
-                    <p className="text-gray-900 font-bold">Chưa có Fanpage nào được kết nối</p>
-                    <p className="text-sm text-gray-500 mt-1">Vui lòng cấp quyền quản lý trang cho hệ thống.</p>
+                    <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào</p>
+                    <p className="text-sm text-gray-500 mt-1">Thử thay đổi bộ lọc hoặc kết nối thêm Fanpage.</p>
                   </td>
                 </tr>
               ) : (
-                pages.map(page => {
+                filteredPages.map(page => {
                   const isExpired = page.status === 'expired';
-                  const initials = page.ownerName ? page.ownerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'FB';
                   
                   return (
                     <FanpageRow 
@@ -437,9 +480,9 @@ export default function FacebookPages() {
         </div>
 
         {/* Pagination placeholder */}
-        {pages.length > 0 && (
+        {filteredPages.length > 0 && (
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Hiển thị {pages.length} Fanpage</p>
+            <p className="text-sm text-gray-500">Hiển thị {filteredPages.length} / {pages.length} Fanpage</p>
           </div>
         )}
       </div>

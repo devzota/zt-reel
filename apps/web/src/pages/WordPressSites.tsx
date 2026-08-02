@@ -8,12 +8,15 @@ import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 /** Cron value → human-readable label */
 function ztteam_cronToLabel(cron: string): string {
   const map: Record<string, string> = {
-    '0 */1 * * *': '1 tiếng / lần',
-    '0 */2 * * *': '2 tiếng / lần',
-    '0 */3 * * *': '3 tiếng / lần',
-    '0 */6 * * *': '6 tiếng / lần',
-    '0 */12 * * *': '12 tiếng / lần',
-    '0 0 * * *': 'Mỗi ngày',
+    '0 */5 * * * *': 'Mỗi 5 phút',
+    '0 */15 * * * *': 'Mỗi 15 phút',
+    '0 */30 * * * *': 'Mỗi 30 phút',
+    '0 */1 * * *': 'Mỗi 1 giờ',
+    '0 */2 * * *': 'Mỗi 2 giờ',
+    '0 */3 * * *': 'Mỗi 3 giờ',
+    '0 */6 * * *': 'Mỗi 6 giờ',
+    '0 */12 * * *': 'Mỗi 12 giờ',
+    '0 0 * * *': 'Mỗi 24 giờ'
   };
   return map[cron] || cron;
 }
@@ -419,6 +422,9 @@ export default function WordPressSites() {
                                   <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wider">Tần suất cào</label>
                                   <select value={frequencyCron} onChange={(e) => setFrequencyCron(e.target.value)}
                                     className="w-full py-2.5 px-3 rounded-full bg-gray-100 focus:ring-2 focus:ring-primary text-sm placeholder:text-gray-400 cursor-pointer" required>
+                                    <option value="0 */5 * * * *">5 phút</option>
+                                    <option value="0 */15 * * * *">15 phút</option>
+                                    <option value="0 */30 * * * *">30 phút</option>
                                     <option value="0 */1 * * *">1 tiếng</option>
                                     <option value="0 */2 * * *">2 tiếng</option>
                                     <option value="0 */3 * * *">3 tiếng</option>
