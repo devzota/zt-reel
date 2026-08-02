@@ -21,11 +21,33 @@ interface UIState {
   ztteam_removeToast: (id: string) => void;
   ztteam_showConfirm: (title: string, message?: string) => Promise<boolean>;
   ztteam_closeConfirm: () => void;
+  isDarkMode: boolean;
+  ztteam_toggleDarkMode: () => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set) => {
+  const initialDarkMode = localStorage.getItem('ztteam_dark_mode') === 'true';
+  if (initialDarkMode) {
+    document.documentElement.classList.add('dark');
+  }
+
+  return {
   toasts: [],
   confirmState: null,
+  isDarkMode: initialDarkMode,
+
+  ztteam_toggleDarkMode: () => {
+    set((state) => {
+      const newDarkMode = !state.isDarkMode;
+      localStorage.setItem('ztteam_dark_mode', String(newDarkMode));
+      if (newDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      return { isDarkMode: newDarkMode };
+    });
+  },
 
   ztteam_showToast: (message, type = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -73,4 +95,5 @@ export const useUIStore = create<UIState>((set) => ({
       return { confirmState: null };
     });
   }
-}));
+};
+});

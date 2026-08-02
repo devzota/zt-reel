@@ -1,6 +1,7 @@
 import { useZTTeamAuthStore } from '../stores/authStore';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import UIProvider from './UIProvider';
+import { useUIStore } from '../stores/uiStore';
 
 /** Helper to check if a nav item is active */
 function ztteam_isActive(pathname: string, path: string): boolean {
@@ -10,6 +11,7 @@ function ztteam_isActive(pathname: string, path: string): boolean {
 
 export default function Layout() {
     const { user, ztteam_logout } = useZTTeamAuthStore();
+    const { isDarkMode, ztteam_toggleDarkMode } = useUIStore();
     const location = useLocation();
 
     const handleLogout = (e: React.MouseEvent) => {
@@ -61,7 +63,11 @@ export default function Layout() {
                             <span className="material-symbols-outlined" data-icon="help">help</span>
                             <span className="text-sm">Help Center</span>
                         </Link>
-                        <a className="flex items-center gap-3 px-4 py-2 text-red-500 hover:text-red-600 transition-colors cursor-pointer rounded-lg" onClick={handleLogout}>
+                        <button className="flex w-full items-center gap-3 px-4 py-2 text-gray-500 hover:text-primary transition-colors cursor-pointer rounded-lg text-left" onClick={ztteam_toggleDarkMode}>
+                            <span className="material-symbols-outlined">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
+                            <span className="text-sm">{isDarkMode ? 'Chế độ Sáng' : 'Chế độ Tối'}</span>
+                        </button>
+                        <a className="flex w-full items-center gap-3 px-4 py-2 text-red-500 hover:text-red-600 transition-colors cursor-pointer rounded-lg text-left" onClick={handleLogout}>
                             <span className="material-symbols-outlined" data-icon="logout">logout</span>
                             <span className="text-sm">Logout</span>
                         </a>

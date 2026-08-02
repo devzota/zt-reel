@@ -4,7 +4,10 @@
 
 @layer base {
   body {
-    @apply font-sans bg-slate-100 text-gray-900;
+    @apply font-sans bg-slate-100 text-gray-900 transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-dark-bg text-dark-text;
   }
   input, select, textarea {
     outline: none;
@@ -15,6 +18,17 @@
   .glass-card {
     @apply bg-white rounded-2xl shadow-md border border-slate-200/60 hover:shadow-lg transition-all;
   }
+  
+  /* Dark Mode Global Overrides */
+  .dark .glass-card { @apply bg-dark-card border-dark-border text-dark-text shadow-none hover:shadow-none; }
+  .dark .bg-white { @apply !bg-dark-card; }
+  .dark .bg-slate-50, .dark .bg-gray-50 { @apply !bg-dark-surface; }
+  .dark .bg-slate-100, .dark .bg-gray-100 { @apply !bg-dark-bg; }
+  .dark .text-gray-900, .dark .text-gray-800, .dark .text-slate-900 { @apply !text-dark-text; }
+  .dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400 { @apply !text-dark-text-muted; }
+  .dark .border-gray-100, .dark .border-gray-200, .dark .border-slate-200, .dark .border-slate-300 { @apply !border-dark-border; }
+  .dark input, .dark select, .dark textarea { @apply !bg-dark-surface !border-dark-border !text-dark-text; }
+  .dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl { @apply !shadow-none; }
 }
 
 /** Custom Scrollbar */
