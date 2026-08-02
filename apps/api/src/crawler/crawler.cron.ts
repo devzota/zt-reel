@@ -116,6 +116,9 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         const cheerio = require('cheerio');
         const $ = cheerio.load(html);
         
+        /** Remove header, footer, nav, sidebars to avoid scraping "Page" links (About, Contact, Privacy) */
+        $('header, footer, nav, aside, .sidebar, .widget, .menu, #menu, .nav-menu').remove();
+        
         const baseUrl = new URL(source.source_url);
         const extractedUrls = new Set<string>();
 
