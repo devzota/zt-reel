@@ -73,7 +73,7 @@ export function ztteam_buildTemplateHtml(data: any): string {
   }
 
   /** Force subtitles to show in preview */
-  html = html.replace(/\.subtitles-preview\s*{\s*display:\s*none;/g, '.subtitles-preview { display: block;');
+  html = html.replace(/\.subtitles-preview\s*\{([^}]*?)display:\s*none;([^}]*?)\}/g, '.subtitles-preview { $1 display: block; $2 }');
 
   html = html.replace(/pointer-events:\s*none;/g, 'pointer-events: auto;');
   

@@ -817,7 +817,7 @@ export default function FacebookPageSettings() {
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Số lượng video tối đa được tạo trong MỘT LẦN quét. Đặt là 1 nếu muốn chia đều cơ hội cho các Fanpage khác.</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Giữ trong hàng đợi</label>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Giới hạn Video chờ xử lý</label>
                       <input type="number" min="1" value={autoQueueLimit} onChange={e => setAutoQueueLimit(parseInt(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-primary outline-none" />
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Số video TỐI ĐA Đang chờ + Đang render cùng lúc. Chống treo máy chủ. Nên để 3-5.</p>
                     </div>

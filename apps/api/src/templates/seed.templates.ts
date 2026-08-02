@@ -15,6 +15,12 @@ const teaserHtml = `
 
   .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
 
+  .subtitles-preview { display: none;
+    position: absolute; left: {{layout.subtitles.x}}px; top: {{layout.subtitles.y}}px; width: 1000px;
+    background: rgba(0,0,0,0.6); color: white; padding: 20px; font-size: 40px; font-weight: bold; border-radius: 12px;
+    text-align: center; border: 2px dashed #fff;
+  }
+
   .video-frame {
     position: absolute;
     left: {{video_area.x}}px; top: {{video_area.y}}px;
@@ -95,6 +101,10 @@ const teaserHtml = `
   <div class="hook" data-drag-id="hook">
     {{#each hook}}<span class="line{{#if @first}} accent{{/if}}">{{this}}{{#unless @last}}&#32;{{/unless}}</span>{{/each}}
   </div>
+  
+  <div class="subtitles-preview" data-drag-id="subtitles">
+    Khu vực phụ đề (Subtitles)
+  </div>
 </div>
 `;
 
@@ -143,27 +153,22 @@ const basicHtml = `
 export const seedTemplates = () => {
   const templates: any[] = [];
   
-  const addTemplates = (format: string) => {
-    /** Tin nóng 5s (Teaser) */
-    templates.push({
-      name: 'Tin nóng 5s',
-      format,
-      content_type: 'teaser',
-      voice_id: null,
-      video_y: 184,
-      video_radius: 0,
-      html_content: teaserHtml,
-      layout: {
-        breaking: { x: 40, y: 26 },
-        header: { x: 84, y: 1362 }, /** Based on CSS */
-        hook: { x: 90, y: 1450 },
-      },
-      is_default: true
-    });
-  };
-
-  addTemplates('video');
-  addTemplates('image');
+  templates.push({
+    name: 'Breaking News Modern',
+    format: 'video',
+    content_type: 'teaser',
+    voice_id: null,
+    video_y: 184,
+    video_radius: 0,
+    html_content: teaserHtml,
+    layout: {
+      breaking: { x: 40, y: 26 },
+      header: { x: 84, y: 1362 },
+      hook: { x: 90, y: 1450 },
+      subtitles: { x: 40, y: 1550 }
+    },
+    is_default: true
+  });
 
   return templates;
 };
