@@ -12,6 +12,7 @@ export default function FacebookPageSettings() {
   const { sites, ztteam_fetchSites, ztteam_fetchCategories, ztteam_fetchTags } = useWordpressStore();
 
   const [activeTab, setActiveTab] = useState(1);
+  const [manualCreateFormat, setManualCreateFormat] = useState('video');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,6 +42,7 @@ export default function FacebookPageSettings() {
   const [aiCustomPrompt, setAiCustomPrompt] = useState('');
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
   const [defaultReelTemplateId, setDefaultReelTemplateId] = useState('');
+  const [defaultImageTemplateId, setDefaultImageTemplateId] = useState('');
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [templates, setTemplates] = useState<any[]>([]);
 
@@ -59,7 +61,9 @@ export default function FacebookPageSettings() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [reels, setReels] = useState<any[]>([]);
+  const [imagesQueue, setImagesQueue] = useState<any[]>([]);
   const [isLoadingReels, setIsLoadingReels] = useState(false);
+  const [queueTab, setQueueTab] = useState<'video'|'image'>('video');
 
   /** Create Reel Modal states */
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -110,7 +114,23 @@ export default function FacebookPageSettings() {
         setReels(prevReels => prevReels.map(r => r.id === payload.id ? { ...r, ...payload } : r));
       } catch (err) { }
     };
-    return () => sse.close();
+    const sseImage = new EventSource(`/api/image/events`);
+    sseImage.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        setImagesQueue(prev => {
+          const exists = prev.find(r => r.id === payload.id);
+          if (exists) {
+            return prev.map(r => r.id === payload.id ? { ...r, ...payload } : r);
+          }
+          return [payload, ...prev];
+        });
+      } catch (err) {}
+    };
+    return () => {
+      sse.close();
+      sseImage.close();
+    };
   }, [activeTab]);
 
   const ztteam_loadReels = async () => {
@@ -118,8 +138,10 @@ export default function FacebookPageSettings() {
       setIsLoadingReels(true);
       const res = await api.get(`render/list?fbPageId=${id}&limit=20&_t=${Date.now()}`);
       setReels(res.data.reels || []);
+      const imgRes = await api.get(`image/list?fbPageId=${id}&limit=20&_t=${Date.now()}`);
+      setImagesQueue(imgRes.data.data || []);
     } catch (error: any) {
-      ztteam_showToast('Lỗi tải danh sách reel', 'error');
+      ztteam_showToast('Lỗi tải danh sách', 'error');
     } finally {
       setIsLoadingReels(false);
     }
@@ -205,19 +227,14 @@ export default function FacebookPageSettings() {
   };
 
   const ztteam_handleCreateReel = async () => {
-    if (!createPostId || !createPostTitle.trim()) {
-      ztteam_showToast('Vui lòng chọn một bài viết', 'error');
+    if (!createSiteId || !createPostId) {
+      ztteam_showToast('Vui lòng chọn nguồn và bài viết', 'error');
       return;
     }
 
-    let template = createTemplateId || defaultReelTemplateId;
+    const template = createTemplateId || (manualCreateFormat === 'image' ? defaultImageTemplateId : defaultReelTemplateId);
     if (!template) {
-      const vTemplates = templates.filter(t => t.format === 'video');
-      if (vTemplates.length > 0) template = vTemplates[0].id;
-    }
-
-    if (!template) {
-      ztteam_showToast('Chưa có Giao diện Reel nào khả dụng', 'error');
+      ztteam_showToast(`Chưa có Giao diện ${manualCreateFormat === 'image' ? 'Ảnh' : 'Reel'} nào khả dụng. Vui lòng chọn ở màn hình cấu hình.`, 'error');
       return;
     }
 
@@ -225,7 +242,8 @@ export default function FacebookPageSettings() {
       setIsCreatingReel(true);
       const selectedPost = createPosts.find(p => String(p.id) === String(createPostId));
 
-      const res = await api.post('render/create', {
+      const apiEndpoint = manualCreateFormat === 'image' ? 'image/create' : 'render/create';
+      const res = await api.post(apiEndpoint, {
         pageId: id,
         wpPostId: String(createPostId),
         wpPostTitle: createPostTitle,
@@ -236,13 +254,13 @@ export default function FacebookPageSettings() {
       if (res.data && res.data.error) {
         throw new Error(res.data.error);
       }
-      ztteam_showToast('Đã thêm lệnh tạo Reel vào hàng đợi', 'success');
+      ztteam_showToast(`Đã thêm lệnh tạo ${manualCreateFormat === 'image' ? 'Ảnh' : 'Reel'} vào hàng đợi`, 'success');
       setShowCreateModal(false);
       setCreatePostId('');
       setCreatePostTitle('');
       ztteam_loadReels();
     } catch (err: any) {
-      ztteam_showToast(err.response?.data?.error || err.response?.data?.message || err.message || 'Lỗi tạo Reel', 'error');
+      ztteam_showToast(err.response?.data?.error || err.response?.data?.message || err.message || `Lỗi tạo ${manualCreateFormat === 'image' ? 'Ảnh' : 'Reel'}`, 'error');
     } finally {
       setIsCreatingReel(false);
     }
@@ -321,6 +339,7 @@ export default function FacebookPageSettings() {
       setAiCustomPrompt(data.ai_custom_prompt || '');
       setVoiceSpeed(data.voice_speed || 1.0);
       setDefaultReelTemplateId(data.default_reel_template_id || '');
+      setDefaultImageTemplateId(data.default_image_template_id || '');
 
       setLastRenderTime(data.last_render_time || null);
       setNextRenderTime(data.next_render_time || null);
@@ -386,6 +405,7 @@ export default function FacebookPageSettings() {
         ai_custom_prompt: aiCustomPrompt,
         voice_speed: voiceSpeed,
         default_reel_template_id: defaultReelTemplateId,
+        default_image_template_id: defaultImageTemplateId,
         sources
       });
       ztteam_showToast('Đã lưu cấu hình thành công', 'success');
@@ -496,7 +516,7 @@ export default function FacebookPageSettings() {
           {activeTab === 2 && (
             <div className="glass-card p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-                <h4 className="text-lg font-bold text-gray-900">Giao diện Reel</h4>
+                <h4 className="text-lg font-bold text-gray-900">Quản lý Giao diện (Template)</h4>
               </div>
 
               {editingTemplate ? (
@@ -518,86 +538,184 @@ export default function FacebookPageSettings() {
                 </div>
               ) : (
                 <>
-                  <p className="text-gray-500 text-sm mb-4">Chọn giao diện Reel mặc định cho Fanpage này. Các video tạo ra sẽ sử dụng bố cục, màu sắc và âm thanh của giao diện này.</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {templates.filter(t => t.format === 'video').map(t => (
-                      <div
-                        key={t.id}
-                        onClick={() => {
-                          setDefaultReelTemplateId(t.id);
-                        }}
-                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex gap-4 items-start ${defaultReelTemplateId === t.id ? 'border-primary bg-blue-50/30 shadow-md shadow-blue-500/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
-                      >
-                        <TemplateMiniPreview templateData={defaultReelTemplateId === t.id ? t : t} />
-                        <div className="flex-1 min-w-0 flex flex-col h-full">
-                          <div className="flex justify-between items-start mb-1">
-                            <h5 className="font-bold text-gray-900 truncate">{t.name}</h5>
-                            {defaultReelTemplateId === t.id && <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0 ml-2">check_circle</span>}
-                          </div>
-                          <div className="flex gap-2 flex-wrap mb-2 mt-1">
-                            {t.is_default && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-semibold border border-amber-200">MẶC ĐỊNH</span>}
-                            {defaultReelTemplateId === t.id && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">ĐANG CHỌN</span>}
-                          </div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t.content_type}</p>
+                  <div className="mb-8">
+                    <h5 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-primary">movie</span> Giao diện Video (Reel)</h5>
+                    <p className="text-gray-500 text-sm mb-4">Chọn giao diện Video mặc định cho Fanpage này.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {templates.filter(t => t.format === 'video').map(t => {
+                        const isSelected = defaultReelTemplateId === t.id;
+                        const handleSelect = () => setDefaultReelTemplateId(t.id);
+                        return (
+                        <div
+                          key={t.id}
+                          onClick={handleSelect}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex gap-4 items-start ${isSelected ? 'border-primary bg-blue-50/30 shadow-md shadow-blue-500/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
+                        >
+                          <TemplateMiniPreview templateData={isSelected ? t : t} />
+                          <div className="flex-1 min-w-0 flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-1">
+                              <h5 className="font-bold text-gray-900 truncate">{t.name}</h5>
+                              {isSelected && <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0 ml-2">check_circle</span>}
+                            </div>
+                            <div className="flex gap-2 flex-wrap mb-2 mt-1">
+                              {t.is_default && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-semibold border border-amber-200">MẶC ĐỊNH</span>}
+                              {isSelected && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">ĐANG CHỌN</span>}
+                            </div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t.content_type}</p>
 
-                          <div className="flex gap-2 mt-auto" onClick={e => e.stopPropagation()}>
-                            {!t.fb_page_id ? (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await api.post('templates/clone', { templateId: t.id, pageId: id });
-                                    ztteam_showToast('Đã sao chép giao diện thành công!', 'success');
-                                    fetchTemplates();
-                                  } catch (err: any) {
-                                    ztteam_showToast(err.response?.data?.message || 'Lỗi sao chép giao diện', 'error');
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
-                              >
-                                <span className="material-symbols-outlined text-[14px]">content_copy</span>
-                                Sao chép
-                              </button>
-                            ) : (
-                              <>
+                            <div className="flex gap-2 mt-auto" onClick={e => e.stopPropagation()}>
+                              {!t.fb_page_id ? (
                                 <button
-                                  onClick={() => setEditingTemplate(t)}
-                                  className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">edit</span>
-                                  Sửa
-                                </button>
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    const confirmed = await ztteam_showConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa giao diện này không?');
-                                    if (!confirmed) return;
+                                  onClick={async () => {
                                     try {
-                                      await api.delete(`templates/${t.id}`);
-                                      ztteam_showToast('Đã xóa giao diện', 'success');
-                                      if (defaultReelTemplateId === t.id) {
-                                        setDefaultReelTemplateId('');
-                                      }
+                                      await api.post('templates/clone', { templateId: t.id, pageId: id });
+                                      ztteam_showToast('Đã sao chép giao diện thành công!', 'success');
                                       fetchTemplates();
                                     } catch (err: any) {
-                                      ztteam_showToast(err.response?.data?.message || 'Lỗi xóa giao diện', 'error');
+                                      ztteam_showToast(err.response?.data?.message || 'Lỗi sao chép giao diện', 'error');
                                     }
                                   }}
-                                  className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ml-auto"
+                                  className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
                                 >
-                                  <span className="material-symbols-outlined text-[14px]">delete</span>
+                                  <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                                  Sao chép
                                 </button>
-                              </>
-                            )}
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => setEditingTemplate(t)}
+                                    className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                                    Sửa
+                                  </button>
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const confirmed = await ztteam_showConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa giao diện này không?');
+                                      if (!confirmed) return;
+                                      try {
+                                        await api.delete(`templates/${t.id}`);
+                                        ztteam_showToast('Đã xóa giao diện', 'success');
+                                        if (isSelected) setDefaultReelTemplateId('');
+                                        fetchTemplates();
+                                      } catch (err: any) {
+                                        ztteam_showToast(err.response?.data?.message || 'Lỗi xóa giao diện', 'error');
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ml-auto"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">delete</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                    {templates.filter(t => t.format === 'video').length === 0 && (
-                      <div className="col-span-full p-4 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">
-                        Chưa có giao diện Reel nào. Hãy sao chép từ kho hệ thống để tùy chỉnh.
-                      </div>
-                    )}
+                      )})}
+                      {templates.filter(t => t.format === 'video').length === 0 && (
+                        <div className="col-span-full p-4 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">
+                          Chưa có giao diện Video nào. Hãy sao chép từ kho hệ thống để tùy chỉnh.
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  <div className="mb-8">
+                    <h5 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-primary">image</span> Giao diện Ảnh (Image)</h5>
+                    <p className="text-gray-500 text-sm mb-4">Chọn giao diện Ảnh mặc định cho Fanpage này.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Thẻ Auto */}
+                      <div
+                        onClick={() => setDefaultImageTemplateId('auto')}
+                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center ${defaultImageTemplateId === 'auto' ? 'border-primary bg-blue-50/30 shadow-md shadow-blue-500/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
+                      >
+                        <span className="material-symbols-outlined text-4xl text-blue-500 mb-2">auto_awesome</span>
+                        <h5 className="font-bold text-gray-900 text-center">Tự động chọn (Auto)</h5>
+                        <p className="text-xs text-gray-500 text-center mt-2">Dựa theo số lượng ảnh của bài viết (2 ảnh, 3 ảnh, 4 ảnh)</p>
+                        {defaultImageTemplateId === 'auto' && <span className="mt-3 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">ĐANG CHỌN</span>}
+                      </div>
+
+                      {templates.filter(t => t.format === 'image').map(t => {
+                        const isSelected = defaultImageTemplateId === t.id;
+                        const handleSelect = () => setDefaultImageTemplateId(t.id);
+                        return (
+                        <div
+                          key={t.id}
+                          onClick={handleSelect}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex gap-4 items-start ${isSelected ? 'border-primary bg-blue-50/30 shadow-md shadow-blue-500/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
+                        >
+                          <TemplateMiniPreview templateData={isSelected ? t : t} />
+                          <div className="flex-1 min-w-0 flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-1">
+                              <h5 className="font-bold text-gray-900 truncate">{t.name}</h5>
+                              {isSelected && <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0 ml-2">check_circle</span>}
+                            </div>
+                            <div className="flex gap-2 flex-wrap mb-2 mt-1">
+                              {t.is_default && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-semibold border border-amber-200">MẶC ĐỊNH</span>}
+                              {isSelected && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">ĐANG CHỌN</span>}
+                            </div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t.content_type}</p>
+
+                            <div className="flex gap-2 mt-auto" onClick={e => e.stopPropagation()}>
+                              {!t.fb_page_id ? (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await api.post('templates/clone', { templateId: t.id, pageId: id });
+                                      ztteam_showToast('Đã sao chép giao diện thành công!', 'success');
+                                      fetchTemplates();
+                                    } catch (err: any) {
+                                      ztteam_showToast(err.response?.data?.message || 'Lỗi sao chép giao diện', 'error');
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                                  Sao chép
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => setEditingTemplate(t)}
+                                    className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                                    Sửa
+                                  </button>
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const confirmed = await ztteam_showConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa giao diện này không?');
+                                      if (!confirmed) return;
+                                      try {
+                                        await api.delete(`templates/${t.id}`);
+                                        ztteam_showToast('Đã xóa giao diện', 'success');
+                                        if (isSelected) setDefaultImageTemplateId('');
+                                        fetchTemplates();
+                                      } catch (err: any) {
+                                        ztteam_showToast(err.response?.data?.message || 'Lỗi xóa giao diện', 'error');
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ml-auto"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">delete</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )})}
+                      {templates.filter(t => t.format === 'image').length === 0 && (
+                        <div className="col-span-full p-4 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">
+                          Chưa có giao diện Ảnh nào. Hãy sao chép từ kho hệ thống để tùy chỉnh.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+
                 </>
               )}
             </div>
@@ -915,7 +1033,7 @@ export default function FacebookPageSettings() {
                     className="px-4 py-1.5 bg-primary text-white hover:bg-blue-600 rounded-full font-semibold transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-500/20"
                   >
                     <span className="material-symbols-outlined text-[18px]">add</span>
-                    Tạo Reel thủ công
+                    Tạo mới thủ công
                   </button>
                   <button onClick={ztteam_loadReels} className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-full font-semibold transition-colors flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[18px]">refresh</span>
@@ -924,136 +1042,270 @@ export default function FacebookPageSettings() {
                 </div>
               </div>
 
+              <div className="flex gap-4 mb-4">
+                <button
+                  onClick={() => setQueueTab('video')}
+                  className={`px-4 py-2 font-bold rounded-xl text-sm transition-colors ${queueTab === 'video' ? 'bg-blue-100 text-blue-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                >
+                  <span className="material-symbols-outlined text-[18px] mr-1 align-text-bottom">movie</span> Hàng đợi Video
+                </button>
+                <button
+                  onClick={() => setQueueTab('image')}
+                  className={`px-4 py-2 font-bold rounded-xl text-sm transition-colors ${queueTab === 'image' ? 'bg-blue-100 text-blue-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                >
+                  <span className="material-symbols-outlined text-[18px] mr-1 align-text-bottom">image</span> Hàng đợi Ảnh
+                </button>
+              </div>
+
               <div className="space-y-3">
-                {isLoadingReels ? (
-                  <div className="glass-card p-12 text-center">
-                    <span className="material-symbols-outlined text-4xl animate-spin text-primary">progress_activity</span>
-                    <p className="text-gray-500 mt-3">Đang tải...</p>
-                  </div>
-                ) : reels.length === 0 ? (
-                  <div className="glass-card p-12 text-center bg-slate-50/50">
-                    <span className="material-symbols-outlined text-5xl text-gray-300">movie_filter</span>
-                    <p className="text-gray-500 mt-3 text-lg font-semibold">Chưa có Reel nào</p>
-                    <p className="text-gray-400 text-sm mt-1">Các bài viết mới sẽ được render và hiển thị tại đây.</p>
-                  </div>
-                ) : (
-                  reels.map(reel => (
-                    <div key={reel.id} className="border border-slate-200/60 rounded-xl p-4 flex gap-4 items-start bg-white hover:shadow-md transition-shadow">
-                      {/** Thumbnail */}
-                      <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                        {reel.thumbnail_url ? (
-                          <img src={reel.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-2xl text-gray-400">movie</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/** Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-1">
-                          <h4 className="font-bold text-gray-900 truncate">{reel.wp_post_title || 'Untitled'}</h4>
-                          {ztteam_getStatusBadge(reel.status)}
+                {queueTab === 'video' && (
+                  isLoadingReels ? (
+                    <div className="glass-card p-12 text-center">
+                      <span className="material-symbols-outlined text-4xl animate-spin text-primary">progress_activity</span>
+                      <p className="text-gray-500 mt-3">Đang tải...</p>
+                    </div>
+                  ) : reels.length === 0 ? (
+                    <div className="glass-card p-12 text-center bg-slate-50/50">
+                      <span className="material-symbols-outlined text-5xl text-gray-300">movie_filter</span>
+                      <p className="text-gray-500 mt-3 text-lg font-semibold">Chưa có Reel nào</p>
+                      <p className="text-gray-400 text-sm mt-1">Các bài viết mới sẽ được render và hiển thị tại đây.</p>
+                    </div>
+                  ) : (
+                    reels.map(reel => (
+                      <div key={reel.id} className="border border-slate-200/60 rounded-xl p-4 flex gap-4 items-start bg-white hover:shadow-md transition-shadow">
+                        {/** Thumbnail */}
+                        <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                          {reel.thumbnail_url ? (
+                            <img src={reel.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="material-symbols-outlined text-2xl text-gray-400">movie</span>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">
-                          Tạo lúc: {ztteam_formatDate(reel.created_at)}
-                        </p>
 
-                        {/** Progress bar for RENDERING status */}
-                        {reel.status === 'RENDERING' && (
-                          <div className="mt-2 mb-3">
-                            <div className="flex justify-between text-[11px] text-blue-600 font-semibold mb-1">
-                              <span>Đang xử lý...</span>
-                              <span>{reel.progress}%</span>
-                            </div>
-                            <div className="w-full bg-blue-100 rounded-full h-1.5">
-                              <div
-                                className="bg-primary h-1.5 rounded-full transition-all duration-500"
-                                style={{ width: `${reel.progress}%` }}
-                              />
-                            </div>
+                        {/** Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 mb-1">
+                            <h4 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2" title={reel.wp_post_title || 'Untitled'}>{reel.wp_post_title || 'Untitled'}</h4>
+                            {ztteam_getStatusBadge(reel.status)}
                           </div>
-                        )}
+                          <p className="text-xs text-gray-500 mb-2">
+                            Tạo lúc: {ztteam_formatDate(reel.created_at)}
+                          </p>
 
-                        {/** Error log for FAILED */}
-                        {reel.status === 'FAILED' && reel.error_log && (
-                          <div className="mt-2 mb-3 p-2 bg-red-50 rounded text-[11px] text-red-600 font-mono truncate">
-                            {reel.error_log}
-                          </div>
-                        )}
-
-                        {/** Actions */}
-                        <div className="flex gap-2 mt-2">
-                          {reel.status === 'POSTED' && reel.fb_post_id && (
-                            <a
-                              href={`https://www.facebook.com/${reel.page?.fb_page_id || id}/videos/${reel.fb_post_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-full text-[11px] font-bold transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                              Xem bài đăng
-                            </a>
+                          {/** Progress bar for RENDERING status */}
+                          {reel.status === 'RENDERING' && (
+                            <div className="mt-2 mb-3">
+                              <div className="flex justify-between text-[11px] text-blue-600 font-semibold mb-1">
+                                <span>Đang xử lý...</span>
+                                <span>{reel.progress}%</span>
+                              </div>
+                              <div className="w-full bg-blue-100 rounded-full h-1.5">
+                                <div
+                                  className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                                  style={{ width: `${reel.progress}%` }}
+                                />
+                              </div>
+                            </div>
                           )}
 
-                          {reel.status === 'COMPLETED' && reel.video_url && (
-                            <>
+                          {/** Error log for FAILED */}
+                          {reel.status === 'FAILED' && reel.error_log && (
+                            <div className="mt-2 mb-3 p-2 bg-red-50 rounded text-[11px] text-red-600 font-mono truncate">
+                              {reel.error_log}
+                            </div>
+                          )}
+
+                          {/** Actions */}
+                          <div className="flex gap-2 mt-2">
+                            {reel.status === 'POSTED' && reel.fb_post_id && (
                               <a
-                                href={reel.video_url}
+                                href={`https://www.facebook.com/${reel.page?.fb_page_id || id}/videos/${reel.fb_post_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full text-[11px] font-bold transition-colors"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-full text-[11px] font-bold transition-colors"
                               >
-                                <span className="material-symbols-outlined text-[14px]">play_circle</span>
-                                Xem video
+                                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                Xem bài đăng
                               </a>
+                            )}
+
+                            {reel.status === 'COMPLETED' && reel.video_url && (
+                              <>
+                                <a
+                                  href={reel.video_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full text-[11px] font-bold transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                                  Xem video
+                                </a>
+                                <button
+                                  onClick={async () => {
+                                    if (isPosting[reel.id]) return;
+                                    try {
+                                      setIsPosting(prev => ({ ...prev, [reel.id]: true }));
+                                      await api.post(`render/post/${reel.id}`);
+                                      ztteam_showToast('Đã đăng bài lên Facebook thành công!', 'success');
+                                      ztteam_loadReels();
+                                    } catch (err: any) {
+                                      ztteam_showToast(err.response?.data?.message || err.response?.data?.error || 'Lỗi đăng bài', 'error');
+                                    } finally {
+                                      setIsPosting(prev => ({ ...prev, [reel.id]: false }));
+                                    }
+                                  }}
+                                  disabled={isPosting[reel.id]}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50"
+                                >
+                                  {isPosting[reel.id] ? (
+                                    <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[14px]">send</span>
+                                  )}
+                                  Đăng ngay
+                                </button>
+                              </>
+                            )}
+                            {reel.status === 'FAILED' && (
                               <button
-                                onClick={async () => {
-                                  if (isPosting[reel.id]) return;
-                                  try {
-                                    setIsPosting(prev => ({ ...prev, [reel.id]: true }));
-                                    await api.post(`render/post/${reel.id}`);
-                                    ztteam_showToast('Đã đăng bài lên Facebook thành công!', 'success');
-                                    ztteam_loadReels();
-                                  } catch (err: any) {
-                                    ztteam_showToast(err.response?.data?.message || err.response?.data?.error || 'Lỗi đăng bài', 'error');
-                                  } finally {
-                                    setIsPosting(prev => ({ ...prev, [reel.id]: false }));
-                                  }
-                                }}
-                                disabled={isPosting[reel.id]}
-                                className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50"
+                                onClick={() => ztteam_retryReel(reel.id)}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-[11px] font-bold transition-colors"
                               >
-                                {isPosting[reel.id] ? (
-                                  <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
-                                ) : (
-                                  <span className="material-symbols-outlined text-[14px]">send</span>
-                                )}
-                                Đăng ngay
+                                <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                Thử lại
                               </button>
-                            </>
-                          )}
-                          {reel.status === 'FAILED' && (
+                            )}
                             <button
-                              onClick={() => ztteam_retryReel(reel.id)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-[11px] font-bold transition-colors"
+                              onClick={() => ztteam_deleteReel(reel.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-[11px] font-bold transition-colors"
                             >
-                              <span className="material-symbols-outlined text-[14px]">refresh</span>
-                              Thử lại
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                              Xóa
                             </button>
-                          )}
-                          <button
-                            onClick={() => ztteam_deleteReel(reel.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-[11px] font-bold transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">delete</span>
-                            Xóa
-                          </button>
+                          </div>
                         </div>
                       </div>
+                    ))
+                  )
+                )}
+                
+                {queueTab === 'image' && (
+                  imagesQueue.length === 0 ? (
+                    <div className="glass-card p-12 text-center bg-slate-50/50">
+                      <span className="material-symbols-outlined text-5xl text-gray-300">image</span>
+                      <p className="text-gray-500 mt-3 text-lg font-semibold">Chưa có Ảnh nào</p>
+                      <p className="text-gray-400 text-sm mt-1">Các bài viết mới sẽ được render ảnh và hiển thị tại đây.</p>
                     </div>
-                  ))
+                  ) : (
+                    imagesQueue.map(img => (
+                      <div key={img.id} className="border border-slate-200/60 rounded-xl p-4 flex gap-4 items-start bg-white hover:shadow-md transition-shadow">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 mb-1">
+                            <h4 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2" title={img.wp_post_title || 'Untitled'}>{img.wp_post_title || 'Untitled'}</h4>
+                            {ztteam_getStatusBadge(img.status)}
+                          </div>
+                          
+                          <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 mt-2 mb-2">
+                            {img.image_url ? (
+                              <img src={`/storage${img.image_url}`} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="material-symbols-outlined text-2xl text-gray-400">image</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mb-2">
+                            Tạo lúc: {ztteam_formatDate(img.created_at)}
+                          </p>
+                          
+                          {img.status === 'FAILED' && img.error_log && (
+                            <div className="mt-2 mb-3 p-2 bg-red-50 rounded text-[11px] text-red-600 font-mono truncate">
+                              {img.error_log}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 mt-2">
+                            {img.status === 'POSTED' && img.fb_post_id && (
+                              <a
+                                href={`https://www.facebook.com/${img.page?.fb_page_id || id}/posts/${img.fb_post_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-full text-[11px] font-bold transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                Xem bài đăng
+                              </a>
+                            )}
+                            
+                            {img.status === 'COMPLETED' && (
+                              <>
+                                <button
+                                  onClick={async () => {
+                                    if (isPosting[img.id]) return;
+                                    try {
+                                      setIsPosting(prev => ({ ...prev, [img.id]: true }));
+                                      await api.post(`image/${img.id}/post-to-fb`);
+                                      ztteam_showToast('Đã đăng ảnh lên Facebook thành công!', 'success');
+                                      ztteam_loadReels();
+                                    } catch (err: any) {
+                                      ztteam_showToast(err.response?.data?.message || err.response?.data?.error || 'Lỗi đăng bài', 'error');
+                                    } finally {
+                                      setIsPosting(prev => ({ ...prev, [img.id]: false }));
+                                    }
+                                  }}
+                                  disabled={isPosting[img.id]}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50"
+                                >
+                                  {isPosting[img.id] ? (
+                                    <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[14px]">send</span>
+                                  )}
+                                  Đăng ngay
+                                </button>
+                              </>
+                            )}
+                            {img.status === 'FAILED' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api.post(`image/retry/${img.id}`);
+                                    ztteam_showToast('Đã thêm lại vào hàng đợi tạo ảnh', 'success');
+                                    ztteam_loadReels();
+                                  } catch (error: any) {
+                                    ztteam_showToast(error.response?.data?.message || 'Lỗi retry', 'error');
+                                  }
+                                }}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-[11px] font-bold transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                Thử lại
+                              </button>
+                            )}
+                            <button
+                              onClick={async () => {
+                                const confirmed = await ztteam_showConfirm('Xác nhận xóa', 'Xóa mục này? Hành động không thể hoàn tác.');
+                                if (!confirmed) return;
+                                try {
+                                  await api.delete(`image/${img.id}`);
+                                  ztteam_showToast('Đã xóa', 'success');
+                                  ztteam_loadReels();
+                                } catch (error: any) {
+                                  ztteam_showToast(error.response?.data?.message || 'Lỗi xóa', 'error');
+                                }
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-[11px] font-bold transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                              Xóa
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )
                 )}
               </div>
             </div>
@@ -1066,7 +1318,7 @@ export default function FacebookPageSettings() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="glass-card w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white/50">
-              <h3 className="text-lg font-bold text-gray-900">Tạo Reel Thủ Công</h3>
+              <h3 className="text-lg font-bold text-gray-900">Tạo Nội Dung Thủ Công (Test)</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
@@ -1076,6 +1328,29 @@ export default function FacebookPageSettings() {
             </div>
 
             <div className="p-6 space-y-5 bg-white">
+              <div className="flex gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    value="video" 
+                    checked={manualCreateFormat === 'video'} 
+                    onChange={() => setManualCreateFormat('video')} 
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Tạo Video (Reel)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer ml-4">
+                  <input 
+                    type="radio" 
+                    value="image" 
+                    checked={manualCreateFormat === 'image'} 
+                    onChange={() => setManualCreateFormat('image')} 
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Tạo Hình Ảnh (Image)</span>
+                </label>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Chọn Nguồn (Website) <span className="text-red-500">*</span></label>
                 <select
@@ -1123,12 +1398,12 @@ export default function FacebookPageSettings() {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Giao diện (Template)</label>
                 <select
-                  value={createTemplateId || defaultReelTemplateId}
+                  value={createTemplateId || (manualCreateFormat === 'image' ? defaultImageTemplateId : defaultReelTemplateId)}
                   onChange={e => setCreateTemplateId(e.target.value)}
                   className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm focus:border-primary outline-none transition-colors"
                 >
                   <option value="">-- Mặc định của Page --</option>
-                  {templates.filter(t => t.format === 'video').map(t => (
+                  {templates.filter(t => t.format === manualCreateFormat).map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -1151,9 +1426,9 @@ export default function FacebookPageSettings() {
                 {isCreatingReel ? (
                   <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
                 ) : (
-                  <span className="material-symbols-outlined text-[18px]">movie</span>
+                  <span className="material-symbols-outlined text-[18px]">{manualCreateFormat === 'image' ? 'image' : 'movie'}</span>
                 )}
-                Tạo Reel
+                Tạo {manualCreateFormat === 'image' ? 'Ảnh' : 'Reel'}
               </button>
             </div>
           </div>

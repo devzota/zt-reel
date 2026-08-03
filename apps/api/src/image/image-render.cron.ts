@@ -2,38 +2,38 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ZTTeamRenderProcessor } from './render.processor';
+import { ZTTeamImageProcessor } from './image.processor';
 import { ZTTeamWordpressService } from '../wordpress/wordpress.service';
 
 @Injectable()
-export class ZTTeamRenderCron implements OnApplicationBootstrap {
-  private readonly logger = new Logger(ZTTeamRenderCron.name);
+export class ZTTeamImageRenderCron implements OnApplicationBootstrap {
+  private readonly logger = new Logger(ZTTeamImageRenderCron.name);
   private isRunning = false;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly renderProcessor: ZTTeamRenderProcessor,
+    private readonly imageProcessor: ZTTeamImageProcessor,
     private readonly wordpressService: ZTTeamWordpressService,
   ) {}
 
   onApplicationBootstrap() {
-    this.logger.log('Application started, triggering initial render cron...');
+    this.logger.log('Application started, triggering initial image render cron...');
     this.ztteam_handleCron();
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async ztteam_handleCron() {
     if (this.isRunning) {
-      this.logger.warn('Render cron is already running, skipping this tick');
+      this.logger.warn('Image Render cron is already running, skipping this tick');
       return;
     }
     this.isRunning = true;
-    this.logger.log('Starting Auto-Render Cron...');
+    this.logger.log('Starting Auto-Image Render Cron...');
 
     try {
-      /** Find all pages that have auto create enabled and format is reel */
+      /** Find all pages that have auto create enabled and format is image */
       const pages = await this.prisma.ztteam_pages.findMany({
-        where: { auto_create_enabled: true, post_format: { in: ['reel', 'mixed'] } },
+        where: { auto_create_enabled: true, post_format: { in: ['image', 'mixed'] } },
         include: { sources: true },
         orderBy: { last_auto_scan_at: 'asc' },
         take: 50,
@@ -45,14 +45,14 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
         try {
           await this.ztteam_processPage(page);
         } catch (error: any) {
-          this.logger.error(`Failed to process auto-render for page ${page.id}: ${error.message}`);
+          this.logger.error(`Failed to process auto-image for page ${page.id}: ${error.message}`);
         }
       }
     } catch (error: any) {
-      this.logger.error(`Render cron failed: ${error.message}`);
+      this.logger.error(`Image Render cron failed: ${error.message}`);
     } finally {
       this.isRunning = false;
-      this.logger.log('Auto-Render Cron finished.');
+      this.logger.log('Auto-Image Render Cron finished.');
     }
   }
 
@@ -64,8 +64,12 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
     const maxAgeDays = page.auto_max_post_age_days || 7;
     const now = new Date();
 
-    const lastScanTime = page.last_auto_scan_at ? new Date(page.last_auto_scan_at) : null;
     const intervalHours = page.auto_scan_interval_hours || 2;
+    
+    /** Fetch last scan time from settings to decouple from Reel scanner */
+    const settingKey = `image_scan_${page.id}`;
+    const scanSetting = await this.prisma.ztteam_settings.findUnique({ where: { key: settingKey } });
+    const lastScanTime = scanSetting ? new Date(scanSetting.value) : null;
     
     if (lastScanTime) {
       const hoursSinceLastScan = (now.getTime() - lastScanTime.getTime()) / (1000 * 60 * 60);
@@ -75,15 +79,16 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
       }
     }
 
-    let scannedAnySource = false;
-
     for (const source of page.sources) {
-      if (processedCount >= batchSize) break;
+      if (!source.is_active) continue;
+
+      const site = await this.prisma.ztteam_target_sites.findUnique({
+        where: { id: source.target_site_id }
+      });
+      if (!site || site.status !== 'active') continue;
 
       try {
-        /** Get latest posts from the target site */
-        /** Using owner_user_id from page to authenticate with WP */
-        const posts = await this.wordpressService.ztteam_getPosts(source.target_site_id, page.owner_user_id, source.target_category_id, source.target_tags);
+        const posts = await this.wordpressService.ztteam_getPosts(source.target_site_id, undefined as any, source.target_category_id, source.target_tags);
         
         /** Process oldest first (FIFO) so chronological order is maintained on Fanpage */
         const reversedPosts = [...posts].reverse();
@@ -91,28 +96,20 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
         for (const post of reversedPosts) {
           if (processedCount >= batchSize) break;
 
-          /** Check age */
           const postDate = new Date(post.date);
-          const diffTime = Math.abs(now.getTime() - postDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          if (diffDays > maxAgeDays) {
-            continue; /** Too old */
+          const ageDays = (now.getTime() - postDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (ageDays > maxAgeDays) {
+            continue;
           }
 
-          /** Check if already processed (exists in history) */
-          const history = await this.prisma.ztteam_reel_history.findUnique({
-            where: {
-              page_id_wp_post_id: {
-                page_id: page.id,
-                wp_post_id: post.id.toString(),
-              },
-            },
+          const history = await this.prisma.ztteam_image_history.findUnique({
+            where: { page_id_wp_post_id: { page_id: page.id, wp_post_id: post.id.toString() } }
           });
 
-          if (history) continue; /** Already processed */
+          if (history) continue;
 
-          /** Check queue limit */
-          const queueCount = await this.prisma.ztteam_reels.count({
+          const queueCount = await this.prisma.ztteam_images.count({
             where: {
               page_id: page.id,
               status: { in: ['QUEUED', 'RENDERING'] }
@@ -123,49 +120,47 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
             break;
           }
 
-          /** Create new Reel record */
-          const reel = await this.prisma.ztteam_reels.create({
+          const image = await this.prisma.ztteam_images.create({
             data: {
               page_id: page.id,
               wp_post_id: post.id.toString(),
               wp_post_title: post.title,
               wp_post_url: post.link,
-              template_id: page.default_reel_template_id || 'default',
+              template_id: page.default_image_template_id || 'default',
               status: 'QUEUED',
             },
           });
 
-          /** Mark post as used IMMEDIATELY to prevent re-queuing on failure */
-          await this.prisma.ztteam_reel_history.upsert({
+          await this.prisma.ztteam_image_history.upsert({
             where: { page_id_wp_post_id: { page_id: page.id, wp_post_id: post.id.toString() } },
             create: { page_id: page.id, wp_post_id: post.id.toString() },
             update: {},
           });
 
-          /** Add to BullMQ */
-          await this.renderProcessor.ztteam_addJob({
-            reelId: reel.id,
+          await this.imageProcessor.ztteam_addJob({
+            imageId: image.id,
             pageId: page.id,
             wpPostId: post.id.toString(),
-            wpPostTitle: post.title,
-            templateId: page.default_reel_template_id || 'default',
+            templateId: page.default_image_template_id || 'default',
           });
 
-          this.logger.log(`Auto-queued reel ${reel.id} for post ${post.title}`);
           processedCount++;
         }
-        scannedAnySource = true;
-      } catch (err: any) {
-        this.logger.error(`Error processing source for page ${page.name}: ${err.message}`);
+      } catch (error: any) {
+        this.logger.error(`Failed to fetch posts from site ${site.wp_url}: ${error.message}`);
       }
+
+      if (processedCount >= batchSize) break;
     }
 
-    if (scannedAnySource) {
-      await this.prisma.ztteam_pages.update({
-        where: { id: page.id },
-        data: { last_auto_scan_at: new Date() },
+    if (processedCount > 0) {
+      const settingKey = `image_scan_${page.id}`;
+      await this.prisma.ztteam_settings.upsert({
+        where: { key: settingKey },
+        create: { key: settingKey, value: new Date().toISOString() },
+        update: { value: new Date().toISOString() }
       });
-      this.logger.log(`Updated last_auto_scan_at for page ${page.name}`);
+      this.logger.log(`Queued ${processedCount} images for page ${page.name}`);
     }
   }
 }

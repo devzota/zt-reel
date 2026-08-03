@@ -25,6 +25,7 @@ export default function Layout() {
         { to: '/facebook', icon: 'qr_code_2', label: 'Facebook Pages' },
         { to: '/wordpress', icon: 'language', label: 'WordPress & Crawler' },
         { to: '/reel-factory', icon: 'movie_filter', label: 'AI Reel Factory' },
+        { to: '/image-factory', icon: 'image', label: 'AI Image Factory' },
         { to: '/statistics', icon: 'analytics', label: 'Statistics' },
         { to: '/settings', icon: 'settings', label: 'System Settings' },
     ];
@@ -34,9 +35,14 @@ export default function Layout() {
             <UIProvider />
             {/*  Sidebar  */}
             <aside className="fixed left-0 top-0 h-full w-[280px] bg-white flex flex-col shadow-sm px-4 py-3 z-50">
-                <div className="mb-10 px-2">
-                    <h1 className="font-headline-lg text-headline-lg font-bold text-primary">AutoContent</h1>
-                    <p className="font-label-caps text-label-caps text-gray-400">Automation Engine</p>
+                <div className="mb-8 mt-1 px-2 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#1877F2] flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+                        <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/24000/svg"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </div>
+                    <div>
+                        <h1 className="text-[17px] font-black text-slate-800 tracking-tight leading-tight">FB Auto Reels</h1>
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5">Content Engine</p>
+                    </div>
                 </div>
                 <nav className="flex-grow space-y-1 overflow-y-auto">
                     {navItems.map(item => {

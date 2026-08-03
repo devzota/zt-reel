@@ -162,15 +162,29 @@ export class ZTTeamRenderController {
         .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').trim();
     };
 
-    /** Fetch last posted reels for scheduling calculation */
+    /** Fetch last posted items for scheduling calculation */
     const pageIds = [...new Set(reels.map(r => r.page_id))];
     const lastPostedReels = await this.prisma.ztteam_reels.findMany({
       where: { page_id: { in: pageIds }, status: 'POSTED' },
       orderBy: { updated_at: 'desc' },
       distinct: ['page_id']
     });
-    const lastPostedMap = new Map(lastPostedReels.map(r => [r.page_id, r.updated_at]));
+    const lastPostedImages = await this.prisma.ztteam_images.findMany({
+      where: { page_id: { in: pageIds }, is_posted: true },
+      orderBy: { posted_at: 'desc' },
+      distinct: ['page_id']
+    });
     
+    const lastPostedMap = new Map<string, Date>();
+    for (const r of lastPostedReels) lastPostedMap.set(r.page_id, r.updated_at);
+    for (const img of lastPostedImages) {
+      if (img.posted_at) {
+        const existing = lastPostedMap.get(img.page_id);
+        if (!existing || img.posted_at > existing) {
+          lastPostedMap.set(img.page_id, img.posted_at);
+        }
+      }
+    }
     /** Simulate queue to get precise scheduled times for all pending reels */
     const allPending = await this.prisma.ztteam_reels.findMany({
        where: { status: { in: ['QUEUED', 'RENDERING', 'COMPLETED'] }, is_posted: false },

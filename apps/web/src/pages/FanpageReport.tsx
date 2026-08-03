@@ -250,39 +250,55 @@ export default function FanpageReport() {
           {/* Charts */}
           {chartData.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="glass-card p-6 rounded-3xl">
-                <h4 className="text-lg font-bold text-gray-900 mb-6">Lượt xem nội dung ({daysRange} ngày)</h4>
-                <div className="w-full h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#1877F2" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#1877F2" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                      <Area type="monotone" dataKey="impressions" stroke="#1877F2" strokeWidth={3} fillOpacity={1} fill="url(#colorImp)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+              {/* Impressions Card */}
+              <div className="glass-card p-6 rounded-3xl flex flex-col">
+                <div className="mb-4">
+                  <h4 className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight">Lượt xem nội dung</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Biểu đồ đồng bộ ({daysRange} ngày qua)</p>
+                </div>
+                
+                <div className="h-72 w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} syncId="fanpageSync" margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e0f2fe', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }} cursor={{ stroke: '#93c5fd', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        <Area type="monotone" dataKey="impressions" name="Lượt xem" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
                 </div>
               </div>
-              
-              <div className="glass-card p-6 rounded-3xl">
-                <h4 className="text-lg font-bold text-gray-900 mb-6">Biểu đồ Tương tác ({daysRange} ngày)</h4>
-                <div className="w-full h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                      <Line type="monotone" dataKey="engagements" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 0}} activeDot={{r: 6}} />
-                    </LineChart>
-                  </ResponsiveContainer>
+
+              {/* Engagements Card */}
+              <div className="glass-card p-6 rounded-3xl flex flex-col">
+                <div className="mb-4">
+                  <h4 className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight">Biểu đồ Tương tác</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Biểu đồ đồng bộ ({daysRange} ngày qua)</p>
+                </div>
+                
+                <div className="h-72 w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} syncId="fanpageSync" margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="colorEng" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #d1fae5', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }} cursor={{ stroke: '#6ee7b7', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        <Area type="monotone" dataKey="engagements" name="Tương tác" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorEng)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
                 </div>
               </div>
             </div>

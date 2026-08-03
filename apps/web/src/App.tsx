@@ -5,6 +5,7 @@ import FacebookPages from './pages/FacebookPages'
 import FacebookPageSettings from './pages/FacebookPageSettings'
 import WordPressSites from './pages/WordPressSites'
 import ReelFactory from './pages/ReelFactory'
+import ImageFactory from './pages/ImageFactory'
 import StatisticsPage from './pages/StatisticsPage'
 import SystemSettingsPage from './pages/SystemSettingsPage'
 import Login from './pages/Login'
@@ -41,6 +42,7 @@ function App() {
           <Route path="facebook/pages/:id/report" element={<FanpageReport />} />
           <Route path="wordpress" element={<WordPressSites />} />
           <Route path="reel-factory" element={<ReelFactory />} />
+          <Route path="image-factory" element={<ImageFactory />} />
           <Route path="statistics" element={<StatisticsPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
         </Route>

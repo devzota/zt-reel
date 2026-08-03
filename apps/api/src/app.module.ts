@@ -14,6 +14,7 @@ import { ZTTeamAIModule } from './ai/ai.module';
 import { ZTTeamAudioModule } from './audio/audio.module';
 import { ZTTeamMediaModule } from './media/media.module';
 import { ZTTeamRenderModule } from './render/render.module';
+import { ZTTeamImageModule } from './image/image.module';
 import { ZTTeamDashboardModule } from './dashboard/dashboard.module';
 import { ZTTeamSettingsModule } from './settings/settings.module';
 
@@ -32,6 +33,7 @@ import { ZTTeamSettingsModule } from './settings/settings.module';
     ZTTeamAudioModule,
     ZTTeamMediaModule,
     ZTTeamRenderModule,
+    ZTTeamImageModule,
     ZTTeamDashboardModule,
     ZTTeamSettingsModule,
   ],

@@ -136,6 +136,96 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
   }
 
   /**
+   * Generate an AI caption and first comment for an image post based on a WordPress article.
+   */
+  async ztteam_generateImageContent(
+    postContent: string,
+    tone: string = 'professional',
+    customPrompt?: string | null,
+  ): Promise<{ caption: string; comment: string }> {
+    this.logger.log(`Generating image content (tone: ${tone})`);
+
+    const settings = await this.getSettings();
+    if (!settings.openaiKey && !settings.deepseekKey && !settings.geminiKey) {
+      this.logger.warn('No API keys found, returning mock image content');
+      return { caption: 'Mock Caption', comment: 'Mock Comment' };
+    }
+
+    const defaultSystemPrompt = `Bạn là chuyên gia viết bài đăng (Post) kèm hình ảnh cho Fanpage mạng xã hội.
+Viết một nội dung bài đăng thật thu hút dựa trên bài viết người dùng cung cấp.
+
+QUY TẮC TUYỆT ĐỐI CẦN TUÂN THỦ:
+- Giọng văn: ${tone}
+- Viết 1 tiêu đề (caption) hấp dẫn, ngắn gọn, súc tích, chia đoạn rõ ràng.
+- Viết 1 bình luận (comment) để ghim dưới bài viết nhằm kêu gọi tương tác (call to action).
+- CÓ THỂ dùng emoji phù hợp.`;
+
+    const systemPrompt = customPrompt ? customPrompt : defaultSystemPrompt;
+    const promptWithRules = `${systemPrompt}
+
+IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH OR VIETNAMESE DEPENDING ON THE SOURCE LANGUAGE (PREFER VIETNAMESE).
+YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
+{
+  "caption": "A catchy social media caption (with hashtags if appropriate)",
+  "comment": "A short, engaging comment to post below the image"
+}`;
+
+    const userContent = `Generate Facebook image post content from the following article:\n\n${postContent.substring(0, 2000)}`;
+
+    try {
+      if (settings.activeProvider === 'gemini' && settings.geminiKey) {
+        const genAI = new GoogleGenerativeAI(settings.geminiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.8,
+            maxOutputTokens: 500,
+          }
+        });
+        
+        const result = await model.generateContent(`${promptWithRules}\n\n${userContent}`);
+        const text = result.response.text();
+        const jsonResult = JSON.parse(text || '{}');
+        return {
+          caption: jsonResult.caption || '',
+          comment: jsonResult.comment || ''
+        };
+      } else {
+        const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
+        const apiKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
+        const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
+
+        if (!apiKey) throw new Error(`Missing API Key for ${settings.activeProvider}`);
+
+        const openai = new OpenAI({ apiKey, baseURL });
+        const response = await openai.chat.completions.create({
+          model: modelName,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: promptWithRules },
+            { role: 'user', content: userContent },
+          ],
+          max_tokens: 500,
+          temperature: 0.8,
+        });
+
+        const resultString = response.choices[0]?.message?.content?.trim() || '{}';
+        const result = JSON.parse(resultString);
+        
+        return {
+          caption: result.caption || '',
+          comment: result.comment || ''
+        };
+      }
+    } catch (error: any) {
+      this.logger.error(`AI image content generation failed: ${error.message}`);
+      throw new Error('Lỗi tạo content AI: ' + error.message);
+    }
+  }
+
+  /**
    * Generate subtitle timing data from a script.
    * Splits the script into sentences and assigns timestamps evenly across the audio duration.
    * @param script - The script text

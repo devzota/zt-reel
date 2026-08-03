@@ -148,6 +148,10 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
                 !path.includes('/tag/') &&
                 !path.includes('/author/') &&
                 !path.includes('/page/') &&
+                !path.includes('/contact') &&
+                !path.includes('/privacy') &&
+                !path.includes('/terms') &&
+                !path.includes('/about') &&
                 !path.includes('wp-admin') &&
                 !path.includes('wp-login')
               ) {

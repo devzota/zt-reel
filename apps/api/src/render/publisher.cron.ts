@@ -61,8 +61,30 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
           where: { page_id: reel.page_id, status: 'POSTED' },
           orderBy: { updated_at: 'desc' }
         });
-        const lastPostTime = lastPostedReel ? new Date(lastPostedReel.updated_at) : null;
+        const lastPostedImage = await this.prisma.ztteam_images.findFirst({
+          where: { page_id: reel.page_id, is_posted: true },
+          orderBy: { posted_at: 'desc' }
+        });
+
+        let lastPostTime = null;
+        let lastPostType = null;
+        if (lastPostedReel) {
+           lastPostTime = new Date(lastPostedReel.updated_at);
+           lastPostType = 'reel';
+        }
+        if (lastPostedImage && lastPostedImage.posted_at) {
+           if (!lastPostTime || lastPostedImage.posted_at > lastPostTime) {
+              lastPostTime = lastPostedImage.posted_at;
+              lastPostType = 'image';
+           }
+        }
+
         const diffMinutesFromLastPost = lastPostTime ? Math.floor((now.getTime() - lastPostTime.getTime()) / 60000) : Infinity;
+
+        if (reel.page.post_format === 'mixed' && lastPostType === 'reel') {
+           this.logger.log(`Skipping reel ${reel.id} because mixed mode is waiting for an Image to be posted.`);
+           continue;
+        }
 
         if (schedule_mode === 'fixed') {
           if (schedule_fixed_times && Array.isArray(schedule_fixed_times)) {
@@ -87,7 +109,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
           /** immediate or gap mode */
           const gapMinutes = schedule_immediate_gap_minutes || 0;
           
-          if (!lastPostedReel) {
+          if (!lastPostTime) {
             shouldPublish = true;
           } else {
             if (diffMinutesFromLastPost >= gapMinutes) {

@@ -146,8 +146,17 @@ export class ZTTeamFacebookService {
       where: { page_id: page.id, status: 'POSTED' },
       orderBy: { updated_at: 'desc' }
     });
+    
+    const lastPublishedImage = await this.prisma.ztteam_images.findFirst({
+      where: { page_id: page.id, is_posted: true },
+      orderBy: { posted_at: 'desc' }
+    });
 
     let lastPublishTime = lastPublishedReel ? lastPublishedReel.updated_at : null;
+    if (lastPublishedImage?.posted_at && (!lastPublishTime || lastPublishedImage.posted_at > lastPublishTime)) {
+      lastPublishTime = lastPublishedImage.posted_at;
+    }
+    
     let nextPublishTime = null;
 
     if (page.schedule_mode === 'immediate') {
@@ -277,6 +286,7 @@ export class ZTTeamFacebookService {
       schedule_fixed_times: page.schedule_fixed_times,
       schedule_immediate_gap_minutes: page.schedule_immediate_gap_minutes,
       default_reel_template_id: page.default_reel_template_id,
+      default_image_template_id: page.default_image_template_id,
       auto_create_enabled: page.auto_create_enabled,
       auto_scan_interval_hours: page.auto_scan_interval_hours,
       auto_scan_batch_size: page.auto_scan_batch_size,
@@ -323,6 +333,7 @@ export class ZTTeamFacebookService {
         schedule_fixed_times: config.schedule_fixed_times,
         schedule_immediate_gap_minutes: config.schedule_immediate_gap_minutes,
         default_reel_template_id: config.default_reel_template_id,
+        default_image_template_id: config.default_image_template_id,
         auto_create_enabled: config.auto_create_enabled,
         auto_scan_interval_hours: config.auto_scan_interval_hours,
         auto_scan_batch_size: config.auto_scan_batch_size,
@@ -634,6 +645,41 @@ export class ZTTeamFacebookService {
   /**
    * Publish a comment to a Facebook post
    */
+  /**
+   * Publish a generated Photo to the Fanpage
+   */
+  async ztteam_publishPhoto(pageId: string, imagePath: string, message: string) {
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: { fb_page_id: pageId }
+    });
+
+    if (!page || !page.page_token_encrypted) {
+      throw new Error('Fanpage không tồn tại hoặc chưa cấu hình token');
+    }
+
+    try {
+      const FormData = require('form-data');
+      const fs = require('fs');
+      const form = new FormData();
+      form.append('access_token', page.page_token_encrypted);
+      form.append('message', message);
+      form.append('source', fs.createReadStream(imagePath));
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `https://graph.facebook.com/${this.API_VERSION}/${pageId}/photos`,
+          form,
+          { headers: form.getHeaders(), maxBodyLength: Infinity }
+        )
+      );
+
+      return response.data.id || response.data.post_id;
+    } catch (error: any) {
+      this.logger.error('Error publishing photo to Facebook', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
   async ztteam_publishComment(pageId: string, postId: string, message: string) {
     const page = await this.prisma.ztteam_pages.findFirst({
       where: { fb_page_id: pageId }

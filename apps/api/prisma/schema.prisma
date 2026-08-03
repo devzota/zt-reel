@@ -63,6 +63,7 @@ model ztteam_pages {
   page_token_encrypted      String
   fb_account_id             String
   default_reel_template_id  String?
+  default_image_template_id String?
   
   /** Tab 1 & 2 */
   tags                           String[] @default([])
@@ -96,6 +97,8 @@ model ztteam_pages {
   sources                   ztteam_page_sources[]
   reels                     ztteam_reels[]
   reel_history              ztteam_reel_history[]
+  images                    ztteam_images[]
+  image_history             ztteam_image_history[]
 }
 
 model ztteam_page_sources {
@@ -211,3 +214,36 @@ model ztteam_reel_history {
   @@unique([page_id, wp_post_id])
 }
 
+/** Stores rendered image posts */
+model ztteam_images {
+  id              String    @id @default(cuid())
+  page_id         String
+  wp_post_id      String
+  wp_post_title   String
+  wp_post_url     String?
+  template_id     String
+  image_url       String?
+  ai_caption      String?   @db.Text
+  ai_first_comment String?  @db.Text
+  status          String    @default("QUEUED") /** QUEUED, RENDERING, COMPLETED, FAILED */
+  error_log       String?   @db.Text
+  is_posted       Boolean   @default(false)
+  posted_at       DateTime?
+  fb_post_id      String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  page            ztteam_pages @relation(fields: [page_id], references: [id], onDelete: Cascade)
+}
+
+/** Tracks which posts have been used for images on each page */
+model ztteam_image_history {
+  id              String   @id @default(cuid())
+  page_id         String
+  wp_post_id      String
+  created_at      DateTime @default(now())
+
+  page            ztteam_pages @relation(fields: [page_id], references: [id], onDelete: Cascade)
+
+  @@unique([page_id, wp_post_id])
+}

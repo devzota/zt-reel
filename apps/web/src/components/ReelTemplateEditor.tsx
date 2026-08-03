@@ -62,6 +62,20 @@ export function ztteam_buildTemplateHtml(data: any): string {
   /** Handlebars syntax fallback for Breaking News Modern */
   html = html.replace(/{{#each hook}}<span class="line">{{this}}<\/span><br\/>{{\/each}}/g, '<span class="line">Tin nóng hổi</span><br/><span class="line">vừa thổi vừa xem</span>');
 
+  /** Replace news variables for preview */
+  html = html.replace(/{{title}}/g, 'Tiêu đề bài viết nổi bật, thu hút sự chú ý của người xem ngay lập tức');
+  html = html.replace(/{{excerpt}}/g, 'Đoạn mô tả ngắn gọn về nội dung bài viết, giúp người dùng nắm bắt thông tin cơ bản trước khi click vào xem chi tiết.');
+  html = html.replace(/{{site_name}}/g, 'Kênh Tin Tức 24h');
+
+  /** Handle hiding elements */
+  if (data.layout?.hide_title) {
+    html = html.replace(/class="header"/g, 'class="header" style="display: none !important;"');
+    html = html.replace(/class="text-overlay"/g, 'class="text-overlay" style="display: none !important;"');
+  }
+  if (data.layout?.hide_excerpt) {
+    html = html.replace(/class="hook"/g, 'class="hook" style="display: none !important;"');
+  }
+
   html = html.replace(/{{{fontFace}}}/g, '');
   
   /** Inject uploaded bg image URL */
@@ -229,49 +243,95 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
           </div>
         )}
         
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Dạng nội dung</label>
-          <select name="content_type" value={formData.content_type || ''} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors appearance-none cursor-pointer">
-            <option value="myth">3 sự thật (MYTH)</option>
-            <option value="benefit">3 lợi ích (BENEFIT)</option>
-            <option value="cliffhanger">Tranh cãi (CLIFFHANGER)</option>
-            <option value="showdown">Chọn phe (SHOWDOWN)</option>
-            <option value="teaser">Tin nóng 5s (TEASER)</option>
-          </select>
-        </div>
+        {formData.format === 'video' && (
+          <>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Dạng nội dung</label>
+              <select name="content_type" value={formData.content_type || ''} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors appearance-none cursor-pointer">
+                <option value="myth">3 sự thật (MYTH)</option>
+                <option value="benefit">3 lợi ích (BENEFIT)</option>
+                <option value="cliffhanger">Tranh cãi (CLIFFHANGER)</option>
+                <option value="showdown">Chọn phe (SHOWDOWN)</option>
+                <option value="teaser">Tin nóng 5s (TEASER)</option>
+              </select>
+            </div>
 
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Giọng đọc riêng của template</label>
-            <select name="voice_id" value={formData.voice_id || ''} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors appearance-none cursor-pointer">
-              <option value="">(theo Cài đặt chung)</option>
-              <option value="alloy">Alloy (Nam, trung tính)</option>
-              <option value="echo">Echo (Nam, ấm áp)</option>
-              <option value="fable">Fable (Nam, Anh-Anh)</option>
-              <option value="onyx">Onyx (Nam, trầm ấm)</option>
-              <option value="nova">Nova (Nữ, năng động)</option>
-              <option value="shimmer">Shimmer (Nữ, nhẹ nhàng)</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button 
-              type="button" 
-              onClick={testTTS}
-              disabled={playing}
-              className="mb-1 text-sm bg-blue-50 text-primary hover:bg-blue-100 font-medium flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-colors disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[18px]">volume_up</span> 
-              {playing ? 'Đang phát...' : 'Nghe thử'}
-            </button>
-          </div>
-        </div>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Giọng đọc riêng của template</label>
+                <select name="voice_id" value={formData.voice_id || ''} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors appearance-none cursor-pointer">
+                  <option value="">(theo Cài đặt chung)</option>
+                  <option value="alloy">Alloy (Nam, trung tính)</option>
+                  <option value="echo">Echo (Nam, ấm áp)</option>
+                  <option value="fable">Fable (Nam, Anh-Anh)</option>
+                  <option value="onyx">Onyx (Nam, trầm ấm)</option>
+                  <option value="nova">Nova (Nữ, năng động)</option>
+                  <option value="shimmer">Shimmer (Nữ, nhẹ nhàng)</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button 
+                  type="button" 
+                  onClick={testTTS}
+                  disabled={playing}
+                  className="mb-1 text-sm bg-blue-50 text-primary hover:bg-blue-100 font-medium flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-colors disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">volume_up</span> 
+                  {playing ? 'Đang phát...' : 'Nghe thử'}
+                </button>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Bo góc video</label>
-            <input type="number" name="video_radius" value={formData.video_radius || 0} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors" />
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Bo góc video</label>
+                <input type="number" name="video_radius" value={formData.video_radius || 0} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {formData.format === 'image' && (
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Bo góc ảnh</label>
+              <input type="number" name="video_radius" value={formData.video_radius || 0} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Hiển thị nội dung</label>
+              <div className="flex gap-6 pl-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={!formData.layout?.hide_title} 
+                    onChange={(e) => {
+                      const newData = { ...formData, layout: { ...formData.layout, hide_title: !e.target.checked } };
+                      setFormData(newData);
+                      if (onChange) onChange(newData);
+                    }} 
+                    className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm text-slate-700">Hiển thị Tiêu đề</span>
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={!formData.layout?.hide_excerpt} 
+                    onChange={(e) => {
+                      const newData = { ...formData, layout: { ...formData.layout, hide_excerpt: !e.target.checked } };
+                      setFormData(newData);
+                      if (onChange) onChange(newData);
+                    }} 
+                    className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm text-slate-700">Hiển thị Mô tả</span>
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Giao diện (Ảnh nền 1080x1920)</label>
@@ -333,12 +393,15 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
       {/* Preview Canvas */}
       <div className="w-1/2 flex flex-col items-center">
         <p className="text-sm font-semibold text-slate-500 mb-2">Bố cục (kéo khung trên preview để đặt vị trí)</p>
-        <div className="relative border border-slate-300 rounded-xl overflow-hidden shadow-sm bg-gray-100" style={{ width: '270px', height: '480px', transformOrigin: 'top center' }}>
-           {/* We scale 1080x1920 to 270x480 (scale factor 0.25) */}
+        <div className="relative border border-slate-300 rounded-xl overflow-hidden shadow-sm bg-gray-100 mx-auto" style={{ width: '270px', height: formData.format === 'image' ? '270px' : '480px', transformOrigin: 'top center' }}>
+           {/* We scale 1080x1920 or 1080x1080 to 270x480/270x270 (scale factor 0.25) */}
            <PreviewCanvas formData={formData} setFormData={setFormData} onChange={onChange} />
         </div>
         <p className="text-xs text-slate-400 mt-3 text-center px-4">
-          Kéo các khung để đặt vị trí từng thành phần. Ô Video chỉ kéo lên/xuống (khoá 16:9 full-width).
+          {formData.format === 'image' 
+            ? 'Kéo khung để đặt vị trí ảnh minh hoạ. Kéo góc phải bên dưới khung xanh để thay đổi kích thước tự do.'
+            : 'Kéo các khung để đặt vị trí từng thành phần. Ô Video chỉ kéo lên/xuống (khoá 16:9 full-width).'
+          }
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar
+  BarChart, Bar, Area, AreaChart, ComposedChart
 } from 'recharts';
 import api from '../services/api';
 import { useZTTeamFacebookStore } from '../stores/facebookStore';
@@ -12,7 +12,7 @@ export default function StatisticsPage() {
   const { sites, ztteam_fetchSites } = useWordpressStore();
 
   const [data, setData] = useState({
-    chartData: [],
+    chartData: [] as any[],
     leaderboard: [] as any[],
     details: [] as any[]
   });
@@ -21,6 +21,7 @@ export default function StatisticsPage() {
   
   const [selectedPageId, setSelectedPageId] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState('');
+  const [activeChartTab, setActiveChartTab] = useState<'CRAWL' | 'PUBLISH'>('CRAWL');
 
   useEffect(() => {
     ztteam_fetchPagesFromDB();
@@ -48,6 +49,49 @@ export default function StatisticsPage() {
     fetchChart();
   }, [days, selectedPageId, selectedSiteId]);
 
+  /** Extract dynamic chart keys */
+  const crawlKeys = useMemo(() => {
+    if (!data.chartData.length) return [];
+    return Object.keys(data.chartData[0]).filter(k => k.startsWith('crawl_'));
+  }, [data.chartData]);
+
+  const pubKeys = useMemo(() => {
+    if (!data.chartData.length) return [];
+    return Object.keys(data.chartData[0]).filter(k => k.startsWith('pub_'));
+  }, [data.chartData]);
+
+  const createKeys = useMemo(() => {
+    if (!data.chartData.length) return [];
+    return Object.keys(data.chartData[0]).filter(k => k.startsWith('create_'));
+  }, [data.chartData]);
+
+  const totalCrawled = useMemo(() => {
+    return data.chartData.reduce((sum, d) => {
+      let dailySum = 0;
+      crawlKeys.forEach(k => dailySum += (d[k] || 0));
+      return sum + dailySum;
+    }, 0);
+  }, [data.chartData, crawlKeys]);
+
+  const totalPublished = useMemo(() => {
+    return data.chartData.reduce((sum, d) => {
+      let dailySum = 0;
+      pubKeys.forEach(k => dailySum += (d[k] || 0));
+      return sum + dailySum;
+    }, 0);
+  }, [data.chartData, pubKeys]);
+
+  const totalCreated = useMemo(() => {
+    return data.chartData.reduce((sum, d) => {
+      let dailySum = 0;
+      createKeys.forEach(k => dailySum += (d[k] || 0));
+      return sum + dailySum;
+    }, 0);
+  }, [data.chartData, createKeys]);
+
+  const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#ef4444'];
+  const pubColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#10b981', '#ef4444'];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
@@ -58,7 +102,7 @@ export default function StatisticsPage() {
         
         <div className="flex flex-wrap gap-2 items-center">
             <select
-              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary"
+              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary focus:ring-0 cursor-pointer"
               value={selectedPageId}
               onChange={(e) => setSelectedPageId(e.target.value)}
             >
@@ -69,7 +113,7 @@ export default function StatisticsPage() {
             </select>
 
             <select
-              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary"
+              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary focus:ring-0 cursor-pointer"
               value={selectedSiteId}
               onChange={(e) => setSelectedSiteId(e.target.value)}
             >
@@ -79,137 +123,297 @@ export default function StatisticsPage() {
               ))}
             </select>
 
-            <button onClick={() => setDays(7)} className={`px-4 py-2 rounded-full text-xs font-bold ${days === 7 ? 'bg-primary text-white' : 'bg-white border text-gray-500 hover:bg-gray-50'}`}>7 Ngày qua</button>
-            <button onClick={() => setDays(30)} className={`px-4 py-2 rounded-full text-xs font-bold ${days === 30 ? 'bg-primary text-white' : 'bg-white border text-gray-500 hover:bg-gray-50'}`}>30 Ngày qua</button>
+            <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+              <button onClick={() => setDays(7)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${days === 7 ? 'bg-primary text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}>7 Ngày</button>
+              <button onClick={() => setDays(30)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${days === 30 ? 'bg-primary text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}>30 Ngày</button>
+            </div>
         </div>
       </div>
 
-      {/* Biểu đồ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Biểu đồ Bài viết cào được</h3>
-          <div className="h-[300px] w-full">
-            {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium">Đang tải biểu đồ...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-                  <Line type="monotone" name="Bài mới cào" dataKey="crawled" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+      {/* Biểu đồ Tổng hợp (Comprehensive Chart Frame) - 3 Columns */}
+      {isLoading ? (
+        <div className="glass-card py-24 w-full flex flex-col items-center justify-center text-slate-400 mb-8">
+          <span className="material-symbols-outlined animate-spin text-4xl mb-2">refresh</span>
+          <span className="font-medium">Đang tải dữ liệu biểu đồ...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          {/* Crawled Card */}
+          <div className="glass-card p-6 rounded-3xl flex flex-col">
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] font-bold text-sky-500 mb-1 uppercase tracking-wider">Bài Cào Về</p>
+                <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
+                  {totalCrawled.toLocaleString()}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px]">language</span>
+              </div>
+            </div>
+            
+            <div className="h-64 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.chartData} syncId="reportSync" margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="reportCrawled" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e0f2fe', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }} cursor={{ stroke: '#93c5fd', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        {crawlKeys.map((key, idx) => (
+                          <Area key={key} type="monotone" name={key.replace('crawl_', '')} dataKey={key} stroke={colors[idx % colors.length]} fill="url(#reportCrawled)" strokeWidth={2} />
+                        ))}
+                        {crawlKeys.length === 0 && (
+                          <Area type="monotone" dataKey="crawled" name="Tải về (Crawl)" stroke="#0ea5e9" fill="url(#reportCrawled)" strokeWidth={2} />
+                        )}
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+          </div>
+          
+          {/* Created Card */}
+          <div className="glass-card p-6 rounded-3xl flex flex-col">
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] font-bold text-amber-500 mb-1 uppercase tracking-wider">Tạo Thành Công</p>
+                <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
+                  {totalCreated.toLocaleString()}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px]">movie_filter</span>
+              </div>
+            </div>
+            
+            <div className="h-64 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.chartData} syncId="reportSync" margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="reportCreated" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #fef3c7', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }} cursor={{ stroke: '#fcd34d', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        {createKeys.map((key, idx) => (
+                          <Area key={key} type="monotone" name={key.replace('create_', '')} dataKey={key} stroke={pubColors[idx % pubColors.length]} fill="url(#reportCreated)" strokeWidth={2} />
+                        ))}
+                        {createKeys.length === 0 && (
+                          <Area type="monotone" dataKey="created" name="Tạo nội dung" stroke="#f59e0b" fill="url(#reportCreated)" strokeWidth={2} />
+                        )}
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Published Card */}
+          <div className="glass-card p-6 rounded-3xl flex flex-col">
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] font-bold text-emerald-500 mb-1 uppercase tracking-wider">Đã Đăng (Publish)</p>
+                <h3 className="text-3xl font-black text-gray-900 flex items-center gap-2">
+                  {totalPublished.toLocaleString()}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/24000/svg"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+            </div>
+            
+            <div className="h-64 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.chartData} syncId="reportSync" margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="reportPublished" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #d1fae5', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }} cursor={{ stroke: '#6ee7b7', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        {pubKeys.map((key, idx) => (
+                          <Area key={key} type="monotone" name={key.replace('pub_', '')} dataKey={key} stroke={pubColors[idx % pubColors.length]} fill="url(#reportPublished)" strokeWidth={2} />
+                        ))}
+                        {pubKeys.length === 0 && (
+                          <Area type="monotone" dataKey="published" name="Đăng Fanpage" stroke="#10b981" fill="url(#reportPublished)" strokeWidth={2} />
+                        )}
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Biểu đồ Video đã đăng</h3>
-          <div className="h-[300px] w-full">
-            {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium">Đang tải biểu đồ...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <Tooltip 
-                    cursor={{ fill: '#f1f5f9' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-                  <Bar name="Video thành công" dataKey="published" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Leaderboard Fanpage */}
-        <div className="glass-card p-6 lg:col-span-1">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Top Fanpage hoạt động</h3>
-          {isLoading ? (
-            <div className="py-8 text-center text-gray-500">Đang tải...</div>
-          ) : data.leaderboard.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">Chưa có dữ liệu Fanpage nào</div>
-          ) : (
-            <div className="space-y-4">
-              {data.leaderboard.map((page, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+        <div className="glass-card p-0 xl:col-span-1 flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="px-5 py-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between z-10">
+            <div>
+              <h3 className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight">Top Fanpage Xuất Sắc</h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">Xếp hạng theo lượt tương tác</p>
+            </div>
+            <span className="flex items-center gap-1 text-[9px] uppercase font-bold text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded-md shadow-sm border border-emerald-200/50">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Real-time
+            </span>
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 bg-white custom-scrollbar">
+            {isLoading ? (
+              <div className="py-12 text-center text-slate-400 flex flex-col items-center">
+                <span className="material-symbols-outlined animate-spin text-3xl mb-2">refresh</span>
+                <span className="text-sm font-medium">Đang tải xếp hạng...</span>
+              </div>
+            ) : data.leaderboard.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 flex flex-col items-center">
+                <span className="material-symbols-outlined text-4xl mb-2 text-slate-300">hide_image</span>
+                <span className="text-sm font-medium">Chưa có dữ liệu Fanpage</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.leaderboard.map((page, index) => (
+                  <div key={index} className="group flex items-center p-3 rounded-2xl bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-slate-100 hover:ring-blue-100">
+                    {/* Rank Indicator */}
+                    <div className={`w-7 font-black text-xl text-center tracking-tighter shrink-0 ${
+                      index === 0 ? 'text-amber-400 drop-shadow-sm' :
+                      index === 1 ? 'text-slate-400 drop-shadow-sm' :
+                      index === 2 ? 'text-orange-400 drop-shadow-sm' :
+                      'text-slate-200'
+                    }`}>
                       {index + 1}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 line-clamp-1">{page.pageName}</p>
-                      <p className="text-xs text-gray-500">{page.published} video ({page.rate}%)</p>
+                    
+                    {/* Avatar */}
+                    <div className="relative shrink-0 ml-1">
+                      {page.avatar ? (
+                        <img src={page.avatar} alt="" className="w-10 h-10 rounded-full shadow-sm object-cover ring-2 ring-white" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center ring-2 ring-white">
+                          <span className="material-symbols-outlined text-[18px] text-slate-400">storefront</span>
+                        </div>
+                      )}
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[8px] text-white">done</span>
+                      </div>
+                    </div>
+
+                    {/* Page Info */}
+                    <div className="flex-1 min-w-0 ml-3">
+                      <p className="text-[13px] sm:text-[14px] font-bold text-slate-800 truncate leading-snug">{page.pageName}</p>
+                      <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Đã đăng {page.totalReels} video</p>
+                    </div>
+                    
+                    {/* Stats Inline on Right */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg">
+                        <span className="material-symbols-outlined text-[13px] hidden sm:inline-block">check_circle</span>
+                        <span className="text-[11px] sm:text-[12px] font-black">{page.published}</span>
+                      </div>
+                      <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
+                        <span className="material-symbols-outlined text-[13px] hidden sm:inline-block">trending_up</span>
+                        <span className="text-[11px] sm:text-[12px] font-black">{page.interactions?.toLocaleString() || 0}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                      Tốt
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Detailed Table */}
-        <div className="glass-card p-0 lg:col-span-2 flex flex-col h-full">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900">Báo cáo chi tiết theo ngày</h3>
+        {/* Detailed Grid: Highlighted Posts */}
+        <div className="glass-card p-0 xl:col-span-2 flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="px-5 py-4 bg-slate-50/80 border-b border-slate-100 flex justify-between items-center z-10">
+            <div>
+              <h3 className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight">Video Nổi Bật Tương Tác Cao</h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">Top 15 video xu hướng trên hệ thống</p>
+            </div>
+            <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-amber-50">
+              <span className="material-symbols-outlined text-[18px] text-amber-500">local_fire_department</span>
+            </div>
           </div>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/50 text-gray-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Ngày</th>
-                  <th className="px-6 py-4 font-medium">Bài đã cào</th>
-                  <th className="px-6 py-4 font-medium">Video tạo thành công</th>
-                  <th className="px-6 py-4 font-medium">Video lỗi</th>
-                  <th className="px-6 py-4 font-medium">Tỉ lệ thành công</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {isLoading ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
-                ) : data.details.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-500">Không có dữ liệu</td></tr>
-                ) : (
-                  data.details.map((row, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{row.date}</td>
-                      <td className="px-6 py-4 text-emerald-600 font-medium">{row.crawled}</td>
-                      <td className="px-6 py-4 text-blue-600 font-medium">{row.published}</td>
-                      <td className="px-6 py-4 text-red-500 font-medium">{row.failed}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden w-24">
-                            <div 
-                              className={`h-full rounded-full ${row.successRate >= 80 ? 'bg-emerald-500' : row.successRate >= 50 ? 'bg-amber-400' : 'bg-red-500'}`}
-                              style={{ width: `${row.successRate}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs font-medium text-gray-600 w-8">{row.successRate}%</span>
+          
+          {/* Content */}
+          <div className="flex-1 p-5 bg-white overflow-y-auto custom-scrollbar">
+            {isLoading ? (
+              <div className="py-12 text-center text-slate-400 flex flex-col items-center">
+                <span className="material-symbols-outlined animate-spin text-3xl mb-2">refresh</span>
+                <span className="text-sm font-medium">Đang tải video nổi bật...</span>
+              </div>
+            ) : data.details.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 flex flex-col items-center">
+                <span className="material-symbols-outlined text-4xl mb-2 text-slate-300">videocam_off</span>
+                <span className="text-sm font-medium">Không có dữ liệu video nổi bật</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {data.details.map((post, index) => (
+                  <div key={post.id} className="group relative flex items-start gap-3.5 p-3 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all duration-300 ring-1 ring-slate-100 hover:ring-blue-100">
+                    
+                    {/* Rank Badge - Floating */}
+                    <div className="absolute -left-2 -top-2 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center z-10">
+                      <span className={`text-[10px] font-black ${
+                        index === 0 ? 'text-amber-500' : 
+                        index === 1 ? 'text-slate-500' : 
+                        index === 2 ? 'text-orange-500' : 
+                        'text-slate-400'
+                      }`}>
+                        #{index + 1}
+                      </span>
+                    </div>
+
+                    {/* Thumbnail - Compact Reel Ratio */}
+                    <div className="w-14 h-20 rounded-xl bg-slate-100 shrink-0 relative overflow-hidden shadow-sm">
+                      <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">play_arrow</span>
+                      </div>
+                    </div>
+                    
+                    {/* Details */}
+                    <div className="flex-1 min-w-0 flex flex-col h-20 justify-between py-0.5">
+                      <div>
+                        {/* Page Tag */}
+                        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 mb-1.5">
+                          <span className="material-symbols-outlined text-[10px]">verified</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider truncate max-w-[120px]">{post.pageName}</span>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        {/* Title */}
+                        <p className="text-[12px] sm:text-[13px] font-semibold text-slate-800 leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          {post.title}
+                        </p>
+                      </div>
+                      
+                      {/* Stats */}
+                      <div className="flex items-center gap-3 mt-auto">
+                        <div className="flex items-center gap-1 text-slate-500">
+                          <span className="material-symbols-outlined text-[14px]">visibility</span>
+                          <span className="text-[11px] font-black text-slate-600">{post.views?.toLocaleString() || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-rose-400">
+                          <span className="material-symbols-outlined text-[14px]">favorite</span>
+                          <span className="text-[11px] font-black text-rose-500">{post.reactions?.toLocaleString() || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
