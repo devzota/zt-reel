@@ -12,11 +12,18 @@ RUN apt-get update && apt-get install -y \
     libgbm-dev \
     fonts-liberation \
     wget \
+    locales \
+    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+    && locale-gen \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Puppeteer executable path to the installed chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Set UTF-8 locale for Vietnamese character support
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 # Tạo thư mục app
 WORKDIR /usr/src/app

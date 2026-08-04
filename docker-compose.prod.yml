@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: ${DB_USER:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-rootpassword}
       POSTGRES_DB: ${DB_NAME:-ztreel}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.utf8 --lc-ctype=en_US.utf8"
+      LANG: en_US.UTF-8
     ports:
       - "5432:5432"
     volumes:
@@ -44,6 +46,8 @@ services:
       - FB_APP_SECRET=${FB_APP_SECRET}
       - ENABLE_AUTO_CRON=${ENABLE_AUTO_CRON:-true}
       - STORAGE_PATH=${STORAGE_PATH:-}
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
     ports:
       - "3000:3000"
     volumes:
