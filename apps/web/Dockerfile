@@ -15,7 +15,7 @@ COPY apps/web ./
 # Build Vite React app
 ARG VITE_FB_APP_ID
 ENV VITE_FB_APP_ID=$VITE_FB_APP_ID
-RUN npm run build
+RUN npx vite build
 
 # BƯỚC 2: Serve bằng Nginx
 FROM nginx:alpine
