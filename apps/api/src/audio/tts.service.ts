@@ -34,7 +34,7 @@ export class ZTTeamTTSService {
     const settingsDb = await this.prisma.ztteam_settings.findUnique({
       where: { key: 'OPENAI_API_KEY' },
     });
-    const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
+    const apiKey = (settingsDb?.value || process.env.OPENAI_API_KEY || '').trim();
 
     if (!apiKey) {
       this.logger.warn('No OPENAI_API_KEY found in DB or env, generating silent audio as fallback');

@@ -101,7 +101,8 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
       } else {
         /** Fallback or explicit choice for OpenAI / Deepseek */
         const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
-        const apiKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const rawKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const apiKey = (rawKey || '').trim();
         const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
         const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
 
@@ -193,7 +194,8 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
         };
       } else {
         const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
-        const apiKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const rawKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const apiKey = (rawKey || '').trim();
         const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
         const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
 

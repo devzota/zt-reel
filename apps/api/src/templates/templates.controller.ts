@@ -73,7 +73,7 @@ export class ZTTeamTemplatesController {
       const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
         where: { key: 'OPENAI_API_KEY' },
       });
-      const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
+      const apiKey = (settingsDb?.value || process.env.OPENAI_API_KEY || '').trim();
 
       if (!apiKey) {
         return { url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', message: 'MOCK AUDIO (No API Key)' };
