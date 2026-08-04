@@ -201,7 +201,7 @@ export class ZTTeamImageProcessor implements OnModuleInit {
 
   private async ztteam_step2_downloadImages(imageUrls: string[], workDir: string): Promise<string[]> {
     const localPaths: string[] = [];
-    const maxImages = 5; // Chỉ lấy tối đa 5 ảnh để chèn
+    const maxImages = 5; /** Chỉ lấy tối đa 5 ảnh để chèn */
     
     for (let i = 0; i < Math.min(imageUrls.length, maxImages); i++) {
       const imgUrl = imageUrls[i];

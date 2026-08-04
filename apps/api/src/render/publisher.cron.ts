@@ -83,8 +83,21 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         const diffMinutesFromLastPost = lastPostTime ? Math.floor((now.getTime() - lastPostTime.getTime()) / 60000) : Infinity;
 
         if (reel.page.post_format === 'mixed' && lastPostType === 'reel') {
-          this.logger.log(`Skipping reel ${reel.id} because mixed mode is waiting for an Image to be posted.`);
-          continue;
+          /** Kiểm tra xem hiện có Ảnh nào đang sẵn sàng để đăng xen kẽ không */
+          const pendingImageCount = await this.prisma.ztteam_images.count({
+            where: {
+              page_id: reel.page_id,
+              status: 'COMPLETED',
+              is_posted: false,
+            },
+          });
+
+          if (pendingImageCount > 0) {
+            this.logger.log(`Skipping reel ${reel.id} because mixed mode is waiting for an Image to be posted.`);
+            continue;
+          } else {
+            this.logger.log(`Mixed mode: No pending images in queue for page ${reel.page.name}, proceeding with Reel.`);
+          }
         }
 
         if (schedule_mode === 'fixed') {
