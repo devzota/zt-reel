@@ -11,14 +11,8 @@ import OpenAI from 'openai';
 @Controller('templates')
 /** @UseGuards(ZTTeamAuthGuard) */
 export class ZTTeamTemplatesController {
-  private openai: OpenAI;
 
-  constructor(private readonly templatesService: ZTTeamTemplatesService) {
-    /** Note: The user asked to connect OpenAI TTS directly. We will mock the API call if OPENAI_API_KEY is not present, or actually call it. */
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || 'sk-fake-key', /** Use environment variable */
-    });
-  }
+  constructor(private readonly templatesService: ZTTeamTemplatesService) {}
 
   @Get()
   ztteam_getTemplates(@Query('format') format?: string, @Query('pageId') pageId?: string) {
@@ -75,11 +69,18 @@ export class ZTTeamTemplatesController {
 
   @Post('tts/test')
   async ztteam_testVoice(@Body() body: { voice: string, text: string }) {
-    if (!process.env.OPENAI_API_KEY) {
+    const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
+      where: { key: 'OPENAI_API_KEY' },
+    });
+    const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
+
+    if (!apiKey) {
       return { url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', message: 'MOCK AUDIO (No API Key)' };
     }
+    
     try {
-      const mp3 = await this.openai.audio.speech.create({
+      const openai = new OpenAI({ apiKey });
+      const mp3 = await openai.audio.speech.create({
         model: 'tts-1',
         voice: body.voice as any || 'alloy',
         input: body.text || 'Đây là bản nghe thử giọng đọc của hệ thống.',
@@ -88,7 +89,7 @@ export class ZTTeamTemplatesController {
       const base64 = buffer.toString('base64');
       return { url: `data:audio/mp3;base64,${base64}` };
     } catch (e: any) {
-      throw new Error('Lỗi gọi API OpenAI: ' + e.message);
+      throw new Error(`Lỗi tạo giọng đọc: ${e.response?.data?.error?.message || e.message}`);
     }
   }
 }

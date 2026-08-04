@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * ZTTeamTTSService — Text-to-Speech using OpenAI TTS-1.
@@ -11,13 +12,8 @@ import { execSync } from 'child_process';
 @Injectable()
 export class ZTTeamTTSService {
   private readonly logger = new Logger('ZTTeamTTSService');
-  private openai: OpenAI;
 
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || '',
-    });
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Convert text to speech using OpenAI TTS-1 and save to file.
@@ -35,13 +31,19 @@ export class ZTTeamTTSService {
     const outputPath = path.join(workDir, 'voice.mp3');
     this.logger.log(`TTS: voice=${voiceId}, speed=${voiceSpeed}, workDir=${workDir}`);
 
-    if (!process.env.OPENAI_API_KEY) {
-      this.logger.warn('No OPENAI_API_KEY, generating silent audio as fallback');
+    const settingsDb = await this.prisma.ztteam_settings.findUnique({
+      where: { key: 'OPENAI_API_KEY' },
+    });
+    const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
+
+    if (!apiKey) {
+      this.logger.warn('No OPENAI_API_KEY found in DB or env, generating silent audio as fallback');
       return this.ztteam_generateSilentAudio(outputPath, 12);
     }
 
     try {
-      const mp3 = await this.openai.audio.speech.create({
+      const openai = new OpenAI({ apiKey });
+      const mp3 = await openai.audio.speech.create({
         model: 'tts-1',
         voice: voiceId as any,
         input: text,

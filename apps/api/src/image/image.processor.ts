@@ -179,12 +179,12 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     let finalTemplateId = templateId;
     if (templateId === 'auto' || templateId === 'default' || !templateId) {
       const imgCount = post.images.length;
-      let templateName = 'Ghép 2 Ảnh (Nửa trái / Nửa phải)';
-      if (imgCount === 3) templateName = 'Ghép 3 Ảnh (1 Trên, 2 Dưới)';
-      if (imgCount >= 4) templateName = 'Ghép 4 Ảnh (Lưới 2x2)';
+      let searchStr = '2';
+      if (imgCount === 3) searchStr = '3';
+      if (imgCount >= 4) searchStr = '4';
 
       const foundTemplate = await this.prisma.ztteam_templates.findFirst({
-        where: { name: templateName, format: 'image' },
+        where: { name: { contains: searchStr }, format: 'image' },
       });
       if (foundTemplate) {
         finalTemplateId = foundTemplate.id;
