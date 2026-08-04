@@ -1,11 +1,12 @@
 # BƯỚC 1: Build React App
-FROM node:20-alpine as build
+FROM node:20-bullseye-slim as build
 
 WORKDIR /app
 
-# Copy root package.json (nếu có workspaces)
+# Copy root package.json (hỗ trợ npm workspaces)
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
+COPY apps/api/package*.json ./apps/api/
 
 RUN npm install
 
