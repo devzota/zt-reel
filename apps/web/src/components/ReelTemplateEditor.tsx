@@ -79,6 +79,9 @@ export function ztteam_buildTemplateHtml(data: any): string {
   html = html.replace(/{{{fontFace}}}/g, '');
   
   /** Inject uploaded bg image URL */
+  if (data.layout?.bg_image_url && !html.includes('class="bg-img"')) {
+    html = html.replace(/<div class="stage">/g, `<div class="stage">\n  <img class="bg-img" src="${data.layout.bg_image_url}" style="position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1;" />`);
+  }
   html = html.replace(/{{layout\.bg_image_url}}/g, data.layout?.bg_image_url || '');
   if (!data.layout?.bg_image_url) {
     html = html.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');

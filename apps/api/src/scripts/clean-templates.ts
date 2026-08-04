@@ -8,7 +8,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Starting template cleanup...');
+  console.log('Starting template cleanup and text fix...');
   const templates = await prisma.ztteam_templates.findMany({
     where: { format: 'video' }
   });
@@ -22,6 +22,10 @@ async function main() {
     html = html.replace(/<div class="breaking">.*?<\/div>/g, '');
     html = html.replace(/<div class="panel"><\/div>/g, '');
     html = html.replace(/<div class="card"><\/div>/g, '');
+
+
+    html = html.replace(/Khu[^<]*\(Subtitles\)/g, 'Khu vực phụ đề (Subtitles)');
+    html = html.replace(/M.*U N.*I DUNG DEMO/g, 'MẪU NỘI DUNG DEMO');
 
     if (html !== t.html_content) {
       await prisma.ztteam_templates.update({
