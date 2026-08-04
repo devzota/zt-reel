@@ -429,6 +429,16 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     htmlContent = htmlContent.replace(/{{{logoSvg}}}/g, avatarHtml);
     htmlContent = htmlContent.replace(/{{fanpageName}}/g, page.name || 'Fanpage');
 
+    const headerColor = layout?.header_color;
+    if (headerColor) {
+      htmlContent = htmlContent.replace(/\.header\s*\.pname\s*{([^}]*?)}/g, `.header .pname { $1 color: ${headerColor} !important; }`);
+    }
+    const hookColor = layout?.hook_color;
+    if (hookColor) {
+      htmlContent = htmlContent.replace(/\.hook\s*\.line\s*{([^}]*?)}/g, `.hook .line { $1 color: ${hookColor} !important; }`);
+      htmlContent = htmlContent.replace(/\.hook\s*{([^}]*?)}/g, `.hook { $1 color: ${hookColor} !important; }`);
+    }
+
     /** Replace color conditionals */
     htmlContent = htmlContent.replace(/{{#if colors\.danger}}{{colors\.danger}}{{else}}{{colors\.primary}}{{\/if}}/g, '#ef4444');
     htmlContent = htmlContent.replace(/{{#if colors\.primary}}{{colors\.primary}}{{else}}#1877f2{{\/if}}/g, '#1877f2');

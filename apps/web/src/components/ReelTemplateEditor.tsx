@@ -78,6 +78,17 @@ export function ztteam_buildTemplateHtml(data: any): string {
 
   html = html.replace(/{{{fontFace}}}/g, '');
   
+  /** Inject custom colors */
+  const headerColor = data.layout?.header_color;
+  if (headerColor) {
+    html = html.replace(/\.header\s*\.pname\s*{([^}]*?)}/g, `.header .pname { $1 color: ${headerColor} !important; }`);
+  }
+  const hookColor = data.layout?.hook_color;
+  if (hookColor) {
+    html = html.replace(/\.hook\s*\.line\s*{([^}]*?)}/g, `.hook .line { $1 color: ${hookColor} !important; }`);
+    html = html.replace(/\.hook\s*{([^}]*?)}/g, `.hook { $1 color: ${hookColor} !important; }`);
+  }
+  
   /** Inject uploaded bg image URL */
   if (data.layout?.bg_image_url && !html.includes('class="bg-img"')) {
     html = html.replace(/<div class="stage">/g, `<div class="stage">\n  <img class="bg-img" src="${data.layout.bg_image_url}" style="position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1;" />`);
@@ -330,6 +341,39 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
                     className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
                   />
                   <span className="text-sm text-slate-700">Hiển thị Mô tả</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Màu sắc tuỳ chỉnh</label>
+              <div className="flex gap-6 pl-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-slate-700">Tên Fanpage</span>
+                  <input 
+                    type="color" 
+                    value={formData.layout?.header_color || '#ffffff'} 
+                    onChange={(e) => {
+                      const newData = { ...formData, layout: { ...formData.layout, header_color: e.target.value } };
+                      setFormData(newData);
+                      if (onChange) onChange(newData);
+                    }} 
+                    className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
+                  />
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-slate-700">Tiêu đề (Hook)</span>
+                  <input 
+                    type="color" 
+                    value={formData.layout?.hook_color || '#ffffff'} 
+                    onChange={(e) => {
+                      const newData = { ...formData, layout: { ...formData.layout, hook_color: e.target.value } };
+                      setFormData(newData);
+                      if (onChange) onChange(newData);
+                    }} 
+                    className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
+                  />
                 </label>
               </div>
             </div>
