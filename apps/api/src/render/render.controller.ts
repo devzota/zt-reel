@@ -6,6 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Observable, fromEvent } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ZTTeamFacebookService } from '../facebook/facebook.service';
+import { ztteam_getReelsPath } from '../common/ztteam_storage.util';
 
 /**
  * ZTTeamRenderController — API endpoints for managing reel rendering.
@@ -338,10 +339,9 @@ export class ZTTeamRenderController {
 
     /** Delete physical files if they exist */
     const fs = require('fs');
-    const path = require('path');
     
     try {
-      const reelDir = path.join(process.cwd(), 'storage', 'reels', id);
+      const reelDir = ztteam_getReelsPath(id);
       if (fs.existsSync(reelDir)) {
         fs.rmSync(reelDir, { recursive: true, force: true });
       }
@@ -379,8 +379,7 @@ export class ZTTeamRenderController {
     if (reel.status !== 'COMPLETED') return { error: 'Chỉ có thể đăng Reel đã hoàn thành' };
 
     const fs = require('fs');
-    const path = require('path');
-    const videoPath = path.join(process.cwd(), 'storage', 'reels', reel.id, 'output.mp4');
+    const videoPath = ztteam_getReelsPath(reel.id, 'output.mp4');
     
     if (!fs.existsSync(videoPath)) {
       return { error: 'File video không tồn tại trên server' };

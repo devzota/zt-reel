@@ -6,6 +6,7 @@ import { ZTTeamFacebookService } from '../facebook/facebook.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as path from 'path';
 import * as fs from 'fs';
+import { ztteam_getImagesPath } from '../common/ztteam_storage.util';
 
 @Injectable()
 export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
@@ -19,12 +20,19 @@ export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
   ) { }
 
   onApplicationBootstrap() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      this.logger.log('Auto-Image Publisher Cron is disabled via ENABLE_AUTO_CRON=false');
+      return;
+    }
     this.logger.log('Application started, triggering initial image publisher cron...');
     this.ztteam_handleCron();
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async ztteam_handleCron() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      return;
+    }
     if (this.isRunning) {
       this.logger.warn('Image Publisher cron is already running, skipping this tick');
       return;
@@ -129,11 +137,18 @@ export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
     this.logger.log(`Publishing image ${image.id} to page ${page.name}...`);
     
     try {
-      const storageRoot = path.join(process.cwd(), 'storage', 'images');
-      const absoluteImagePath = path.join(storageRoot, image.id, 'output.png');
+      const absoluteImagePath = ztteam_getImagesPath(image.id, 'output.png');
       
       if (!fs.existsSync(absoluteImagePath)) {
-        throw new Error(`Image file not found: ${absoluteImagePath}`);
+        this.logger.warn(`File ảnh không tồn tại trên server: ${absoluteImagePath}. Đánh dấu FAILED để không làm nghẽn hàng đợi.`);
+        await this.prisma.ztteam_images.update({
+          where: { id: image.id },
+          data: {
+            status: 'FAILED',
+            error_log: 'File ảnh không tồn tại trên máy chủ (được tạo từ môi trường khác hoặc đã bị xóa)',
+          }
+        });
+        return;
       }
 
       let caption = image.ai_caption || image.wp_post_title;

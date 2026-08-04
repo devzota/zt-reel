@@ -5,6 +5,7 @@ import { diskStorage } from 'multer';
 import * as path from 'path';
 import { ZTTeamTemplatesService } from './templates.service';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
+import { ztteam_getTemplatesPath } from '../common/ztteam_storage.util';
 import OpenAI from 'openai';
 
 @Controller('templates')
@@ -58,7 +59,9 @@ export class ZTTeamTemplatesController {
   @Post(':id/upload-bg')
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
-      destination: path.join(process.cwd(), 'storage', 'templates'),
+      destination: (req: any, file: any, cb: any) => {
+        cb(null, ztteam_getTemplatesPath());
+      },
       filename: (req: any, file: any, cb: any) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         cb(null, req.params.id + '-' + uniqueSuffix + path.extname(file.originalname));

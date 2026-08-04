@@ -17,12 +17,19 @@ export class ZTTeamImageRenderCron implements OnApplicationBootstrap {
   ) {}
 
   onApplicationBootstrap() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      this.logger.log('Auto-Image Render Cron is disabled via ENABLE_AUTO_CRON=false');
+      return;
+    }
     this.logger.log('Application started, triggering initial image render cron...');
     this.ztteam_handleCron();
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async ztteam_handleCron() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      return;
+    }
     if (this.isRunning) {
       this.logger.warn('Image Render cron is already running, skipping this tick');
       return;

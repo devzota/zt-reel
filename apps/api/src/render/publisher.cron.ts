@@ -6,6 +6,7 @@ import { ZTTeamFacebookService } from '../facebook/facebook.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as path from 'path';
 import * as fs from 'fs';
+import { ztteam_getReelsPath } from '../common/ztteam_storage.util';
 
 @Injectable()
 export class ZTTeamPublisherCron implements OnApplicationBootstrap {
@@ -49,7 +50,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
 
       for (const reel of reels) {
         if (!reel.page) continue;
-        
+
         /** KHÓA BỘ NHỚ: Đảm bảo vòng lặp chỉ đăng 1 video cho 1 Page trong 1 phút */
         if (postedInThisTick.has(reel.page_id)) continue;
 
@@ -69,21 +70,21 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         let lastPostTime = null;
         let lastPostType = null;
         if (lastPostedReel) {
-           lastPostTime = new Date(lastPostedReel.updated_at);
-           lastPostType = 'reel';
+          lastPostTime = new Date(lastPostedReel.updated_at);
+          lastPostType = 'reel';
         }
         if (lastPostedImage && lastPostedImage.posted_at) {
-           if (!lastPostTime || lastPostedImage.posted_at > lastPostTime) {
-              lastPostTime = lastPostedImage.posted_at;
-              lastPostType = 'image';
-           }
+          if (!lastPostTime || lastPostedImage.posted_at > lastPostTime) {
+            lastPostTime = lastPostedImage.posted_at;
+            lastPostType = 'image';
+          }
         }
 
         const diffMinutesFromLastPost = lastPostTime ? Math.floor((now.getTime() - lastPostTime.getTime()) / 60000) : Infinity;
 
         if (reel.page.post_format === 'mixed' && lastPostType === 'reel') {
-           this.logger.log(`Skipping reel ${reel.id} because mixed mode is waiting for an Image to be posted.`);
-           continue;
+          this.logger.log(`Skipping reel ${reel.id} because mixed mode is waiting for an Image to be posted.`);
+          continue;
         }
 
         if (schedule_mode === 'fixed') {
@@ -92,13 +93,13 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
               const [h, m] = time.split(':').map(Number);
               const fixedTimeMinutes = h * 60 + m;
               const currentMinutes = now.getHours() * 60 + now.getMinutes();
-              
+
               /** Nếu giờ hiện tại nằm trong cửa sổ 5 phút của khung giờ anh đã cài */
               if (currentMinutes >= fixedTimeMinutes && currentMinutes < fixedTimeMinutes + 5) {
                 /** Nếu vừa có 1 video đăng cách đây chưa tới 10 phút -> Khung giờ này ĐÃ DÙNG! Bỏ qua! */
                 if (diffMinutesFromLastPost < 10) {
                   this.logger.log(`Skipping reel ${reel.id}: A video was already posted ${diffMinutesFromLastPost} mins ago for this time slot.`);
-                  break; 
+                  break;
                 }
                 shouldPublish = true;
                 break;
@@ -108,7 +109,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         } else {
           /** immediate or gap mode */
           const gapMinutes = schedule_immediate_gap_minutes || 0;
-          
+
           if (!lastPostTime) {
             shouldPublish = true;
           } else {

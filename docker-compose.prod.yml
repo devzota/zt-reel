@@ -42,6 +42,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - FB_APP_ID=${FB_APP_ID}
       - FB_APP_SECRET=${FB_APP_SECRET}
+      - ENABLE_AUTO_CRON=${ENABLE_AUTO_CRON:-true}
+      - STORAGE_PATH=${STORAGE_PATH:-}
     ports:
       - "3000:3000"
     volumes:

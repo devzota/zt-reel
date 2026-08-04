@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import axios from 'axios';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ztteam_getImagesPath } from '../common/ztteam_storage.util';
 
 export interface ZTTeamImageJobData {
   imageId: string;
@@ -22,7 +23,7 @@ export class ZTTeamImageProcessor implements OnModuleInit {
   private worker: Worker;
   private readonly connection: IORedis;
   private readonly queue: any;
-  private readonly storageRoot = path.join(process.cwd(), 'storage', 'images');
+  private readonly storageRoot = ztteam_getImagesPath();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -105,7 +106,7 @@ export class ZTTeamImageProcessor implements OnModuleInit {
       const outputPath = await this.ztteam_step3_renderOverlay(template, page, post, downloadedImages, workDir);
 
       /** ========== STEP 4: Save result ========== */
-      const imageUrl = `/images/${imageId}/output.png`;
+      const imageUrl = `/storage/images/${imageId}/output.png`;
 
       await this.ztteam_updateImage(imageId, {
         status: 'COMPLETED',

@@ -8,6 +8,7 @@ import { map } from 'rxjs/operators';
 import { ZTTeamFacebookService } from '../facebook/facebook.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ztteam_getImagesPath } from '../common/ztteam_storage.util';
 
 @Controller('image')
 export class ZTTeamImageController {
@@ -211,8 +212,7 @@ export class ZTTeamImageController {
 
     if (!image.image_url) throw new Error('Image output not available');
 
-    const storageRoot = path.join(process.cwd(), 'storage', 'images');
-    const absoluteImagePath = path.join(storageRoot, image.id, 'output.png');
+    const absoluteImagePath = ztteam_getImagesPath(image.id, 'output.png');
 
     if (!fs.existsSync(absoluteImagePath)) {
       throw new Error('Image file not found on disk');
@@ -330,7 +330,7 @@ export class ZTTeamImageController {
     const image = await this.prisma.ztteam_images.findUnique({ where: { id } });
     if (!image) return { success: true };
 
-    const workDir = path.join(process.cwd(), 'storage', 'images', image.id);
+    const workDir = ztteam_getImagesPath(image.id);
     if (fs.existsSync(workDir)) {
       fs.rmSync(workDir, { recursive: true, force: true });
     }

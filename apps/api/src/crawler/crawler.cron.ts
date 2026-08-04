@@ -26,12 +26,19 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
   }
 
   onApplicationBootstrap() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      this.logger.log('Auto-Crawler Cron is disabled via ENABLE_AUTO_CRON=false');
+      return;
+    }
     this.logger.log('Application started, triggering initial crawler run...');
     this.ztteam_handleCron();
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async ztteam_handleCron() {
+    if (process.env.ENABLE_AUTO_CRON === 'false') {
+      return;
+    }
     if (this.isRunning) {
       this.logger.warn('Crawler cron is already running, skipping this tick');
       return;

@@ -1209,7 +1209,7 @@ export default function FacebookPageSettings() {
                           
                           <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 mt-2 mb-2">
                             {img.image_url ? (
-                              <img src={`/storage${img.image_url}`} alt="" className="w-full h-full object-cover" />
+                              <img src={img.image_url.startsWith('/storage') ? img.image_url : `/storage${img.image_url}`} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <span className="material-symbols-outlined text-2xl text-gray-400">image</span>

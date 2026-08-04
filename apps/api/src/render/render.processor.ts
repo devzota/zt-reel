@@ -11,6 +11,7 @@ import { ZTTeamTTSService } from '../audio/tts.service';
 import { ZTTeamFFmpegService } from '../media/ffmpeg.service';
 import { ZTTeamPuppeteerService } from '../media/puppeteer.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ztteam_getReelsPath, ztteam_getStorageRoot } from '../common/ztteam_storage.util';
 
 /** Type for the render job payload */
 interface ZTTeamRenderJobData {
@@ -33,7 +34,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
   private connection: IORedis;
 
   /** Storage root for rendered reels */
-  private readonly storageRoot = path.join(process.cwd(), 'storage', 'reels');
+  private readonly storageRoot = ztteam_getReelsPath();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -383,7 +384,8 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     /** Handle bg_image_url for Puppeteer */
     let bgImageUrl = layout?.bg_image_url || '';
     if (bgImageUrl && bgImageUrl.startsWith('/storage/')) {
-      const absolutePath = path.join(process.cwd(), bgImageUrl);
+      const relativePath = bgImageUrl.replace(/^\/storage\//, '');
+      const absolutePath = path.join(ztteam_getStorageRoot(), relativePath);
       try {
         const ext = path.extname(absolutePath).substring(1) || 'png';
         const base64 = require('fs').readFileSync(absolutePath, 'base64');

@@ -186,7 +186,7 @@ export default function ImageFactory() {
                   
                   <div className="flex items-center gap-1.5">
                     {image.status === 'COMPLETED' && image.image_url && (
-                      <a href={image.image_url} target="_blank" rel="noreferrer" title="Tải Ảnh" className="w-8 h-8 rounded-full bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition-colors cursor-pointer">
+                      <a href={image.image_url.startsWith('/storage') ? image.image_url : `/storage${image.image_url}`} target="_blank" rel="noreferrer" title="Tải Ảnh" className="w-8 h-8 rounded-full bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition-colors cursor-pointer">
                         <span className="material-symbols-outlined text-[18px]">download</span>
                       </a>
                     )}
@@ -295,13 +295,13 @@ export default function ImageFactory() {
                   ) : (
                     <>
                       {image.image_url ? (
-                        <img src={`/storage${image.image_url}`} alt="Image thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                        <img src={image.image_url.startsWith('/storage') ? image.image_url : `/storage${image.image_url}`} alt="Image thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
                       ) : (
                         <span className="material-symbols-outlined text-4xl text-gray-600">image</span>
                       )}
                       {image.status === 'COMPLETED' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
-                          <a href={`/storage${image.image_url}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                          <a href={image.image_url.startsWith('/storage') ? image.image_url : `/storage${image.image_url}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                             <span className="material-symbols-outlined text-3xl text-gray-900 ml-1">open_in_new</span>
                           </a>
                         </div>
