@@ -144,6 +144,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const { overlayPath, bgImagePath } = await this.ztteam_step4_renderOverlay(template, page, post.title, workDir);
 
       /** ========== STEP 5: Merge with FFmpeg ========== */
+      const subtitlesY = (template.layout as any)?.subtitles?.y;
       const { videoPath, thumbnailPath } = await this.ztteam_step5_render(
         preparedImages,
         audioPath,
