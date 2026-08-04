@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 /** @ts-ignore */
 import { diskStorage } from 'multer';
@@ -69,16 +69,16 @@ export class ZTTeamTemplatesController {
 
   @Post('tts/test')
   async ztteam_testVoice(@Body() body: { voice: string, text: string }) {
-    const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
-      where: { key: 'OPENAI_API_KEY' },
-    });
-    const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
-
-    if (!apiKey) {
-      return { url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', message: 'MOCK AUDIO (No API Key)' };
-    }
-    
     try {
+      const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
+        where: { key: 'OPENAI_API_KEY' },
+      });
+      const apiKey = settingsDb?.value || process.env.OPENAI_API_KEY || '';
+
+      if (!apiKey) {
+        return { url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', message: 'MOCK AUDIO (No API Key)' };
+      }
+      
       const openai = new OpenAI({ apiKey });
       const mp3 = await openai.audio.speech.create({
         model: 'tts-1',
@@ -89,7 +89,10 @@ export class ZTTeamTemplatesController {
       const base64 = buffer.toString('base64');
       return { url: `data:audio/mp3;base64,${base64}` };
     } catch (e: any) {
-      throw new Error(`Lỗi tạo giọng đọc: ${e.response?.data?.error?.message || e.message}`);
+      throw new HttpException(
+        e.response?.data?.error?.message || e.message || 'Lỗi tạo giọng đọc',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 }

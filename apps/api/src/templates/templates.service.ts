@@ -12,6 +12,19 @@ export class ZTTeamTemplatesService implements OnModuleInit {
 
   async ztteam_seedDefaultTemplates() {
     try {
+      /** Auto-fix mojibake templates from database imports */
+      await this.prisma.ztteam_templates.updateMany({
+        where: { name: { contains: '2' }, format: 'image' },
+        data: { name: 'Ghép 2 Ảnh (Nửa trái / Nửa phải)' }
+      });
+      await this.prisma.ztteam_templates.updateMany({
+        where: { name: { contains: '3' }, format: 'image' },
+        data: { name: 'Ghép 3 Ảnh (1 Trên, 2 Dưới)' }
+      });
+      await this.prisma.ztteam_templates.updateMany({
+        where: { name: { contains: '4' }, format: 'image' },
+        data: { name: 'Ghép 4 Ảnh (Lưới 2x2)' }
+      });
       const count = await this.prisma.ztteam_templates.count();
       if (count === 0) {
         console.log('Seeding default templates...');
