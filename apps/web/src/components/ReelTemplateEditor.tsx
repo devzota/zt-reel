@@ -311,42 +311,42 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
               <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Bo góc ảnh</label>
               <input type="number" name="video_radius" value={formData.video_radius || 0} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors" />
             </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Hiển thị nội dung</label>
-              <div className="flex gap-6 pl-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={!formData.layout?.hide_title} 
-                    onChange={(e) => {
-                      const newData = { ...formData, layout: { ...formData.layout, hide_title: !e.target.checked } };
-                      setFormData(newData);
-                      if (onChange) onChange(newData);
-                    }} 
-                    className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
-                  />
-                  <span className="text-sm text-slate-700">Hiển thị Tiêu đề</span>
-                </label>
-                
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={!formData.layout?.hide_excerpt} 
-                    onChange={(e) => {
-                      const newData = { ...formData, layout: { ...formData.layout, hide_excerpt: !e.target.checked } };
-                      setFormData(newData);
-                      if (onChange) onChange(newData);
-                    }} 
-                    className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
-                  />
-                  <span className="text-sm text-slate-700">Hiển thị Mô tả</span>
-                </label>
-              </div>
-            </div>
 
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Hiển thị nội dung</label>
+          <div className="flex gap-6 pl-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={!formData.layout?.hide_title} 
+                onChange={(e) => {
+                  const newData = { ...formData, layout: { ...formData.layout, hide_title: !e.target.checked } };
+                  setFormData(newData);
+                  if (onChange) onChange(newData);
+                }} 
+                className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+              />
+              <span className="text-sm text-slate-700">Hiển thị Tiêu đề</span>
+            </label>
+            
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={!formData.layout?.hide_excerpt} 
+                onChange={(e) => {
+                  const newData = { ...formData, layout: { ...formData.layout, hide_excerpt: !e.target.checked } };
+                  setFormData(newData);
+                  if (onChange) onChange(newData);
+                }} 
+                className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+              />
+              <span className="text-sm text-slate-700">Hiển thị Mô tả</span>
+            </label>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Màu sắc tuỳ chỉnh</label>
