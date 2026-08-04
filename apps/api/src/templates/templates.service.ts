@@ -25,11 +25,13 @@ export class ZTTeamTemplatesService implements OnModuleInit {
         where: { name: { contains: '4' }, format: 'image' },
         data: { name: 'Ghép 4 Ảnh (Lưới 2x2)' }
       });
-      const count = await this.prisma.ztteam_templates.count();
-      if (count === 0) {
-        console.log('Seeding default templates...');
-        const templates = seedTemplates();
-        for (const t of templates) {
+      const templates = seedTemplates();
+      for (const t of templates) {
+        const existing = await this.prisma.ztteam_templates.findFirst({
+          where: { name: t.name, format: t.format, fb_page_id: null }
+        });
+        if (!existing) {
+          console.log(`Seeding missing template: ${t.name}`);
           await this.prisma.ztteam_templates.create({
             data: {
               name: t.name,
@@ -44,8 +46,8 @@ export class ZTTeamTemplatesService implements OnModuleInit {
             }
           });
         }
-        console.log('Seeded default templates successfully.');
       }
+      console.log('Template seed check complete.');
     } catch (error) {
       console.warn('Could not seed templates (tables might not exist yet):', error.message);
     }

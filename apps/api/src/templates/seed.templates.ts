@@ -170,5 +170,41 @@ export const seedTemplates = () => {
     is_default: true
   });
 
+  templates.push({
+    name: 'Ghép 2 Ảnh (Nửa trái / Nửa phải)',
+    format: 'image',
+    content_type: 'split_2',
+    voice_id: null,
+    video_y: 0,
+    video_radius: 0,
+    html_content: '<html><body><!-- Image 2 Template --></body></html>',
+    layout: {},
+    is_default: true
+  });
+
+  templates.push({
+    name: 'Ghép 3 Ảnh (1 Trên, 2 Dưới)',
+    format: 'image',
+    content_type: 'split_3',
+    voice_id: null,
+    video_y: 0,
+    video_radius: 0,
+    html_content: '<html><body><!-- Image 3 Template --></body></html>',
+    layout: {},
+    is_default: true
+  });
+
+  templates.push({
+    name: 'Ghép 4 Ảnh (Lưới 2x2)',
+    format: 'image',
+    content_type: 'split_4',
+    voice_id: null,
+    video_y: 0,
+    video_radius: 0,
+    html_content: '<html><body><!-- Image 4 Template --></body></html>',
+    layout: {},
+    is_default: true
+  });
+
   return templates;
 };
