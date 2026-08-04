@@ -45,6 +45,12 @@ export class ZTTeamTemplatesService implements OnModuleInit {
               is_default: t.is_default
             }
           });
+        } else {
+          /** Always update the html_content of default templates to ensure they have the latest design */
+          await this.prisma.ztteam_templates.update({
+            where: { id: existing.id },
+            data: { html_content: t.html_content }
+          });
         }
       }
       console.log('Template seed check complete.');

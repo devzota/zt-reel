@@ -177,7 +177,22 @@ export const seedTemplates = () => {
     voice_id: null,
     video_y: 0,
     video_radius: 0,
-    html_content: '<html><body><!-- Image 2 Template --></body></html>',
+    html_content: `
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; display: flex; background: #fff; font-family: sans-serif; }
+  .left { width: 50%; height: 100%; padding: 10px; }
+  .right { width: 50%; height: 100%; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f8f9fa; }
+  .img-wrap { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; }
+  img { width: 100%; height: 100%; object-fit: cover; }
+  h1 { font-size: 50px; text-align: center; color: #1a1a1a; padding: 20px; font-weight: 800; line-height: 1.3; }
+</style>
+<div class="left">
+  <div class="img-wrap"><img src="{{image_1}}" /></div>
+</div>
+<div class="right">
+  <h1>{{title}}</h1>
+</div>`,
     layout: {},
     is_default: true
   });
@@ -189,7 +204,23 @@ export const seedTemplates = () => {
     voice_id: null,
     video_y: 0,
     video_radius: 0,
-    html_content: '<html><body><!-- Image 3 Template --></body></html>',
+    html_content: `
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; display: flex; flex-direction: column; background: #fff; }
+  .top { width: 100%; height: 50%; padding: 10px; }
+  .bottom { width: 100%; height: 50%; display: flex; padding: 0 5px 10px; }
+  .bot-half { width: 50%; height: 100%; padding: 0 5px; }
+  .img-wrap { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; }
+  img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+<div class="top">
+  <div class="img-wrap"><img src="{{image_1}}" /></div>
+</div>
+<div class="bottom">
+  <div class="bot-half"><div class="img-wrap"><img src="{{image_2}}" /></div></div>
+  <div class="bot-half"><div class="img-wrap"><img src="{{image_3}}" /></div></div>
+</div>`,
     layout: {},
     is_default: true
   });
@@ -201,7 +232,18 @@ export const seedTemplates = () => {
     voice_id: null,
     video_y: 0,
     video_radius: 0,
-    html_content: '<html><body><!-- Image 4 Template --></body></html>',
+    html_content: `
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; display: flex; flex-wrap: wrap; background: #fff; padding: 5px; }
+  .cell { width: 50%; height: 50%; padding: 5px; }
+  .img-wrap { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; }
+  img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+<div class="cell"><div class="img-wrap"><img src="{{image_1}}" /></div></div>
+<div class="cell"><div class="img-wrap"><img src="{{image_2}}" /></div></div>
+<div class="cell"><div class="img-wrap"><img src="{{image_3}}" /></div></div>
+<div class="cell"><div class="img-wrap"><img src="{{image_4}}" /></div></div>`,
     layout: {},
     is_default: true
   });
