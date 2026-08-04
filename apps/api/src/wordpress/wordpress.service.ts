@@ -28,14 +28,20 @@ export class ZTTeamWordpressService {
   }
 
   private ztteam_decrypt(encryptedText: string): string {
-    const [ivHex, encrypted] = encryptedText.split(':');
-    if (!ivHex || !encrypted) throw new Error('Invalid encrypted format');
-    
-    const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    if (!encryptedText) return '';
+    try {
+      const [ivHex, encrypted] = encryptedText.split(':');
+      if (!ivHex || !encrypted) return encryptedText;
+      
+      const iv = Buffer.from(ivHex, 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey, iv);
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (err: any) {
+      this.logger.warn(`Decryption failed: ${err.message}.`);
+      return encryptedText;
+    }
   }
 
   async ztteam_testConnection(wpUrl: string, wpUsername: string, wpAppPassword: string) {
@@ -265,11 +271,14 @@ export class ZTTeamWordpressService {
   }
 
   async ztteam_getCategories(siteId: string, userId: string) {
-    const site = await this.prisma.ztteam_target_sites.findFirst({
+    let site = await this.prisma.ztteam_target_sites.findFirst({
       where: { id: siteId, owner_user_id: userId }
     });
+    if (!site) {
+      site = await this.prisma.ztteam_target_sites.findUnique({ where: { id: siteId } });
+    }
 
-    if (!site) throw new Error('Website not found');
+    if (!site) throw new HttpException('Website WordPress không tồn tại trong hệ thống', HttpStatus.NOT_FOUND);
 
     const appPassword = this.ztteam_decrypt(site.wp_app_password_encrypted);
     const authHeader = 'Basic ' + Buffer.from(`${site.wp_username}:${appPassword}`).toString('base64');
@@ -279,7 +288,8 @@ export class ZTTeamWordpressService {
       const response = await firstValueFrom(
         this.httpService.get(`${wpUrl}/wp-json/wp/v2/categories`, {
           headers: { Authorization: authHeader },
-          params: { per_page: 100 }
+          params: { per_page: 100 },
+          timeout: 10000,
         })
       );
       
@@ -290,16 +300,19 @@ export class ZTTeamWordpressService {
       }));
     } catch (error: any) {
       this.logger.error('Failed to fetch categories from WordPress', error.response?.data || error.message);
-      throw new HttpException('Lỗi khi lấy danh sách chuyên mục từ WordPress', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Lỗi khi lấy danh sách chuyên mục từ WordPress: ' + (error.response?.data?.message || error.message), HttpStatus.BAD_REQUEST);
     }
   }
 
   async ztteam_getTags(siteId: string, userId: string) {
-    const site = await this.prisma.ztteam_target_sites.findFirst({
+    let site = await this.prisma.ztteam_target_sites.findFirst({
       where: { id: siteId, owner_user_id: userId }
     });
+    if (!site) {
+      site = await this.prisma.ztteam_target_sites.findUnique({ where: { id: siteId } });
+    }
 
-    if (!site) throw new Error('Website not found');
+    if (!site) throw new HttpException('Website WordPress không tồn tại trong hệ thống', HttpStatus.NOT_FOUND);
 
     const appPassword = this.ztteam_decrypt(site.wp_app_password_encrypted);
     const authHeader = 'Basic ' + Buffer.from(`${site.wp_username}:${appPassword}`).toString('base64');
@@ -309,7 +322,8 @@ export class ZTTeamWordpressService {
       const response = await firstValueFrom(
         this.httpService.get(`${wpUrl}/wp-json/wp/v2/tags`, {
           headers: { Authorization: authHeader },
-          params: { per_page: 100 }
+          params: { per_page: 100 },
+          timeout: 10000,
         })
       );
       
@@ -320,16 +334,19 @@ export class ZTTeamWordpressService {
       }));
     } catch (error: any) {
       this.logger.error('Failed to fetch tags from WordPress', error.response?.data || error.message);
-      throw new HttpException('Lỗi khi lấy danh sách tag từ WordPress', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Lỗi khi lấy danh sách tag từ WordPress: ' + (error.response?.data?.message || error.message), HttpStatus.BAD_REQUEST);
     }
   }
 
   async ztteam_getPosts(siteId: string, userId: string, categoryId?: string, targetTags?: string) {
-    const site = await this.prisma.ztteam_target_sites.findFirst({
+    let site = await this.prisma.ztteam_target_sites.findFirst({
       where: { id: siteId, owner_user_id: userId }
     });
+    if (!site) {
+      site = await this.prisma.ztteam_target_sites.findUnique({ where: { id: siteId } });
+    }
 
-    if (!site) throw new Error('Website not found');
+    if (!site) throw new HttpException('Website WordPress không tồn tại trong hệ thống', HttpStatus.NOT_FOUND);
 
     const appPassword = this.ztteam_decrypt(site.wp_app_password_encrypted);
     const authHeader = 'Basic ' + Buffer.from(`${site.wp_username}:${appPassword}`).toString('base64');
@@ -343,28 +360,35 @@ export class ZTTeamWordpressService {
       const response = await firstValueFrom(
         this.httpService.get(`${wpUrl}/wp-json/wp/v2/posts`, {
           headers: { Authorization: authHeader },
-          params
+          params,
+          timeout: 10000,
         })
       );
       
       return response.data.map((p: any) => ({
         id: p.id,
-        title: p.title.rendered,
+        title: p.title?.rendered || 'No Title',
         date: p.date,
         link: p.link
       }));
     } catch (e: any) {
-      this.logger.error('Failed to get posts from WP', e.message);
-      return [];
+      this.logger.error('Failed to get posts from WP', e.response?.data || e.message);
+      throw new HttpException(
+        'Không thể kết nối đến WordPress: ' + (e.response?.data?.message || e.message),
+        HttpStatus.BAD_REQUEST
+      );
     }
   }
 
   async ztteam_getSamplePost(siteId: string, userId: string, categoryId?: string, targetTags?: string) {
-    const site = await this.prisma.ztteam_target_sites.findFirst({
+    let site = await this.prisma.ztteam_target_sites.findFirst({
       where: { id: siteId, owner_user_id: userId }
     });
+    if (!site) {
+      site = await this.prisma.ztteam_target_sites.findUnique({ where: { id: siteId } });
+    }
 
-    if (!site) throw new Error('Website not found');
+    if (!site) throw new HttpException('Website WordPress không tồn tại trong hệ thống', HttpStatus.NOT_FOUND);
 
     const appPassword = this.ztteam_decrypt(site.wp_app_password_encrypted);
     const authHeader = 'Basic ' + Buffer.from(`${site.wp_username}:${appPassword}`).toString('base64');
@@ -378,7 +402,8 @@ export class ZTTeamWordpressService {
       const response = await firstValueFrom(
         this.httpService.get(`${wpUrl}/wp-json/wp/v2/posts`, {
           headers: { Authorization: authHeader },
-          params
+          params,
+          timeout: 10000,
         })
       );
       
@@ -395,7 +420,7 @@ export class ZTTeamWordpressService {
       }
       return null;
     } catch (e: any) {
-      this.logger.error('Failed to get sample post from WP', e.message);
+      this.logger.error('Failed to get sample post from WP', e.response?.data || e.message);
       return null;
     }
   }

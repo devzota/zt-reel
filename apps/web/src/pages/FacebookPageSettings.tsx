@@ -278,7 +278,8 @@ export default function FacebookPageSettings() {
           }
         })
         .catch(err => {
-          ztteam_showToast('Lỗi tải danh sách bài viết', 'error');
+          const errMsg = err.response?.data?.message || err.message || 'Lỗi tải danh sách bài viết';
+          ztteam_showToast(errMsg, 'error');
           setCreatePosts([]);
         })
         .finally(() => setIsLoadingPosts(false));
