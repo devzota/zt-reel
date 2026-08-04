@@ -350,7 +350,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     return preparedImages;
   }
 
-  private async ztteam_step4_renderOverlay(template: any, page: any, postTitle: string, workDir: string): Promise<string> {
+  private async ztteam_step4_renderOverlay(template: any, page: any, postTitle: string, workDir: string): Promise<{ overlayPath: string; bgImagePath: string }> {
     this.logger.log('Step 4: Rendering overlay...');
 
     /** Apply page-specific template overrides (deep merge layout) */
