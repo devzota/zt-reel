@@ -21,8 +21,8 @@ export interface ZTTeamImageJobData {
 export class ZTTeamImageProcessor implements OnModuleInit {
   private readonly logger = new Logger('ZTTeamImageProcessor');
   private worker: Worker;
-  private readonly connection: IORedis;
-  private readonly queue: any;
+  private connection: IORedis;
+  private queue: any;
   private readonly storageRoot = ztteam_getImagesPath();
 
   constructor(
@@ -30,13 +30,15 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     private readonly aiService: ZTTeamAIService,
     private readonly puppeteerService: ZTTeamPuppeteerService,
     private readonly eventEmitter: EventEmitter2
-  ) {
-    this.connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', { maxRetriesPerRequest: null });
-    const { Queue } = require('bullmq');
-    this.queue = new Queue('ztteam-image', { connection: this.connection });
-  }
+  ) {}
 
   onModuleInit() {
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+    this.connection = new IORedis(redisPort, redisHost, { maxRetriesPerRequest: null });
+    const { Queue } = require('bullmq');
+    this.queue = new Queue('ztteam-image', { connection: this.connection });
+
     if (!fs.existsSync(this.storageRoot)) {
       fs.mkdirSync(this.storageRoot, { recursive: true });
     }
