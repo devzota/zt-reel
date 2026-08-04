@@ -164,7 +164,7 @@ QUY TẮC TUYỆT ĐỐI CẦN TUÂN THỦ:
     const systemPrompt = customPrompt ? customPrompt : defaultSystemPrompt;
     const promptWithRules = `${systemPrompt}
 
-IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH OR VIETNAMESE DEPENDING ON THE SOURCE LANGUAGE (PREFER VIETNAMESE).
+IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH.
 YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
 {
   "caption": "A catchy social media caption (with hashtags if appropriate)",
@@ -287,8 +287,8 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,${marginV},1
-Style: Hook,Arial,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,${topMarginV},1
+Style: Default,Liberation Sans,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,${marginV},1
+Style: Hook,Liberation Sans,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,${topMarginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

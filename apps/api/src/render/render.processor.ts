@@ -206,10 +206,27 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     if (!page) throw new Error(`Page ${pageId} not found`);
 
+    let finalTemplateId = templateId;
+    if (!finalTemplateId || finalTemplateId === 'auto' || finalTemplateId === 'default') {
+      const defaultTemplate = await this.prisma.ztteam_templates.findFirst({
+        where: { format: 'video', is_default: true }
+      });
+      if (defaultTemplate) {
+        finalTemplateId = defaultTemplate.id;
+      } else {
+        const anyVideoTemplate = await this.prisma.ztteam_templates.findFirst({
+          where: { format: 'video' }
+        });
+        if (anyVideoTemplate) {
+          finalTemplateId = anyVideoTemplate.id;
+        }
+      }
+    }
+
     const template = await this.prisma.ztteam_templates.findUnique({
-      where: { id: templateId },
+      where: { id: finalTemplateId },
     });
-    if (!template) throw new Error(`Template ${templateId} not found`);
+    if (!template) throw new Error(`Template ${finalTemplateId} not found`);
 
     /** Removed reel_template_overrides logic as templates are now page-scoped */
     /** Fetch the WordPress post content and images */
@@ -395,6 +412,10 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         bgImageUrl = '';
       }
     }
+    if (bgImageUrl && !htmlContent.includes('class="bg-img"')) {
+      htmlContent = htmlContent.replace(/<div class="stage">/g, `<div class="stage">\n  <img class="bg-img" src="${bgImageUrl}" style="position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1;" />`);
+    }
+    
     htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, bgImageUrl);
     if (!bgImageUrl) {
       htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');

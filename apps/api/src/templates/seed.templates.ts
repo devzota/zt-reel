@@ -14,6 +14,7 @@ const teaserHtml = `
   :root { --acc: {{#if colors.danger}}{{colors.danger}}{{else}}{{colors.primary}}{{/if}}; }
 
   .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  .bg-img { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1; }
 
   .subtitles-preview { display: none;
     position: absolute; left: {{layout.subtitles.x}}px; top: {{layout.subtitles.y}}px; width: 1000px;
@@ -29,44 +30,6 @@ const teaserHtml = `
     pointer-events: none;
   }
 
-  .breaking {
-    position: absolute; left: {{layout.breaking.x}}px; top: {{layout.breaking.y}}px; width: 1000px; height: 130px;
-    background: linear-gradient(120deg, color-mix(in srgb, var(--acc) 82%, #7a0000) 0%, var(--acc) 55%);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 12px 32px rgba(0,0,0,.35);
-    overflow: hidden;
-  }
-  .breaking .bk-text {
-    color: #fff; font-weight: 800; font-size: 60px; letter-spacing: 6px; text-transform: uppercase;
-  }
-  .breaking .bk-s {
-    position: absolute; top: 18px; bottom: 18px; width: 24px;
-    background: rgba(255,255,255,.9); transform: skewX(-20deg); border-radius: 5px;
-  }
-  .breaking .bk-s1 { right: 62px; }
-  .breaking .bk-s2 { right: 106px; }
-
-  .panel {
-    position: absolute; left: 0; right: 0; top: 1264px; bottom: 0;
-    background:
-      repeating-radial-gradient(circle at 50% 118%, rgba(255,255,255,.05) 0 3px, transparent 3px 120px),
-      linear-gradient(180deg, color-mix(in srgb, var(--acc) 90%, transparent) 0%, var(--acc) 10%);
-  }
-
-  .card {
-    position: absolute; left: 68px; right: 68px; top: 1264px; height: 450px;
-    background: #ffffff; border-radius: 6px;
-    box-shadow: 0 18px 44px rgba(0,0,0,.35);
-  }
-  .card::after {
-    content: ''; position: absolute; left: 0; right: 0; top: 92px;
-    border-top: 2px solid #ececec;
-  }
-  .card::before {
-    content: ''; position: absolute; left: 14px; right: 14px; top: 106px; bottom: 14px;
-    background: #ededed;
-  }
 
   .header {
     position: absolute; left: {{layout.header.x}}px; top: {{layout.header.y}}px;
@@ -88,10 +51,8 @@ const teaserHtml = `
 </style>
 
 <div class="stage">
+  <img class="bg-img" src="{{layout.bg_image_url}}" style="{{#unless layout.bg_image_url}}display:none;{{/unless}}" />
   <div class="video-frame"></div>
-  <div class="breaking"><span class="bk-text">Breaking News</span><span class="bk-s bk-s1"></span><span class="bk-s bk-s2"></span></div>
-  <div class="panel"></div>
-  <div class="card"></div>
 
   <div class="header" data-drag-id="header">
     <span class="logo">{{{logoSvg}}}</span>
@@ -116,6 +77,7 @@ const basicHtml = `
   body { font-family: 'BrandFont', 'Poppins', sans-serif; }
   :root { --acc: {{#if colors.primary}}{{colors.primary}}{{else}}#1877f2{{/if}}; }
   .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  .bg-img { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1; }
   .video-frame {
     position: absolute; left: {{video_area.x}}px; top: {{video_area.y}}px;
     width: {{video_area.w}}px; height: {{video_area.h}}px;
@@ -137,6 +99,7 @@ const basicHtml = `
   }
 </style>
 <div class="stage">
+  <img class="bg-img" src="{{layout.bg_image_url}}" style="{{#unless layout.bg_image_url}}display:none;{{/unless}}" />
   <div class="video-frame"></div>
   <div class="header" data-drag-id="header">
     <span class="pname">{{fanpageName}}</span>
