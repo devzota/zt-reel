@@ -71,7 +71,7 @@ export class ZTTeamTemplatesController {
   async ztteam_testVoice(@Body() body: { voice: string, text: string }) {
     try {
       const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
-        where: { key: 'OPENAI_API_KEY' },
+        where: { key: 'openai_api_key' },
       });
       const apiKey = (settingsDb?.value || process.env.OPENAI_API_KEY || '').trim();
 
