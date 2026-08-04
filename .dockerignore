@@ -1,8 +1,9 @@
 node_modules
-*/node_modules
-apps/*/node_modules
+**/node_modules
 dist
-apps/*/dist
+**/dist
+storage
+**/storage
 .git
 .agents
 *.sql

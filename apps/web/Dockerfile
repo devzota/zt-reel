@@ -1,5 +1,5 @@
 # BƯỚC 1: Build React App
-FROM node:20-bullseye-slim as build
+FROM node:22-bullseye-slim AS build
 
 WORKDIR /app
 
