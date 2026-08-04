@@ -345,40 +345,41 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Màu sắc tuỳ chỉnh</label>
-              <div className="flex gap-6 pl-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-sm text-slate-700">Tên Fanpage</span>
-                  <input 
-                    type="color" 
-                    value={formData.layout?.header_color || '#ffffff'} 
-                    onChange={(e) => {
-                      const newData = { ...formData, layout: { ...formData.layout, header_color: e.target.value } };
-                      setFormData(newData);
-                      if (onChange) onChange(newData);
-                    }} 
-                    className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
-                  />
-                </label>
-                
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-sm text-slate-700">Tiêu đề (Hook)</span>
-                  <input 
-                    type="color" 
-                    value={formData.layout?.hook_color || '#ffffff'} 
-                    onChange={(e) => {
-                      const newData = { ...formData, layout: { ...formData.layout, hook_color: e.target.value } };
-                      setFormData(newData);
-                      if (onChange) onChange(newData);
-                    }} 
-                    className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
-                  />
-                </label>
-              </div>
-            </div>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-3 pl-2">Màu sắc tuỳ chỉnh</label>
+          <div className="flex gap-6 pl-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-slate-700">Tên Fanpage</span>
+              <input 
+                type="color" 
+                value={formData.layout?.header_color || '#ffffff'} 
+                onChange={(e) => {
+                  const newData = { ...formData, layout: { ...formData.layout, header_color: e.target.value } };
+                  setFormData(newData);
+                  if (onChange) onChange(newData);
+                }} 
+                className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
+              />
+            </label>
+            
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-slate-700">Tiêu đề (Hook)</span>
+              <input 
+                type="color" 
+                value={formData.layout?.hook_color || '#ffffff'} 
+                onChange={(e) => {
+                  const newData = { ...formData, layout: { ...formData.layout, hook_color: e.target.value } };
+                  setFormData(newData);
+                  if (onChange) onChange(newData);
+                }} 
+                className="w-8 h-8 p-0 border-0 rounded cursor-pointer bg-transparent"
+              />
+            </label>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Giao diện (Ảnh nền 1080x1920)</label>
