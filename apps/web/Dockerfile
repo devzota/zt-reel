@@ -3,18 +3,16 @@ FROM node:20-bullseye-slim as build
 
 WORKDIR /app
 
-# Copy root package.json (hỗ trợ npm workspaces)
-COPY package*.json ./
-COPY apps/web/package*.json ./apps/web/
-COPY apps/api/package*.json ./apps/api/
+# Copy package files của web
+COPY apps/web/package*.json ./
 
-RUN npm install
+# Cài đặt dependencies sạch
+RUN npm install --legacy-peer-deps
 
-# Copy toàn bộ mã nguồn
-COPY . .
+# Copy toàn bộ mã nguồn web
+COPY apps/web ./
 
-# Build Vite / React
-WORKDIR /app/apps/web
+# Build Vite React app
 ARG VITE_FB_APP_ID
 ENV VITE_FB_APP_ID=$VITE_FB_APP_ID
 RUN npm run build
@@ -26,11 +24,12 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy kết quả build từ Bước 1
-COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy file cấu hình Nginx tùy chỉnh (nếu có, để hỗ trợ React Router)
+# Copy file cấu hình Nginx tùy chỉnh (hỗ trợ React Router)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+

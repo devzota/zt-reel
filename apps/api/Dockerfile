@@ -25,8 +25,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 
-# Cài đặt dependencies (sử dụng npm install tại root để setup workspace)
-RUN npm install
+# Cài đặt dependencies
+RUN npm install --legacy-peer-deps
 
 # Copy toàn bộ mã nguồn
 COPY . .
