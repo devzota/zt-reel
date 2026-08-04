@@ -140,13 +140,10 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const videoY = template.video_y ?? 0;
       const preparedImages = await this.ztteam_step3_prepareImages(post.images, workDir, videoW, videoH, videoX, videoY);
 
-      /** ========== STEP 4: Puppeteer overlay ========== */
-      await this.ztteam_updateReel(reelId, { progress: 55 });
-      const overlayPath = await this.ztteam_step4_renderOverlay(template, page, hook || post.title, workDir);
+      /** ========== STEP 4: Merge with FFmpeg ========== */
+      const { overlayPath, bgImagePath } = await this.ztteam_step4_renderOverlay(template, page, post.title, workDir);
 
-      /** ========== STEP 5: FFmpeg merge ========== */
-      await this.ztteam_updateReel(reelId, { progress: 65 });
-      const subtitlesY = (template.layout as any)?.subtitles?.y;
+      /** ========== STEP 5: Merge with FFmpeg ========== */
       const { videoPath, thumbnailPath } = await this.ztteam_step5_render(
         preparedImages,
         audioPath,
@@ -158,7 +155,8 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         videoW,
         videoH,
         workDir,
-        subtitlesY
+        subtitlesY,
+        bgImagePath
       );
       await this.ztteam_updateReel(reelId, { progress: 90 });
 
@@ -398,30 +396,16 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     htmlContent = htmlContent.replace(/{{layout\.verdict\.x}}/g, String(layout?.verdict?.x ?? 90));
     htmlContent = htmlContent.replace(/{{layout\.verdict\.y}}/g, String(layout?.verdict?.y ?? 1700));
 
-    /** Handle bg_image_url for Puppeteer */
     let bgImageUrl = layout?.bg_image_url || '';
+    let bgImagePath = '';
+    
     if (bgImageUrl && bgImageUrl.startsWith('/storage/')) {
       const relativePath = bgImageUrl.replace(/^\/storage\//, '');
-      const absolutePath = path.join(ztteam_getStorageRoot(), relativePath);
-      try {
-        const ext = path.extname(absolutePath).substring(1) || 'png';
-        const base64 = require('fs').readFileSync(absolutePath, 'base64');
-        bgImageUrl = `data:image/${ext};base64,${base64}`;
-      } catch (e: any) {
-        this.logger.error(`Failed to read bg image: ${e.message}`);
-        bgImageUrl = '';
-      }
-    }
-    if (bgImageUrl && !htmlContent.includes('class="bg-img"')) {
-      htmlContent = htmlContent.replace(/<div class="stage">/g, `<div class="stage">\n  <img class="bg-img" src="${bgImageUrl}" style="position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1;" />`);
+      bgImagePath = path.join(ztteam_getStorageRoot(), relativePath);
     }
     
-    htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, bgImageUrl);
-    if (!bgImageUrl) {
-      htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');
-    } else {
-      htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, '');
-    }
+    htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, '');
+    htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');
 
     htmlContent = htmlContent.replace(/{{{fontFace}}}/g, '');
     
@@ -454,7 +438,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     await this.puppeteerService.ztteam_renderOverlay(htmlContent, overlayPath);
 
     this.logger.log('Step 4 done: overlay rendered');
-    return overlayPath;
+    return { overlayPath, bgImagePath };
   }
 
   /** Step 5: Create slideshow and merge everything with FFmpeg */
@@ -469,7 +453,8 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     videoW: number,
     videoH: number,
     workDir: string,
-    subtitlesY?: number
+    subtitlesY?: number,
+    bgImagePath?: string
   ) {
     this.logger.log('Step 5: FFmpeg rendering...');
 
@@ -492,7 +477,8 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       outputPath,
       duration: audioDuration,
       videoX,
-      videoY
+      videoY,
+      bgImagePath
     });
 
     /** Generate thumbnail */

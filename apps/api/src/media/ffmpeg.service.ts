@@ -111,6 +111,7 @@ export class ZTTeamFFmpegService {
     duration: number;
     videoX: number;
     videoY: number;
+    bgImagePath?: string;
   }): Promise<void> {
     this.logger.log('Final merge starting...');
 
@@ -130,8 +131,16 @@ export class ZTTeamFFmpegService {
      * - Mix voice audio with background music (music at -15dB)
      * - Burn ASS subtitles into the video
      */
-    let inputs = `-f lavfi -i color=c=black:s=1080x1920 -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
-    let filterComplex = `[0:v][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}'[vout]`;
+    let inputs = '';
+    let filterComplex = '';
+
+    if (options.bgImagePath && fs.existsSync(options.bgImagePath)) {
+      inputs = `-loop 1 -t ${duration} -i "${options.bgImagePath}" -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
+      filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}'[vout]`;
+    } else {
+      inputs = `-f lavfi -i color=c=black:s=1080x1920 -t ${duration} -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
+      filterComplex = `[0:v][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}'[vout]`;
+    }
     let audioMap = '';
 
     if (bgMusicPath && fs.existsSync(bgMusicPath)) {
