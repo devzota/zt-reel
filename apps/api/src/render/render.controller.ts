@@ -310,7 +310,7 @@ export class ZTTeamRenderController {
   async ztteam_retryRender(@Param('id') id: string) {
     const reel = await this.prisma.ztteam_reels.findUnique({ where: { id } });
     if (!reel) return { error: 'Reel không tồn tại' };
-    if (reel.status !== 'FAILED') return { error: 'Chỉ có thể retry reel bị lỗi' };
+    if (reel.status !== 'FAILED' && reel.status !== 'COMPLETED') return { error: 'Chỉ có thể tạo lại reel bị lỗi hoặc đã hoàn thành' };
 
     /** Reset status and re-enqueue */
     await this.prisma.ztteam_reels.update({

@@ -1075,6 +1075,13 @@ export default function FacebookPageSettings() {
                                   )}
                                   Đăng ngay
                                 </button>
+                                <button
+                                  onClick={() => ztteam_retryReel(reel.id)}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full text-[11px] font-bold transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                  Tạo lại video
+                                </button>
                               </>
                             )}
                             {reel.status === 'FAILED' && (
@@ -1304,20 +1311,7 @@ export default function FacebookPageSettings() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Giao diện (Template)</label>
-                <select
-                  value={createTemplateId || (manualCreateFormat === 'image' ? defaultImageTemplateId : defaultReelTemplateId)}
-                  onChange={e => setCreateTemplateId(e.target.value)}
-                  className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm focus:border-primary outline-none transition-colors"
-                >
-                  <option value="">-- Mặc định của Page --</option>
-                  {templates.filter(t => t.format === manualCreateFormat).map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-gray-500 mt-1.5 italic">Nếu để trống, hệ thống sẽ sử dụng Giao diện mặc định của Fanpage.</p>
-              </div>
+              {/* TEMPLATE SELECTION REMOVED - AUTO ONLY */}
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
