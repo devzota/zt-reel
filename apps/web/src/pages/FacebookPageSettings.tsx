@@ -445,23 +445,23 @@ export default function FacebookPageSettings() {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6">
         <div>
           <button onClick={() => navigate('/facebook')} className="text-gray-500 hover:text-primary flex items-center gap-1 text-sm font-bold mb-2 transition-colors">
             <span className="material-symbols-outlined text-sm">arrow_back</span> Quay lại danh sách
           </button>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-3">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 flex flex-wrap items-center gap-2 sm:gap-3">
             Cấu hình Fanpage: {pageName}
             {fbPageId && (
-              <a href={`https://facebook.com/${fbPageId}`} target="_blank" rel="noopener noreferrer" className="text-sm px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 flex items-center gap-1 font-semibold border border-blue-100 transition-colors">
-                <span className="material-symbols-outlined text-[18px]">open_in_new</span> Xem Fanpage
+              <a href={`https://facebook.com/${fbPageId}`} target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 flex items-center gap-1 font-semibold border border-blue-100 transition-colors">
+                <span className="material-symbols-outlined text-[16px] sm:text-[18px]">open_in_new</span> Xem Fanpage
               </a>
             )}
           </h3>
-          <p className="text-gray-500 text-sm">Tùy chỉnh toàn diện chiến lược phân phối nội dung và tự động hóa.</p>
+          <p className="text-gray-500 text-xs sm:text-sm">Tùy chỉnh toàn diện chiến lược phân phối nội dung và tự động hóa.</p>
         </div>
-        <div>
-          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-full shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50">
+        <div className="shrink-0">
+          <button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto px-6 py-2.5 sm:py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-full shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm">
             {isSaving ? <span className="material-symbols-outlined animate-spin text-[20px]">sync</span> : <span className="material-symbols-outlined text-[20px]">save</span>}
             Lưu Thay Đổi
           </button>
@@ -470,7 +470,7 @@ export default function FacebookPageSettings() {
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Sidebar Tabs */}
-        <div className="w-full lg:w-64 shrink-0 flex flex-col gap-2">
+        <div className="w-full lg:w-64 shrink-0 flex flex-row overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0 gap-2">
           {[
             { id: 1, icon: 'info', label: 'Thông tin chung' },
             { id: 2, icon: 'movie', label: 'Giao diện Reel' },
@@ -481,9 +481,9 @@ export default function FacebookPageSettings() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === tab.id ? 'bg-primary text-white shadow-md shadow-blue-500/20' : 'text-gray-600 hover:bg-slate-100'}`}
+              className={`flex items-center gap-2 sm:gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 lg:shrink transition-all ${activeTab === tab.id ? 'bg-primary text-white shadow-md shadow-blue-500/20' : 'text-gray-600 hover:bg-slate-100 bg-white/80 lg:bg-transparent'}`}
             >
-              <span className="material-symbols-outlined text-[20px]" style={activeTab === tab.id ? { fontVariationSettings: "'FILL' 1" } : {}}>{tab.icon}</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]" style={activeTab === tab.id ? { fontVariationSettings: "'FILL' 1" } : {}}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}

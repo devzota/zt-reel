@@ -242,12 +242,12 @@ export default function WordPressSites() {
   return (
     <div className="w-full">
       {/* Page Header */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6 sm:mb-8">
         <div>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">Cấu hình WordPress & Nguồn cào</h3>
-          <p className="text-gray-500 text-sm">Quản lý mạng lưới website và luồng dữ liệu tự động của bạn.</p>
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Cấu hình WordPress & Nguồn cào</h3>
+          <p className="text-gray-500 text-xs sm:text-sm">Quản lý mạng lưới website và luồng dữ liệu tự động của bạn.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={() => ztteam_fetchSites()}
             className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wide text-gray-700 shadow-sm hover:shadow-md transition-all">
