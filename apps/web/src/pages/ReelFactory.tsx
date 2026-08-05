@@ -183,7 +183,13 @@ export default function ReelFactory() {
                   </div>
                   
                   <div className="flex items-center gap-1.5">
-                    {reel.status === 'COMPLETED' && reel.video_url && (
+                    {reel.status === 'COMPLETED' && reel.video_url === 'DELETED' && (
+                      <span className="text-[11px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-medium border border-red-100 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                        Đã xóa theo cài đặt
+                      </span>
+                    )}
+                    {reel.status === 'COMPLETED' && reel.video_url && reel.video_url !== 'DELETED' && (
                       <a href={reel.video_url} target="_blank" rel="noreferrer" title="Tải Video" className="w-8 h-8 rounded-full bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition-colors cursor-pointer">
                         <span className="material-symbols-outlined text-[18px]">download</span>
                       </a>
@@ -281,11 +287,18 @@ export default function ReelFactory() {
                         <span className="material-symbols-outlined text-4xl text-gray-600">movie</span>
                       )}
                       {reel.status === 'COMPLETED' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
-                          <a href={reel.video_url} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-3xl text-gray-900 ml-1">play_arrow</span>
-                          </a>
-                        </div>
+                        reel.video_url !== 'DELETED' ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors cursor-pointer">
+                            <a href={reel.video_url} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                              <span className="material-symbols-outlined text-primary text-2xl ml-1">play_arrow</span>
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-2 text-center">
+                            <span className="material-symbols-outlined text-2xl mb-1 text-red-400">broken_image</span>
+                            <span className="text-xs font-bold">Video đã bị xóa</span>
+                          </div>
+                        )
                       )}
                     </>
                   )}

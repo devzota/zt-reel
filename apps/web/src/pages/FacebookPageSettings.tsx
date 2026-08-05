@@ -1040,7 +1040,14 @@ export default function FacebookPageSettings() {
                               </a>
                             )}
 
-                            {reel.status === 'COMPLETED' && reel.video_url && (
+                            {reel.status === 'COMPLETED' && reel.video_url === 'DELETED' && (
+                              <span className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold">
+                                <span className="material-symbols-outlined text-[14px]">delete</span>
+                                Video đã xóa
+                              </span>
+                            )}
+
+                            {reel.status === 'COMPLETED' && reel.video_url && reel.video_url !== 'DELETED' && (
                               <>
                                 <a
                                   href={reel.video_url}
@@ -1124,8 +1131,12 @@ export default function FacebookPageSettings() {
                           </div>
                           
                           <div className="w-16 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 mt-2 mb-2">
-                            {img.image_url ? (
+                            {img.image_url && img.image_url !== 'DELETED' ? (
                               <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : img.image_url === 'DELETED' ? (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-gray-200">
+                                <span className="material-symbols-outlined text-xl text-red-400">broken_image</span>
+                              </div>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <span className="material-symbols-outlined text-2xl text-gray-400">image</span>

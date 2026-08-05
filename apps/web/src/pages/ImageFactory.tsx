@@ -185,7 +185,13 @@ export default function ImageFactory() {
                   </div>
                   
                   <div className="flex items-center gap-1.5">
-                    {image.status === 'COMPLETED' && image.image_url && (
+                    {image.status === 'COMPLETED' && image.image_url === 'DELETED' && (
+                      <span className="text-[11px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-medium border border-red-100 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                        Đã xóa theo cài đặt
+                      </span>
+                    )}
+                    {image.status === 'COMPLETED' && image.image_url && image.image_url !== 'DELETED' && (
                       <a href={image.image_url} target="_blank" rel="noreferrer" title="Tải Ảnh" className="w-8 h-8 rounded-full bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition-colors cursor-pointer">
                         <span className="material-symbols-outlined text-[18px]">download</span>
                       </a>
@@ -294,16 +300,19 @@ export default function ImageFactory() {
                     </div>
                   ) : (
                     <>
-                      {image.image_url ? (
-                        <img src={image.image_url} alt="Image thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                      {image.image_url !== 'DELETED' ? (
+                        <>
+                          <img src={image.image_url!} alt="Image thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors cursor-pointer">
+                            <a href={image.image_url!} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                              <span className="material-symbols-outlined text-3xl text-gray-900 ml-1">open_in_new</span>
+                            </a>
+                          </div>
+                        </>
                       ) : (
-                        <span className="material-symbols-outlined text-4xl text-gray-600">image</span>
-                      )}
-                      {image.status === 'COMPLETED' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
-                          <a href={image.image_url} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-3xl text-gray-900 ml-1">open_in_new</span>
-                          </a>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-2 text-center">
+                          <span className="material-symbols-outlined text-2xl mb-1 text-red-400">broken_image</span>
+                          <span className="text-xs font-bold">Ảnh đã bị xóa</span>
                         </div>
                       )}
                     </>
