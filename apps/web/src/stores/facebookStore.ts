@@ -17,6 +17,7 @@ export interface ZTTeamFanpage {
   tags?: string[];
   postFormat?: string;
   scheduleMode?: string;
+  autoPublishEnabled?: boolean;
   autoCreateEnabled?: boolean;
   nextPublishTime?: string | null;
   nextRenderTime?: string | null;

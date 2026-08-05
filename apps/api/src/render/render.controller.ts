@@ -206,9 +206,11 @@ export class ZTTeamRenderController {
          baseTime = lastPostedMap.get(pageId) || pending.updated_at;
        }
 
-       let scheduledAt: Date | null = pending.updated_at;
+       let scheduledAt: Date | null = null;
 
-       if (p.schedule_mode === 'fixed') {
+       if (p.auto_publish_enabled === false) {
+         scheduledAt = null;
+       } else if (p.schedule_mode === 'fixed') {
          const times = p.schedule_fixed_times || [];
          if (times.length > 0) {
            times.sort();
@@ -230,14 +232,14 @@ export class ZTTeamRenderController {
          } else {
            scheduledAt = null;
          }
-        } else if (p.schedule_mode === 'immediate') {
-          const gap = p.schedule_immediate_gap_minutes || 0;
-          const diff = gap * 60000;
-          const candidate = new Date(baseTime.getTime() + diff);
-          scheduledAt = candidate > pending.updated_at ? candidate : pending.updated_at;
-        } else {
-          scheduledAt = null;
-        }
+       } else if (p.schedule_mode === 'immediate') {
+         const gap = p.schedule_immediate_gap_minutes || 0;
+         const diff = gap * 60000;
+         const candidate = new Date(baseTime.getTime() + diff);
+         scheduledAt = candidate > pending.updated_at ? candidate : pending.updated_at;
+       } else {
+         scheduledAt = null;
+       }
 
        reelScheduledTimeMap.set(pending.id, scheduledAt);
        pageNextTimeMap.set(pageId, scheduledAt);

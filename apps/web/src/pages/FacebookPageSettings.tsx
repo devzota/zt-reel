@@ -25,6 +25,7 @@ export default function FacebookPageSettings() {
   const [tagInput, setTagInput] = useState('');
 
   const [postFormat, setPostFormat] = useState('reel');
+  const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [addLinkToCaption, setAddLinkToCaption] = useState(false);
   const [addLinkToComment, setAddLinkToComment] = useState(false);
   const [scheduleMode, setScheduleMode] = useState('fixed');
@@ -324,6 +325,7 @@ export default function FacebookPageSettings() {
       setFbPageId(data.fb_page_id || '');
       setTags(data.tags || []);
       setPostFormat(data.post_format || 'reel');
+      setAutoPublishEnabled(data.auto_publish_enabled !== undefined ? data.auto_publish_enabled : true);
       setAddLinkToCaption(data.add_link_to_caption || false);
       setAddLinkToComment(data.add_link_to_comment || false);
       setScheduleMode(data.schedule_mode || 'fixed');
@@ -391,6 +393,7 @@ export default function FacebookPageSettings() {
       await api.put(`facebook/pages/${id}/settings`, {
         tags,
         post_format: postFormat,
+        auto_publish_enabled: autoPublishEnabled,
         add_link_to_caption: addLinkToCaption,
         add_link_to_comment: addLinkToComment,
         schedule_mode: scheduleMode,
@@ -633,91 +636,114 @@ export default function FacebookPageSettings() {
           {/* TAB 3 */}
           {activeTab === 3 && (
             <div className="glass-card p-6 animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-              <h4 className="text-lg font-bold text-gray-900 border-b border-slate-100 pb-2">Cấu hình đăng bài lên Fanpage</h4>
-
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex justify-between items-center">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Lần đăng trước</div>
-                  <div className="text-sm text-gray-900 font-bold">{lastPublishTime ? new Date(lastPublishTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Chưa đăng'}</div>
+                  <h4 className="text-lg font-bold text-gray-900">Cấu hình đăng bài lên Fanpage</h4>
+                  <p className="text-sm text-gray-500 mt-1">Tự động xuất bản Video/Ảnh từ hàng đợi lên Fanpage theo lịch trình.</p>
                 </div>
-                <div className="h-8 w-[1px] bg-blue-200 mx-4"></div>
-                <div>
-                  <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Lần đăng tới (dự kiến)</div>
-                  <div className="text-sm text-emerald-600 font-bold">
-                    {nextPublishTime && new Date(nextPublishTime).getTime() > Date.now() ? new Date(nextPublishTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Đang chờ...'}
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={autoPublishEnabled} onChange={e => setAutoPublishEnabled(e.target.checked)} />
+                  <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              {!autoPublishEnabled && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-sm flex items-center gap-3">
+                  <span className="material-symbols-outlined text-slate-400 text-[24px]">power_settings_new</span>
+                  <div>
+                    <div className="font-bold text-slate-800">Đang tắt tự động đăng bài</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Hệ thống sẽ không tự động đăng bài lên Fanpage này. Video/Ảnh tạo xong sẽ được giữ lại trong danh sách để bạn duyệt và bấm đăng thủ công.</div>
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Hình thức đăng</label>
-                  <select value={postFormat} onChange={e => setPostFormat(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-0 outline-none">
-                    <option value="reel">Chỉ đăng Reel</option>
-                    <option value="image">Chỉ đăng Ảnh</option>
-                    <option value="mixed">Reel và Ảnh xen kẽ</option>
-                  </select>
-                  <p className="mt-1 text-[11px] text-gray-500">Cách Bot xuất bản nội dung lên Facebook. "Xen kẽ" sẽ giúp Fanpage đa dạng hơn.</p>
-                </div>
-              </div>
+              )}
 
-              <div className="flex flex-col gap-4">
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={addLinkToCaption} onChange={e => setAddLinkToCaption(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-sm font-bold text-gray-700">Tự động gắn link Website vào Caption</span>
-                  </label>
-                  <p className="mt-1 ml-8 text-[11px] text-gray-500">Kéo traffic về Website: Bot sẽ tự động dán Link gốc của bài báo vào nội dung (caption) khi đăng lên Facebook.</p>
-                </div>
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={addLinkToComment} onChange={e => setAddLinkToComment(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-sm font-bold text-gray-700">Tự động chèn link Website vào Comment đầu tiên</span>
-                  </label>
-                  <p className="mt-1 ml-8 text-[11px] text-gray-500">Thay vì để ở caption (dễ bị FB bóp tương tác), Bot sẽ tự động bình luận Link bài báo ngay bên dưới bài đăng Facebook.</p>
-                </div>
-              </div>
-
-              <hr className="border-slate-100" />
-
-              <div>
-                <h5 className="font-bold text-gray-900 mb-3">Lịch tự động đăng</h5>
-                <div className="flex gap-4 mb-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="scheduleMode" value="fixed" checked={scheduleMode === 'fixed'} onChange={() => setScheduleMode('fixed')} className="text-primary focus:ring-primary" />
-                    <span className="text-sm font-bold text-gray-700">Khung giờ cố định</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="scheduleMode" value="immediate" checked={scheduleMode === 'immediate'} onChange={() => setScheduleMode('immediate')} className="text-primary focus:ring-primary" />
-                    <span className="text-sm font-bold text-gray-700">Đăng ngay khi có bài mới</span>
-                  </label>
-                </div>
-
-                {scheduleMode === 'fixed' && (
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <p className="text-xs text-gray-500 mb-3">Thêm các khung giờ (VD: 05:00, 16:30) để hệ thống tự động đẩy bài từ hàng đợi lên Fanpage.</p>
-                    <div className="flex gap-2 mb-3 max-w-xs">
-                      <input type="time" value={timeInput} onChange={e => setTimeInput(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-primary outline-none" />
-                      <button onClick={addTime} className="px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-blue-600">Thêm</button>
+              {autoPublishEnabled && (
+                <>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex justify-between items-center">
+                    <div>
+                      <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Lần đăng trước</div>
+                      <div className="text-sm text-gray-900 font-bold">{lastPublishTime ? new Date(lastPublishTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Chưa đăng'}</div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {scheduleFixedTimes.map(t => (
-                        <span key={t} className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm">
-                          {t} <span onClick={() => setScheduleFixedTimes(scheduleFixedTimes.filter(x => x !== t))} className="material-symbols-outlined text-[14px] cursor-pointer hover:text-red-500">close</span>
-                        </span>
-                      ))}
+                    <div className="h-8 w-[1px] bg-blue-200 mx-4"></div>
+                    <div>
+                      <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Lần đăng tới (dự kiến)</div>
+                      <div className="text-sm text-emerald-600 font-bold">
+                        {nextPublishTime && new Date(nextPublishTime).getTime() > Date.now() ? new Date(nextPublishTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Đang chờ...'}
+                      </div>
                     </div>
                   </div>
-                )}
-
-                {scheduleMode === 'immediate' && (
-                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                    <p className="text-sm text-amber-800 font-bold mb-2 flex items-center gap-1"><span className="material-symbols-outlined text-[18px]">bolt</span> Đăng ngay sau khi Video làm xong</p>
-                    <label className="block text-xs text-amber-700 font-medium mb-1">Giãn cách tối thiểu giữa 2 bài (phút)</label>
-                    <input type="number" min="10" value={scheduleImmediateGap} onChange={e => setScheduleImmediateGap(parseInt(e.target.value))} className="w-32 bg-white border border-amber-200 rounded-xl px-4 py-2 text-sm outline-none" />
-                    <p className="text-[10px] text-amber-700 mt-1 opacity-80 leading-tight">Khoảng thời gian nghỉ giữa 2 lần đăng bài liên tiếp. Tránh việc Bot đăng dồn dập khiến Facebook đánh dấu Page là Spam.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Hình thức đăng</label>
+                      <select value={postFormat} onChange={e => setPostFormat(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-0 outline-none">
+                        <option value="reel">Chỉ đăng Reel</option>
+                        <option value="image">Chỉ đăng Ảnh</option>
+                        <option value="mixed">Reel và Ảnh xen kẽ</option>
+                      </select>
+                      <p className="mt-1 text-[11px] text-gray-500">Cách Bot xuất bản nội dung lên Facebook. "Xen kẽ" sẽ giúp Fanpage đa dạng hơn.</p>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={addLinkToCaption} onChange={e => setAddLinkToCaption(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" />
+                        <span className="text-sm font-bold text-gray-700">Tự động gắn link Website vào Caption</span>
+                      </label>
+                      <p className="mt-1 ml-8 text-[11px] text-gray-500">Kéo traffic về Website: Bot sẽ tự động dán Link gốc của bài báo vào nội dung (caption) khi đăng lên Facebook.</p>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={addLinkToComment} onChange={e => setAddLinkToComment(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" />
+                        <span className="text-sm font-bold text-gray-700">Tự động chèn link Website vào Comment đầu tiên</span>
+                      </label>
+                      <p className="mt-1 ml-8 text-[11px] text-gray-500">Thay vì để ở caption (dễ bị FB bóp tương tác), Bot sẽ tự động bình luận Link bài báo ngay bên dưới bài đăng Facebook.</p>
+                    </div>
+                  </div>
+
+                  <hr className="border-slate-100" />
+
+                  <div>
+                    <h5 className="font-bold text-gray-900 mb-3">Lịch tự động đăng</h5>
+                    <div className="flex gap-4 mb-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="scheduleMode" value="fixed" checked={scheduleMode === 'fixed'} onChange={() => setScheduleMode('fixed')} className="text-primary focus:ring-primary" />
+                        <span className="text-sm font-bold text-gray-700">Khung giờ cố định</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="scheduleMode" value="immediate" checked={scheduleMode === 'immediate'} onChange={() => setScheduleMode('immediate')} className="text-primary focus:ring-primary" />
+                        <span className="text-sm font-bold text-gray-700">Đăng ngay khi có bài mới</span>
+                      </label>
+                    </div>
+
+                    {scheduleMode === 'fixed' && (
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <p className="text-xs text-gray-500 mb-3">Thêm các khung giờ (VD: 05:00, 16:30) để hệ thống tự động đẩy bài từ hàng đợi lên Fanpage.</p>
+                        <div className="flex gap-2 mb-3 max-w-xs">
+                          <input type="time" value={timeInput} onChange={e => setTimeInput(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-primary outline-none" />
+                          <button onClick={addTime} className="px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-blue-600">Thêm</button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {scheduleFixedTimes.map(t => (
+                            <span key={t} className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm">
+                              {t} <span onClick={() => setScheduleFixedTimes(scheduleFixedTimes.filter(x => x !== t))} className="material-symbols-outlined text-[14px] cursor-pointer hover:text-red-500">close</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {scheduleMode === 'immediate' && (
+                      <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                        <p className="text-sm text-amber-800 font-bold mb-2 flex items-center gap-1"><span className="material-symbols-outlined text-[18px]">bolt</span> Đăng ngay sau khi Video làm xong</p>
+                        <label className="block text-xs text-amber-700 font-medium mb-1">Giãn cách tối thiểu giữa 2 bài (phút)</label>
+                        <input type="number" min="10" value={scheduleImmediateGap} onChange={e => setScheduleImmediateGap(parseInt(e.target.value))} className="w-32 bg-white border border-amber-200 rounded-xl px-4 py-2 text-sm outline-none" />
+                        <p className="text-[10px] text-amber-700 mt-1 opacity-80 leading-tight">Khoảng thời gian nghỉ giữa 2 lần đăng bài liên tiếp. Tránh việc Bot đăng dồn dập khiến Facebook đánh dấu Page là Spam.</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

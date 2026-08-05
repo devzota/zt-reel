@@ -159,7 +159,9 @@ export class ZTTeamFacebookService {
     
     let nextPublishTime = null;
 
-    if (page.schedule_mode === 'immediate') {
+    if (page.auto_publish_enabled === false) {
+      nextPublishTime = null;
+    } else if (page.schedule_mode === 'immediate') {
       if (lastPublishTime) {
         nextPublishTime = new Date(new Date(lastPublishTime).getTime() + page.schedule_immediate_gap_minutes * 60000);
       } else {
@@ -243,6 +245,7 @@ export class ZTTeamFacebookService {
         tags: p.tags,
         postFormat: p.post_format,
         scheduleMode: p.schedule_mode,
+        autoPublishEnabled: p.auto_publish_enabled,
         autoCreateEnabled: p.auto_create_enabled,
         nextPublishTime: times.nextPublishTime,
         nextRenderTime: times.nextRenderTime,
@@ -281,6 +284,7 @@ export class ZTTeamFacebookService {
       avatar: page.avatar,
       tags: page.tags,
       post_format: page.post_format,
+      auto_publish_enabled: page.auto_publish_enabled,
       add_link_to_caption: page.add_link_to_caption,
       add_link_to_comment: page.add_link_to_comment,
       schedule_mode: page.schedule_mode,
@@ -328,6 +332,7 @@ export class ZTTeamFacebookService {
       data: {
         tags: config.tags,
         post_format: config.post_format,
+        auto_publish_enabled: config.auto_publish_enabled !== undefined ? config.auto_publish_enabled : true,
         add_link_to_caption: config.add_link_to_caption,
         add_link_to_comment: config.add_link_to_comment,
         schedule_mode: config.schedule_mode,

@@ -144,9 +144,11 @@ export class ZTTeamImageController {
          baseTime = lastPostedMap.get(pageId) || pending.updated_at;
        }
 
-       let scheduledAt: Date | null = pending.updated_at;
+       let scheduledAt: Date | null = null;
 
-       if (p.schedule_mode === 'fixed') {
+       if (p.auto_publish_enabled === false) {
+         scheduledAt = null;
+       } else if (p.schedule_mode === 'fixed') {
          const times = p.schedule_fixed_times || [];
          if (times.length > 0) {
            times.sort();

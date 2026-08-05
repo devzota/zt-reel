@@ -73,7 +73,12 @@ export class ZTTeamPublisherCron {
 
       /** 4. Duyệt từng Page và kiểm tra khung giờ đăng */
       for (const [pageId, page] of pagesMap.entries()) {
-        const { schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes, post_format } = page;
+        const { auto_publish_enabled, schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes, post_format } = page;
+
+        /** Nếu Page đang tắt tự động đăng bài thì bỏ qua */
+        if (auto_publish_enabled === false) {
+          continue;
+        }
 
         /** Lấy bài đăng gần nhất (Reel hoặc Ảnh) của Page này để tính khoảng cách thời gian */
         const lastPostedReel = await this.prisma.ztteam_reels.findFirst({

@@ -70,6 +70,7 @@ model ztteam_pages {
   post_format                    String   @default("reel") 
   
   /** Tab 3 */
+  auto_publish_enabled           Boolean  @default(true)
   add_link_to_caption            Boolean  @default(false)
   add_link_to_comment            Boolean  @default(false)
   schedule_mode                  String   @default("fixed") 

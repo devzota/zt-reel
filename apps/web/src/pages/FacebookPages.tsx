@@ -200,13 +200,15 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
             <div>
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Cấu hình Đăng bài</p>
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-semibold text-gray-700">
-                  {page.scheduleMode === 'immediate' ? 'Đăng ngay có giãn cách' : 'Khung giờ cố định'}
+                <span className={`text-sm font-semibold ${page.autoPublishEnabled !== false ? 'text-gray-700' : 'text-gray-400'}`}>
+                  {page.autoPublishEnabled !== false 
+                    ? (page.scheduleMode === 'immediate' ? 'Đang bật (Giãn cách)' : 'Đang bật (Giờ cố định)') 
+                    : 'Đang tắt tự động đăng'}
                 </span>
-                {page.scheduleMode === 'immediate' && (
+                {page.autoPublishEnabled !== false && page.scheduleMode === 'immediate' && (
                   <span className="text-xs text-gray-500">Giãn cách: {page.scheduleImmediateGapMinutes} phút</span>
                 )}
-                {page.scheduleMode === 'fixed' && page.scheduleFixedTimes && (
+                {page.autoPublishEnabled !== false && page.scheduleMode === 'fixed' && page.scheduleFixedTimes && (
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {page.scheduleFixedTimes.map((t: string) => (
                       <span key={t} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">{t}</span>
@@ -236,7 +238,7 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
                   {page.nextVideoTitle ? ztteam_decodeHtmlEntity(page.nextVideoTitle) : 'Không có bài chờ'}
                 </span>
                 <span className="text-[11px] font-semibold text-emerald-600 mt-0.5">
-                  {ztteam_formatDate(page.nextPublishTime)}
+                  {page.autoPublishEnabled !== false ? ztteam_formatDate(page.nextPublishTime) : 'Tắt tự động đăng'}
                 </span>
               </div>
             </div>
