@@ -11,7 +11,9 @@ export default function SystemSettingsPage() {
     active_ai_provider: 'openai',
     remotion_license: '',
     max_concurrent_jobs: '2',
-    video_retention_days: '7'
+    video_retention_days: '7',
+    telegram_bot_token: '',
+    telegram_chat_id: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +42,26 @@ export default function SystemSettingsPage() {
       console.error(e);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    if (!settings.telegram_bot_token || !settings.telegram_chat_id) {
+      ztteam_showToast('Vui lòng nhập Token và Chat ID trước khi Test', 'error');
+      return;
+    }
+    try {
+      const res = await api.post('telegram/test', {
+        token: settings.telegram_bot_token,
+        chatId: settings.telegram_chat_id
+      });
+      if (res.data.success) {
+        ztteam_showToast('Đã gửi tin nhắn test thành công! Hãy kiểm tra Telegram.', 'success');
+      } else {
+        ztteam_showToast(`Lỗi: ${res.data.message}`, 'error');
+      }
+    } catch (e: any) {
+      ztteam_showToast('Lỗi kết nối API Test', 'error');
     }
   };
 
@@ -132,6 +154,43 @@ export default function SystemSettingsPage() {
               onChange={handleChange}
               className="w-full bg-slate-50 border-2 border-transparent focus:border-primary rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none"
               placeholder="Nhập license key để xóa watermark..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card p-6 border-l-4 border-l-blue-500">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+          <h3 className="text-lg font-bold text-gray-900">Thông báo qua Telegram (Tùy chọn)</h3>
+          <button 
+            onClick={handleTestTelegram}
+            className="px-4 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-bold rounded-full transition-colors"
+          >
+            Gửi tin nhắn Test
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">Hệ thống sẽ tự động nhắn tin cho bạn nếu có bất kỳ tác vụ nào (Render/Auto Đăng/Crawl) bị lỗi.</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Bot Token</label>
+            <input 
+              type="password" 
+              name="telegram_bot_token"
+              value={settings.telegram_bot_token || ''} 
+              onChange={handleChange}
+              className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none"
+              placeholder="Ví dụ: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Chat ID (hoặc Group ID)</label>
+            <input 
+              type="text" 
+              name="telegram_chat_id"
+              value={settings.telegram_chat_id || ''} 
+              onChange={handleChange}
+              className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-xl px-4 py-2 text-sm focus:ring-0 outline-none"
+              placeholder="Ví dụ: 123456789 hoặc -100123456789"
             />
           </div>
         </div>

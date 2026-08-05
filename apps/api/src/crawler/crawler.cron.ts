@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ZTTeamFetcherService } from './fetcher.service';
 import { ZTTeamWordpressService } from '../wordpress/wordpress.service';
 import Parser from 'rss-parser';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
 export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
@@ -16,6 +17,7 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly fetcherService: ZTTeamFetcherService,
     private readonly wordpressService: ZTTeamWordpressService,
+    private readonly telegramService: TelegramService,
   ) {
     this.rssParser = new Parser({
       timeout: 10000,
@@ -227,6 +229,15 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         this.logger.log(`Successfully crawled and created post: ${fetchedData.title} -> ${result?.url || 'OK'}`);
       } catch (err: any) {
         this.logger.error(`Failed to process URL ${url}: ${err.message}`);
+        
+        let sourceName = source.name || 'Không rõ';
+        this.telegramService.ztteam_sendMessage(
+          `🚨 *[LỖI CRAWL BÀI VIẾT]*\n\n` +
+          `• *Nguồn:* ${sourceName}\n` +
+          `• *URL:* ${url}\n` +
+          `• *Lỗi:* ${err.message}`
+        );
+        
         try {
           await this.prisma.ztteam_crawl_history.upsert({
             where: { source_id_url: { source_id: source.id, url } },

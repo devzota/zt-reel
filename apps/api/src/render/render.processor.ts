@@ -7,6 +7,7 @@ import axios from 'axios';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { ZTTeamAIService } from '../ai/ai.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { ZTTeamTTSService } from '../audio/tts.service';
 import { ZTTeamFFmpegService } from '../media/ffmpeg.service';
 import { ZTTeamPuppeteerService } from '../media/puppeteer.service';
@@ -43,6 +44,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     private readonly puppeteerService: ZTTeamPuppeteerService,
     private readonly ffmpegService: ZTTeamFFmpegService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly telegramService: TelegramService,
   ) {}
 
   onModuleInit() {
@@ -185,6 +187,20 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         status: 'FAILED',
         error_log: error.message || 'Unknown error',
       });
+      
+      let pageName = 'Không rõ';
+      if (reelRecord && reelRecord.page_id) {
+        const p = await this.prisma.ztteam_pages.findUnique({ where: { id: reelRecord.page_id } });
+        if (p) pageName = p.name;
+      }
+      
+      this.telegramService.ztteam_sendMessage(
+        `🚨 *[LỖI TẠO VIDEO]*\n\n` +
+        `• *Fanpage:* ${pageName}\n` +
+        `• *Video:* ${reelRecord?.wp_post_title || 'Không rõ'}\n` +
+        `• *Lỗi:* ${error.message}`
+      );
+      
       throw error;
     }
   }

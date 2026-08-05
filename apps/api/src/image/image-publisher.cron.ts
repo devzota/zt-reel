@@ -7,6 +7,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ztteam_getImagesPath } from '../common/ztteam_storage.util';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
 export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
@@ -17,6 +18,7 @@ export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly facebookService: ZTTeamFacebookService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly telegramService: TelegramService,
   ) { }
 
   onApplicationBootstrap() {
@@ -193,9 +195,17 @@ export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
       await this.prisma.ztteam_images.update({
         where: { id: image.id },
         data: {
+          status: 'FAILED',
           error_log: error.message || 'Lỗi khi đăng ảnh lên Facebook',
         }
       });
+      
+      this.telegramService.ztteam_sendMessage(
+        `🚨 *[LỖI TỰ ĐỘNG ĐĂNG ẢNH]*\n\n` +
+        `• *Fanpage:* ${page.name}\n` +
+        `• *Ảnh:* ${image.wp_post_title || 'Không rõ'}\n` +
+        `• *Lỗi:* ${error.message}`
+      );
     }
   }
 }

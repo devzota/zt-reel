@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import axios from 'axios';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ztteam_getImagesPath } from '../common/ztteam_storage.util';
+import { TelegramService } from '../telegram/telegram.service';
 
 export interface ZTTeamImageJobData {
   imageId: string;
@@ -29,7 +30,8 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly aiService: ZTTeamAIService,
     private readonly puppeteerService: ZTTeamPuppeteerService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly telegramService: TelegramService
   ) {}
 
   onModuleInit() {
@@ -123,6 +125,20 @@ export class ZTTeamImageProcessor implements OnModuleInit {
         status: 'FAILED',
         error_log: error.message || 'Unknown error',
       });
+
+      let pageName = 'Không rõ';
+      if (imageRecord && imageRecord.page_id) {
+        const p = await this.prisma.ztteam_pages.findUnique({ where: { id: imageRecord.page_id } });
+        if (p) pageName = p.name;
+      }
+
+      this.telegramService.ztteam_sendMessage(
+        `🚨 *[LỖI TẠO ẢNH]*\n\n` +
+        `• *Fanpage:* ${pageName}\n` +
+        `• *Ảnh:* ${imageRecord?.wp_post_title || 'Không rõ'}\n` +
+        `• *Lỗi:* ${error.message}`
+      );
+
       throw error;
     }
   }

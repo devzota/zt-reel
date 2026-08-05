@@ -7,6 +7,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ztteam_getReelsPath } from '../common/ztteam_storage.util';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
 export class ZTTeamPublisherCron implements OnApplicationBootstrap {
@@ -17,6 +18,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly facebookService: ZTTeamFacebookService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly telegramService: TelegramService,
   ) { }
 
   onApplicationBootstrap() {
@@ -147,6 +149,12 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
                 error_log: `Lỗi đăng bài lên Facebook: ${error.message}`
               }
             });
+            this.telegramService.ztteam_sendMessage(
+              `🚨 *[LỖI TỰ ĐỘNG ĐĂNG VIDEO]*\n\n` +
+              `• *Fanpage:* ${reel.page?.name || 'Không rõ'}\n` +
+              `• *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
+              `• *Lỗi:* ${error.message}`
+            );
           }
         }
       }

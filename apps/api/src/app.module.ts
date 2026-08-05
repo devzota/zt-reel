@@ -17,6 +17,7 @@ import { ZTTeamRenderModule } from './render/render.module';
 import { ZTTeamImageModule } from './image/image.module';
 import { ZTTeamDashboardModule } from './dashboard/dashboard.module';
 import { ZTTeamSettingsModule } from './settings/settings.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ZTTeamSettingsModule } from './settings/settings.module';
     ZTTeamImageModule,
     ZTTeamDashboardModule,
     ZTTeamSettingsModule,
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [AppService],
