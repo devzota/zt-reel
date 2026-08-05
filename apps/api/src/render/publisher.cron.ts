@@ -62,11 +62,11 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         /** KHÓA DATABASE: Lấy thời gian đăng của video gần nhất CỦA PAGE NÀY */
         const lastPostedReel = await this.prisma.ztteam_reels.findFirst({
           where: { page_id: reel.page_id, status: 'POSTED' },
-          orderBy: { posted_at: 'desc' }
+          orderBy: { updated_at: 'desc' }
         });
         const lastPostedImage = await this.prisma.ztteam_images.findFirst({
           where: { page_id: reel.page_id, is_posted: true },
-          orderBy: { posted_at: 'desc' }
+          orderBy: { updated_at: 'desc' }
         });
 
         let lastPostTime = null;

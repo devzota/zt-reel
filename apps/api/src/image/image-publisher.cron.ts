@@ -74,7 +74,7 @@ export class ZTTeamImagePublisherCron implements OnApplicationBootstrap {
         });
         const lastPostedImage = await this.prisma.ztteam_images.findFirst({
           where: { page_id: pageId, is_posted: true },
-          orderBy: { posted_at: 'desc' }
+          orderBy: { updated_at: 'desc' }
         });
 
         let lastPostTime = null;
