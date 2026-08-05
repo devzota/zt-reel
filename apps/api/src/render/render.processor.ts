@@ -126,6 +126,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         workDir,
         page.ai_custom_prompt,
         page.voice_speed || 1.0,
+        reelRecord
       );
 
       let finalCaption = caption;
@@ -294,11 +295,29 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     workDir: string,
     customPrompt?: string | null,
     voiceSpeed: number = 1.0,
+    reelRecord?: any
   ) {
     this.logger.log('Step 2: AI script + TTS...');
 
-    const aiResult = await this.aiService.ztteam_generateScript(content, tone, maxWords, customPrompt);
-    const audioPath = await this.ttsService.ztteam_textToSpeech(aiResult.sub_voice, voiceId, workDir, voiceSpeed);
+    let aiResult = { sub_voice: '', caption: '', hook: '' };
+    if (reelRecord && reelRecord.ai_script) {
+      this.logger.log('Reusing existing AI script...');
+      aiResult = {
+        sub_voice: reelRecord.ai_script,
+        caption: reelRecord.ai_caption || '',
+        hook: reelRecord.ai_hook || ''
+      };
+    } else {
+      aiResult = await this.aiService.ztteam_generateScript(content, tone, maxWords, customPrompt);
+    }
+
+    let audioPath = require('path').join(workDir, 'voice.mp3');
+    if (require('fs').existsSync(audioPath)) {
+      this.logger.log('Reusing existing voice.mp3...');
+    } else {
+      audioPath = await this.ttsService.ztteam_textToSpeech(aiResult.sub_voice, voiceId, workDir, voiceSpeed);
+    }
+    
     const audioDuration = this.ttsService.ztteam_getAudioDuration(audioPath);
     const subtitles = this.aiService.ztteam_generateSubtitles(aiResult.sub_voice, audioDuration);
 
