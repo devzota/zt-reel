@@ -226,7 +226,8 @@ export class ZTTeamFacebookService {
 
     const pages = await this.prisma.ztteam_pages.findMany({
       where: { fb_account_id: { in: accountIds } },
-      include: { fb_account: true }
+      include: { fb_account: true },
+      orderBy: { name: 'asc' }
     });
 
     const result = await Promise.all(pages.map(async p => {
