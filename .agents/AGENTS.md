@@ -36,3 +36,11 @@
 3. Luôn comment đúng quy định (dùng /** */ hoặc <!-- -->).
 4. CHỈ ĐƯỢC PHÉP commit lên git và deploy lên VPS khi có lệnh CỤ THỂ từ người dùng (sau khi check local OK). Không được tự ý deploy.
 </RULE[user_global]>
+
+<RULE[auto_content_ai]>
+## Quy tắc tạo nội dung tự động (AI Content)
+1. **Ngôn ngữ**: Toàn bộ dự án tập trung vào Fanpage Tiếng Anh. Mọi system prompt sinh nội dung (Video, Ảnh) đều phải ép buộc AI trả về tiếng Anh (`IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH.`). Không cho phép AI tự quyết định ngôn ngữ dịch.
+2. **Custom Prompt**: Có 1 ô nhập Custom Prompt duy nhất trong cấu hình Fanpage, được áp dụng làm System Prompt chung cho CẢ quy trình tạo Video và Ảnh.
+3. **Cơ chế Giao diện Video (Reels)**: Không cho phép chọn Template thủ công ở màn hình Tạo Reel. Backend tự động fallback về giao diện Video Default trong database.
+4. **Deploy VPS**: Lệnh chuẩn để cập nhật trên VPS là: `git pull origin main && docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml run --rm api npx prisma db push && docker compose -f docker-compose.prod.yml up -d`
+</RULE[auto_content_ai]>

@@ -265,8 +265,8 @@ export class ZTTeamImageController {
       ];
       const commentPrefix = commentPrefixes[Math.floor(Math.random() * commentPrefixes.length)];
       
-      // We still include ai_first_comment if it exists, unlike reel which ignored it entirely. But wait! User says "nó phải là random như video reel ấy" so I'll just append it to ai_first_comment. 
-      // Wait, reel ignores it if add_link_to_comment is true! "nó phải là random như video reel ấy" means I must include the prefix!
+      /** We still include ai_first_comment if it exists, unlike reel which ignored it entirely. But wait! User says "nó phải là random như video reel ấy" so I'll just append it to ai_first_comment. */
+      /** Wait, reel ignores it if add_link_to_comment is true! "nó phải là random như video reel ấy" means I must include the prefix! */
       const commentText = image.ai_first_comment 
         ? `${image.ai_first_comment}\n\n${commentPrefix} ${trackingLinkManual}`
         : `${commentPrefix} ${trackingLinkManual}`;

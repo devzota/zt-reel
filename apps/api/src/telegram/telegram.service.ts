@@ -17,7 +17,7 @@ export class TelegramService {
       const chatId = chatIdSetting?.value;
 
       if (!token || !chatId) {
-        // Silently skip if not configured
+        /** Silently skip if not configured */
         return false;
       }
 

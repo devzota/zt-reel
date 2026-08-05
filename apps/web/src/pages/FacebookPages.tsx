@@ -225,11 +225,7 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
                 {page.autoCreateEnabled && (
                   <span className="text-xs text-gray-500">Chu kỳ: {page.autoScanIntervalHours} tiếng/lần</span>
                 )}
-                {page.defaultReelTemplateId && (
-                  <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max mt-0.5 font-medium truncate max-w-[150px]" title={page.defaultReelTemplateName || page.defaultReelTemplateId}>
-                    Mẫu: {page.defaultReelTemplateName || page.defaultReelTemplateId}
-                  </span>
-                )}
+                {/* REEL TEMPLATE BADGE REMOVED AS PER AUTO ONLY LOGIC */}
               </div>
             </div>
 
