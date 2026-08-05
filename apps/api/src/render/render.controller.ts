@@ -167,7 +167,7 @@ export class ZTTeamRenderController {
     const pageIds = [...new Set(reels.map(r => r.page_id))];
     const lastPostedReels = await this.prisma.ztteam_reels.findMany({
       where: { page_id: { in: pageIds }, status: 'POSTED' },
-      orderBy: { updated_at: 'desc' },
+      orderBy: { posted_at: 'desc' },
       distinct: ['page_id']
     });
     const lastPostedImages = await this.prisma.ztteam_images.findMany({
@@ -177,7 +177,7 @@ export class ZTTeamRenderController {
     });
     
     const lastPostedMap = new Map<string, Date>();
-    for (const r of lastPostedReels) lastPostedMap.set(r.page_id, r.updated_at);
+    for (const r of lastPostedReels) lastPostedMap.set(r.page_id, r.posted_at || r.updated_at);
     for (const img of lastPostedImages) {
       if (img.posted_at) {
         const existing = lastPostedMap.get(img.page_id);

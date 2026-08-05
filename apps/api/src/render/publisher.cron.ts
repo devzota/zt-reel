@@ -60,7 +60,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         /** KHÓA DATABASE: Lấy thời gian đăng của video gần nhất CỦA PAGE NÀY */
         const lastPostedReel = await this.prisma.ztteam_reels.findFirst({
           where: { page_id: reel.page_id, status: 'POSTED' },
-          orderBy: { updated_at: 'desc' }
+          orderBy: { posted_at: 'desc' }
         });
         const lastPostedImage = await this.prisma.ztteam_images.findFirst({
           where: { page_id: reel.page_id, is_posted: true },
@@ -70,7 +70,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
         let lastPostTime = null;
         let lastPostType = null;
         if (lastPostedReel) {
-          lastPostTime = new Date(lastPostedReel.updated_at);
+          lastPostTime = lastPostedReel.posted_at ? new Date(lastPostedReel.posted_at) : new Date(lastPostedReel.updated_at);
           lastPostType = 'reel';
         }
         if (lastPostedImage && lastPostedImage.posted_at) {
@@ -140,6 +140,13 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
             postedInThisTick.add(reel.page_id);
           } catch (error: any) {
             this.logger.error(`Failed to auto-publish reel ${reel.id}: ${error.message}`);
+            await this.prisma.ztteam_reels.update({
+              where: { id: reel.id },
+              data: {
+                status: 'FAILED',
+                error_log: `Lỗi đăng bài lên Facebook: ${error.message}`
+              }
+            });
           }
         }
       }
@@ -226,6 +233,7 @@ export class ZTTeamPublisherCron implements OnApplicationBootstrap {
       data: {
         status: 'POSTED',
         is_posted: true,
+        posted_at: new Date(),
         fb_post_id: response.id
       }
     });
