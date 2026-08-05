@@ -140,10 +140,12 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const videoY = template.video_y ?? 0;
       const preparedImages = await this.ztteam_step3_prepareImages(post.images, workDir, videoW, videoH, videoX, videoY);
 
-      /** ========== STEP 4: Merge with FFmpeg ========== */
-      const { overlayPath, bgImagePath } = await this.ztteam_step4_renderOverlay(template, page, post.title, workDir);
+      /** ========== STEP 4: Puppeteer overlay ========== */
+      await this.ztteam_updateReel(reelId, { progress: 55 });
+      const { overlayPath, bgImagePath } = await this.ztteam_step4_renderOverlay(template, page, hook || post.title, workDir);
 
       /** ========== STEP 5: Merge with FFmpeg ========== */
+      await this.ztteam_updateReel(reelId, { progress: 65 });
       const subtitlesY = (template.layout as any)?.subtitles?.y;
       const { videoPath, thumbnailPath } = await this.ztteam_step5_render(
         preparedImages,
