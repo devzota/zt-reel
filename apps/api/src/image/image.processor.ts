@@ -127,15 +127,24 @@ export class ZTTeamImageProcessor implements OnModuleInit {
       });
 
       let pageName = 'Không rõ';
-      if (imageRecord && imageRecord.page_id) {
-        const p = await this.prisma.ztteam_pages.findUnique({ where: { id: imageRecord.page_id } });
-        if (p) pageName = p.name;
+      let wpPostTitle = 'Không rõ';
+      try {
+        const imageRecord = await this.prisma.ztteam_images.findUnique({ where: { id: imageId } });
+        if (imageRecord && imageRecord.wp_post_title) {
+          wpPostTitle = imageRecord.wp_post_title;
+        }
+        if (pageId) {
+          const p = await this.prisma.ztteam_pages.findUnique({ where: { id: pageId } });
+          if (p) pageName = p.name;
+        }
+      } catch (e) {
+        /** ignore */
       }
 
       this.telegramService.ztteam_sendMessage(
         `🚨 *[LỖI TẠO ẢNH]*\n\n` +
         `• *Fanpage:* ${pageName}\n` +
-        `• *Ảnh:* ${imageRecord?.wp_post_title || 'Không rõ'}\n` +
+        `• *Ảnh:* ${wpPostTitle}\n` +
         `• *Lỗi:* ${error.message}`
       );
 

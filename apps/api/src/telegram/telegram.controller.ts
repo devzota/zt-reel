@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { TelegramService } from './telegram.service';
-import { ZTTeamJwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ZTTeamAuthGuard } from '../auth/auth.guard';
 
 @Controller('telegram')
-@UseGuards(ZTTeamJwtAuthGuard)
+@UseGuards(ZTTeamAuthGuard)
 export class TelegramController {
   constructor(private readonly telegramService: TelegramService) {}
 
