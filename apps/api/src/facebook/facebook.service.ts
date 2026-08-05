@@ -85,7 +85,7 @@ export class ZTTeamFacebookService {
         this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/me/accounts`, {
           params: {
             access_token: fbAccount.user_token_encrypted,
-            fields: 'id,name,picture,category,followers_count,fan_count,access_token'
+            fields: 'id,name,picture.type(large),category,followers_count,fan_count,access_token'
           }
         })
       );
