@@ -460,7 +460,9 @@ export class ZTTeamRenderController {
         where: { id: reel.id },
         data: { 
           status: 'POSTED',
-          fb_post_id: response.id 
+          is_posted: true,
+          posted_at: new Date(),
+          fb_post_id: response.id
         }
       });
       

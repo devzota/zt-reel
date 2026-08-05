@@ -187,9 +187,10 @@ model ztteam_reels {
   status          String    @default("QUEUED") /** QUEUED, RENDERING, COMPLETED, FAILED */
   error_log       String?   @db.Text
   progress        Int       @default(0)
-  is_posted       Boolean   @default(false)
-  posted_at       DateTime?
-  fb_post_id      String?
+  is_posted         Boolean   @default(false)
+  posted_at         DateTime?
+  fb_post_id        String?
+  post_retry_count  Int       @default(0)
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
@@ -227,9 +228,10 @@ model ztteam_images {
   ai_first_comment String?  @db.Text
   status          String    @default("QUEUED") /** QUEUED, RENDERING, COMPLETED, FAILED */
   error_log       String?   @db.Text
-  is_posted       Boolean   @default(false)
-  posted_at       DateTime?
-  fb_post_id      String?
+  is_posted         Boolean   @default(false)
+  posted_at         DateTime?
+  fb_post_id        String?
+  post_retry_count  Int       @default(0)
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 

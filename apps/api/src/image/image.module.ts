@@ -6,7 +6,6 @@ import { ZTTeamMediaModule } from '../media/media.module';
 import { ZTTeamFacebookModule } from '../facebook/facebook.module';
 import { ZTTeamWordpressModule } from '../wordpress/wordpress.module';
 import { ZTTeamImageRenderCron } from './image-render.cron';
-import { ZTTeamImagePublisherCron } from './image-publisher.cron';
 import { ZTTeamImageController } from './image.controller';
 
 @Module({
@@ -18,7 +17,7 @@ import { ZTTeamImageController } from './image.controller';
     ZTTeamWordpressModule
   ],
   controllers: [ZTTeamImageController],
-  providers: [ZTTeamImageProcessor, ZTTeamImageRenderCron, ZTTeamImagePublisherCron],
+  providers: [ZTTeamImageProcessor, ZTTeamImageRenderCron],
   exports: [ZTTeamImageProcessor],
 })
 export class ZTTeamImageModule {}
