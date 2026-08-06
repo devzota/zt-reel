@@ -188,13 +188,25 @@ export default function UserManagement() {
                 <select 
                   value={formData.role}
                   onChange={e => setFormData({...formData, role: e.target.value})}
-                  className="w-full bg-gray-100 border-2 border-transparent focus:border-primary rounded-full px-4 py-2.5 outline-none transition-colors"
+                  className="w-full bg-gray-100 border-2 border-transparent focus:border-primary rounded-full px-4 py-2.5 outline-none transition-colors mb-2"
                 >
                   <option value="ADMIN">Admin (Toàn quyền)</option>
                   <option value="MANAGER">Manager (Quản lý)</option>
                   <option value="EDITOR">Editor (Biên tập)</option>
                 </select>
+                <div className="text-xs text-gray-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  {formData.role === 'ADMIN' && (
+                    <p><strong className="text-purple-600">Admin:</strong> Toàn quyền truy cập hệ thống. Được phép thêm User, Cài đặt hệ thống (System Settings) và phân quyền.</p>
+                  )}
+                  {formData.role === 'MANAGER' && (
+                    <p><strong className="text-blue-600">Manager:</strong> Có quyền cấu hình và quản lý Fanpage, AI Factory, Website. <strong>Không thể quản lý User hay System Settings</strong>.</p>
+                  )}
+                  {formData.role === 'EDITOR' && (
+                    <p><strong className="text-slate-600">Editor:</strong> Chỉ được thao tác, đăng bài trên các Fanpage/Website mà Admin đã gán. <strong>Không được thay đổi cấu hình gốc</strong>.</p>
+                  )}
+                </div>
               </div>
+
               
               <div className="pt-4 flex justify-end gap-3">
                 <button 
