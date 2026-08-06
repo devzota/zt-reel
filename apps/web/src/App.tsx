@@ -10,6 +10,7 @@ import StatisticsPage from './pages/StatisticsPage'
 import SystemSettingsPage from './pages/SystemSettingsPage'
 import Login from './pages/Login'
 import FanpageReport from './pages/FanpageReport'
+import UserManagement from './pages/UserManagement'
 import { useZTTeamAuthStore } from './stores/authStore'
 import './index.css'
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="image-factory" element={<ImageFactory />} />
           <Route path="statistics" element={<StatisticsPage />} />
           <Route path="settings" element={<SystemSettingsPage />} />
+          <Route path="users" element={<UserManagement />} />
         </Route>
       </Routes>
     </BrowserRouter>

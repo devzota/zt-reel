@@ -27,7 +27,7 @@ export default function Layout() {
     };
 
     /** Sidebar navigation items */
-    const navItems = [
+    let navItems = [
         { to: '/', icon: 'dashboard', label: 'Dashboard' },
         { to: '/facebook', icon: 'qr_code_2', label: 'Facebook Pages' },
         { to: '/wordpress', icon: 'language', label: 'WordPress & Crawler' },
@@ -36,6 +36,10 @@ export default function Layout() {
         { to: '/statistics', icon: 'analytics', label: 'Statistics' },
         { to: '/settings', icon: 'settings', label: 'System Settings' },
     ];
+    
+    if (user?.role === 'ADMIN') {
+        navItems.splice(navItems.length - 1, 0, { to: '/users', icon: 'manage_accounts', label: 'User Management' });
+    }
 
     return (
         <>
