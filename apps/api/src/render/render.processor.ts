@@ -448,8 +448,8 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     htmlContent = htmlContent.replace(/{{{fontFace}}}/g, '');
     
     const avatarHtml = page.avatar ? `<img src="${page.avatar}" style="width:100%;height:100%;object-fit:cover;" />` : '<div style="background:#ddd;width:100%;height:100%"></div>';
-    htmlContent = htmlContent.replace(/{{{logoSvg}}}/g, avatarHtml);
-    htmlContent = htmlContent.replace(/{{fanpageName}}/g, page.name || 'Fanpage');
+    htmlContent = htmlContent.replace(/{{{logoSvg}}}/g, () => avatarHtml);
+    htmlContent = htmlContent.replace(/{{fanpageName}}/g, () => (page.name || 'Fanpage'));
 
     const headerColor = layout?.header_color;
     if (headerColor) {
@@ -470,7 +470,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     const firstTwo = words.slice(0, 2).join(' ');
     const rest = words.slice(2).join(' ');
     const hookHtml = `<span class="line accent">${firstTwo}</span> <span class="line">${rest}</span>`;
-    htmlContent = htmlContent.replace(/{{#each hook}}.*?{{\/each}}/gs, hookHtml);
+    htmlContent = htmlContent.replace(/{{#each hook}}.*?{{\/each}}/gs, () => hookHtml);
 
     const overlayPath = path.join(workDir, 'overlay.png');
     await this.puppeteerService.ztteam_renderOverlay(htmlContent, overlayPath);

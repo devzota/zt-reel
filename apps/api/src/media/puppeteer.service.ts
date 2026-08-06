@@ -39,28 +39,70 @@ export class ZTTeamPuppeteerService {
       await page.setViewport({ width, height, deviceScaleFactor: 1 });
 
       /**
-       * Wrap the template HTML in a full page with transparent background.
+       * Master Vietnamese font definitions and style overrides
        */
-      const wrappedHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            html, body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; background: transparent !important; overflow: hidden; }
-            .video-frame { background: transparent !important; }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
+      const masterFontStyles = `
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap');
+          
+          *, html, body, div, span, p, h1, h2, h3, .pname, .hook, .line, .header, .title, .excerpt {
+            font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'Roboto', 'Noto Sans', 'DejaVu Sans', sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${width}px;
+            height: ${height}px;
+            background: transparent !important;
+            overflow: hidden;
+          }
+          .video-frame {
+            background: transparent !important;
+          }
+        </style>
       `;
 
-      await page.setContent(wrappedHtml, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      let wrappedHtml = htmlContent;
+      if (wrappedHtml.includes('<head>')) {
+        wrappedHtml = wrappedHtml.replace('<head>', `<head><meta charset="UTF-8">${masterFontStyles}`);
+      } else if (wrappedHtml.includes('<html')) {
+        wrappedHtml = wrappedHtml.replace(/<html[^>]*>/, `$&<head><meta charset="UTF-8">${masterFontStyles}</head>`);
+      } else {
+        wrappedHtml = `
+          <!DOCTYPE html>
+          <html lang="vi">
+          <head>
+            <meta charset="UTF-8">
+            ${masterFontStyles}
+          </head>
+          <body>
+            ${htmlContent}
+          </body>
+          </html>
+        `;
+      }
 
-      /** Wait a bit for fonts/CSS to load */
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await page.setContent(wrappedHtml, { waitUntil: 'load', timeout: 10000 });
+      } catch (e) {
+        /** Fallback to domcontentloaded if load event times out */
+        await page.setContent(wrappedHtml, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      }
+
+      /** Ensure all web fonts are fully rendered */
+      try {
+        await page.evaluateHandle('document.fonts.ready');
+      } catch (e) {
+        /** Ignore if fonts ready check is unsupported */
+      }
+
+      /** Small buffer for any remaining CSS paint */
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       /** Screenshot with transparent background */
       await page.screenshot({

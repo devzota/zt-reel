@@ -75,8 +75,8 @@ export function ztteam_buildTemplateHtml(data: any): string {
   if (data.layout?.hide_excerpt) {
     html = html.replace(/class="hook"/g, 'class="hook" style="display: none !important;"');
   }
-
-  html = html.replace(/{{{fontFace}}}/g, '');
+  const fontFaceImport = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');</style>`;
+  html = html.replace(/{{{fontFace}}}/g, fontFaceImport);
   
   /** Inject custom colors */
   const headerColor = data.layout?.header_color;

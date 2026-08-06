@@ -268,10 +268,10 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     let finalHtml = template.html_content;
     
     /** Xử lý template thay thế biến */
-    finalHtml = finalHtml.replace(/\{\{title\}\}/g, post.title);
-    finalHtml = finalHtml.replace(/\{\{excerpt\}\}/g, post.excerpt);
-    finalHtml = finalHtml.replace(/\{\{site_name\}\}/g, page.name);
-    finalHtml = finalHtml.replace(/\{\{logo_url\}\}/g, page.avatar || '');
+    finalHtml = finalHtml.replace(/\{\{title\}\}/g, () => (post.title || ''));
+    finalHtml = finalHtml.replace(/\{\{excerpt\}\}/g, () => (post.excerpt || ''));
+    finalHtml = finalHtml.replace(/\{\{site_name\}\}/g, () => (page.name || ''));
+    finalHtml = finalHtml.replace(/\{\{logo_url\}\}/g, () => (page.avatar || ''));
 
     const headerX = template.layout?.header?.x !== undefined ? template.layout.header.x : 40;
     const headerY = template.layout?.header?.y !== undefined ? template.layout.header.y : 850;

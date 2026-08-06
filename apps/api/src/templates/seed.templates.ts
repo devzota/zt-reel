@@ -4,10 +4,11 @@ const teaserHtml = `
 -->
 {{{fontFace}}}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1080px; height: 1920px; background: transparent; }
   body {
-    font-family: 'BrandFont', 'Poppins', system-ui, sans-serif;
+    font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -72,9 +73,10 @@ const teaserHtml = `
 const basicHtml = `
 {{{fontFace}}}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1080px; height: 1920px; background: #111; }
-  body { font-family: 'BrandFont', 'Poppins', sans-serif; }
+  body { font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
   :root { --acc: {{#if colors.primary}}{{colors.primary}}{{else}}#1877f2{{/if}}; }
   .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
   .bg-img { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1; }
@@ -142,13 +144,14 @@ export const seedTemplates = () => {
     video_radius: 0,
     html_content: `
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 1080px; height: 1080px; display: flex; background: #fff; font-family: sans-serif; }
+  body { width: 1080px; height: 1080px; display: flex; background: #fff; font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
   .left { width: 50%; height: 100%; padding: 10px; }
   .right { width: 50%; height: 100%; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f8f9fa; }
   .img-wrap { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; }
   img { width: 100%; height: 100%; object-fit: cover; }
-  h1 { font-size: 50px; text-align: center; color: #1a1a1a; padding: 20px; font-weight: 800; line-height: 1.3; }
+  h1 { font-size: 50px; text-align: center; color: #1a1a1a; padding: 20px; font-weight: 800; line-height: 1.3; font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
 </style>
 <div class="left">
   <div class="img-wrap"><img src="{{image_1}}" /></div>
@@ -169,8 +172,9 @@ export const seedTemplates = () => {
     video_radius: 0,
     html_content: `
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 1080px; height: 1080px; display: flex; flex-direction: column; background: #fff; }
+  body { width: 1080px; height: 1080px; display: flex; flex-direction: column; background: #fff; font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
   .top { width: 100%; height: 50%; padding: 10px; }
   .bottom { width: 100%; height: 50%; display: flex; padding: 0 5px 10px; }
   .bot-half { width: 50%; height: 100%; padding: 0 5px; }
@@ -197,8 +201,9 @@ export const seedTemplates = () => {
     video_radius: 0,
     html_content: `
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 1080px; height: 1080px; display: flex; flex-wrap: wrap; background: #fff; padding: 5px; }
+  body { width: 1080px; height: 1080px; display: flex; flex-wrap: wrap; background: #fff; padding: 5px; font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
   .cell { width: 50%; height: 50%; padding: 5px; }
   .img-wrap { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; }
   img { width: 100%; height: 100%; object-fit: cover; }

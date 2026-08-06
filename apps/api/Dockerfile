@@ -1,6 +1,6 @@
 FROM node:20-bullseye-slim
 
-# Cài đặt các thư viện hệ thống cần thiết cho FFmpeg và Chromium (Puppeteer)
+# Cài đặt các thư viện hệ thống cần thiết cho FFmpeg, Chromium (Puppeteer) và Bộ font Tiếng Việt đầy đủ
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     chromium \
@@ -10,11 +10,29 @@ RUN apt-get update && apt-get install -y \
     libatk-bridge2.0-0 \
     libgtk-3-0 \
     libgbm-dev \
-    fonts-liberation \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fonts-dejavu-core \
+    fonts-roboto \
+    fonts-freefont-ttf \
+    fontconfig \
+    ca-certificates \
     wget \
+    curl \
     locales \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen \
+    && mkdir -p /usr/share/fonts/truetype/google \
+    && wget -q -O /usr/share/fonts/truetype/google/Montserrat-Bold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Bold.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/Montserrat-SemiBold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-SemiBold.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/Montserrat-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Regular.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/PlusJakartaSans-Bold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/static/PlusJakartaSans-Bold.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/PlusJakartaSans-SemiBold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/static/PlusJakartaSans-SemiBold.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/PlusJakartaSans-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/static/PlusJakartaSans-Regular.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/Inter-Bold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/static/Inter_24pt-Bold.ttf" || true \
+    && wget -q -O /usr/share/fonts/truetype/google/Inter-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/static/Inter_24pt-Regular.ttf" || true \
+    && echo '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><match target="pattern"><test qual="any" name="family"><string>sans-serif</string></test><edit name="family" mode="prepend" binding="strong"><string>Montserrat</string><string>Plus Jakarta Sans</string><string>Inter</string><string>Noto Sans</string><string>Roboto</string><string>DejaVu Sans</string></edit></match><match target="pattern"><test qual="any" name="family"><string>Liberation Sans</string></test><edit name="family" mode="assign" binding="strong"><string>Noto Sans</string></edit></match></fontconfig>' > /etc/fonts/local.conf \
+    && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Puppeteer executable path to the installed chromium
