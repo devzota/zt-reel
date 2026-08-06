@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useZTTeamAuthStore } from '../stores/authStore';
+import { useZTTeamFacebookStore } from '../stores/facebookStore';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import UIProvider from './UIProvider';
 import { useUIStore } from '../stores/uiStore';
+import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 /** Helper to check if a nav item is active */
 function ztteam_isActive(pathname: string, path: string): boolean {
@@ -12,9 +14,16 @@ function ztteam_isActive(pathname: string, path: string): boolean {
 
 export default function Layout() {
     const { user, ztteam_logout } = useZTTeamAuthStore();
+    const { pages, ztteam_fetchPagesFromDB } = useZTTeamFacebookStore();
     const { isDarkMode, ztteam_toggleDarkMode } = useUIStore();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isFbSubmenuOpen, setIsFbSubmenuOpen] = useState(true);
+
+    /** Fetch Facebook pages on mount for sidebar sub-menu */
+    useEffect(() => {
+        ztteam_fetchPagesFromDB();
+    }, []);
 
     /** Auto-close mobile sidebar when route changes */
     useEffect(() => {
@@ -29,7 +38,7 @@ export default function Layout() {
     /** Sidebar navigation items */
     let navItems = [
         { to: '/', icon: 'dashboard', label: 'Dashboard' },
-        { to: '/facebook', icon: 'qr_code_2', label: 'Facebook Pages' },
+        { to: '/facebook', icon: 'qr_code_2', label: 'Facebook Pages', hasSubmenu: true },
         { to: '/wordpress', icon: 'language', label: 'WordPress & Crawler' },
         { to: '/reel-factory', icon: 'movie_filter', label: 'AI Reel Factory' },
         { to: '/image-factory', icon: 'image', label: 'AI Image Factory' },
@@ -80,6 +89,67 @@ export default function Layout() {
                 <nav className="flex-grow space-y-1 overflow-y-auto">
                     {navItems.map(item => {
                         const active = ztteam_isActive(location.pathname, item.to);
+                        
+                        if (item.hasSubmenu) {
+                            return (
+                                <div key={item.to} className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <Link
+                                            to={item.to}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className={`flex-grow flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 text-sm ${active
+                                                ? 'bg-blue-50 text-primary font-bold'
+                                                : 'text-gray-600 hover:bg-slate-50 hover:text-gray-900'
+                                                }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                                            <span>{item.label}</span>
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsFbSubmenuOpen(!isFbSubmenuOpen)}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-slate-100 transition-colors p-0"
+                                            title="Thu/Mở danh sách Fanpage"
+                                        >
+                                            <span className={`material-symbols-outlined text-[18px] transition-transform duration-200 ${isFbSubmenuOpen ? 'rotate-180' : ''}`}>
+                                                expand_more
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    {/* Sub-menu for Facebook Pages */}
+                                    {isFbSubmenuOpen && (
+                                        <div className="pl-6 space-y-1 border-l-2 border-slate-100 ml-4 py-1">
+                                            {pages.map((page) => {
+                                                const reportPath = `/facebook/pages/${page.id}/report`;
+                                                const isReportActive = location.pathname === reportPath;
+                                                return (
+                                                    <Link
+                                                        key={page.id}
+                                                        to={reportPath}
+                                                        onClick={() => setIsMobileMenuOpen(false)}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors duration-150 ${isReportActive
+                                                            ? 'bg-blue-100 text-blue-700 font-bold'
+                                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                                            }`}
+                                                        title={`Báo cáo chi tiết ${ztteam_decodeHtmlEntity(page.name)}`}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px] text-blue-500 shrink-0">bar_chart</span>
+                                                        <span className="truncate">{ztteam_decodeHtmlEntity(page.name)}</span>
+                                                    </Link>
+                                                );
+                                            })}
+                                            {pages.length === 0 && (
+                                                <div className="px-3 py-1.5 text-xs text-slate-400 italic">
+                                                    Chưa có Fanpage nào
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
                         return (
                             <Link
                                 key={item.to}
@@ -96,6 +166,7 @@ export default function Layout() {
                         );
                     })}
                 </nav>
+
                 <div className="mt-auto space-y-4 pt-6">
                     <div className="space-y-1">
                         <Link 
