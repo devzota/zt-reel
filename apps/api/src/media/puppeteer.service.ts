@@ -11,6 +11,40 @@ export class ZTTeamPuppeteerService {
   private readonly logger = new Logger('ZTTeamPuppeteerService');
 
   /**
+   * Helper method to launch Chromium with optimized memory flags and retry support
+   */
+  private async ztteam_launchBrowser(): Promise<puppeteer.Browser> {
+    const ztteam_launchOptions = {
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--no-zygote',
+        '--single-process',
+        '--disable-software-rasterizer',
+        '--disable-breakpad',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-ipc-flooding-protection',
+        '--force-color-profile=srgb',
+      ],
+    };
+
+    try {
+      return await puppeteer.launch(ztteam_launchOptions);
+    } catch (ztteam_firstError: any) {
+      this.logger.warn(`Puppeteer initial launch failed (${ztteam_firstError.message}). Retrying in 1s...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return await puppeteer.launch(ztteam_launchOptions);
+    }
+  }
+
+  /**
    * Render a template HTML string into a PNG image/overlay.
    *
    * @param htmlContent - The complete HTML template (with CSS included)
@@ -24,16 +58,7 @@ export class ZTTeamPuppeteerService {
     let browser: puppeteer.Browser | null = null;
 
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-        ],
-      });
+      browser = await this.ztteam_launchBrowser();
 
       const page = await browser.newPage();
       await page.setViewport({ width, height, deviceScaleFactor: 1 });
@@ -117,7 +142,11 @@ export class ZTTeamPuppeteerService {
       throw new Error('Lỗi render overlay: ' + error.message);
     } finally {
       if (browser) {
-        await browser.close();
+        try {
+          await browser.close();
+        } catch (closeErr: any) {
+          this.logger.warn(`Failed to close browser cleanly: ${closeErr.message}`);
+        }
       }
     }
   }
