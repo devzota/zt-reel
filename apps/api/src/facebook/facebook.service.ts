@@ -92,22 +92,14 @@ export class ZTTeamFacebookService {
 
       const pages = response.data.data;
 
-      /** Xóa toàn bộ page cũ của account này trước khi sync lại */
-      await this.prisma.ztteam_page_sources.deleteMany({
-        where: {
-          page: { fb_account_id: fbAccount.id }
-        }
-      });
-      await this.prisma.ztteam_pages.deleteMany({
-        where: { fb_account_id: fbAccount.id }
-      });
-
+      /** Cập nhật hoặc thêm mới Page an toàn, tuyệt đối không xóa cấu hình cũ */
       for (const page of pages) {
         const pageData: any = {
           name: page.name,
           avatar: page.picture?.data?.url || null,
           category: page.category || null,
           page_token_encrypted: page.access_token,
+          token_status: 'active',
         };
 
         const newCount = page.followers_count ?? page.fan_count;
@@ -115,13 +107,27 @@ export class ZTTeamFacebookService {
           pageData.follower_count = newCount;
         }
 
-        await this.prisma.ztteam_pages.create({
-          data: {
-            ...pageData,
+        const existingPage = await this.prisma.ztteam_pages.findFirst({
+          where: {
             fb_page_id: page.id,
             fb_account_id: fbAccount.id,
-          }
+          },
         });
+
+        if (existingPage) {
+          await this.prisma.ztteam_pages.update({
+            where: { id: existingPage.id },
+            data: pageData,
+          });
+        } else {
+          await this.prisma.ztteam_pages.create({
+            data: {
+              ...pageData,
+              fb_page_id: page.id,
+              fb_account_id: fbAccount.id,
+            },
+          });
+        }
       }
 
       return this.ztteam_getConnectedPages(fbAccount.owner_user_id);
