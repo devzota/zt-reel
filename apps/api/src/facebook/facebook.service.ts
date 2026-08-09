@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
@@ -728,22 +728,29 @@ export class ZTTeamFacebookService {
     const fs = require('fs');
     const { ztteam_getReelsPath, ztteam_getImagesPath } = require('../common/ztteam_storage.util');
 
-    /** Kiểm tra page tồn tại và thuộc quyền user */
+    /** Kiểm tra page tồn tại và thuộc quyền user (hỗ trợ cả fb_page_id và id) */
     const page = await this.prisma.ztteam_pages.findFirst({
-      where: { id: pageId },
+      where: { 
+        OR: [
+          { id: pageId },
+          { fb_page_id: pageId }
+        ]
+      },
       include: { fb_account: true },
     });
 
     if (!page) {
-      throw new Error('Fanpage không tồn tại');
+      throw new BadRequestException('Fanpage không tồn tại');
     }
 
     if (page.fb_account.owner_user_id !== userId) {
-      throw new Error('Bạn không có quyền xóa Fanpage này');
+      throw new BadRequestException('Bạn không có quyền xóa Fanpage này');
     }
 
+    const internalPageId = page.id;
+
     /** 1. Xóa file video vật lý + record Reels */
-    const reels = await this.prisma.ztteam_reels.findMany({ where: { page_id: pageId } });
+    const reels = await this.prisma.ztteam_reels.findMany({ where: { page_id: internalPageId } });
     for (const reel of reels) {
       try {
         const reelDir = ztteam_getReelsPath(reel.id);
@@ -754,10 +761,10 @@ export class ZTTeamFacebookService {
         this.logger.warn(`Error deleting reel files for ${reel.id}`, e);
       }
     }
-    await this.prisma.ztteam_reels.deleteMany({ where: { page_id: pageId } });
+    await this.prisma.ztteam_reels.deleteMany({ where: { page_id: internalPageId } });
 
     /** 2. Xóa file ảnh vật lý + record Images */
-    const images = await this.prisma.ztteam_images.findMany({ where: { page_id: pageId } });
+    const images = await this.prisma.ztteam_images.findMany({ where: { page_id: internalPageId } });
     for (const image of images) {
       try {
         const imageDir = ztteam_getImagesPath(image.id);
@@ -768,16 +775,16 @@ export class ZTTeamFacebookService {
         this.logger.warn(`Error deleting image files for ${image.id}`, e);
       }
     }
-    await this.prisma.ztteam_images.deleteMany({ where: { page_id: pageId } });
+    await this.prisma.ztteam_images.deleteMany({ where: { page_id: internalPageId } });
 
     /** 3. Xóa lịch sử Reel */
-    await this.prisma.ztteam_reel_history.deleteMany({ where: { page_id: pageId } });
+    await this.prisma.ztteam_reel_history.deleteMany({ where: { page_id: internalPageId } });
 
     /** 4. Xóa nguồn WP gán cho Page */
-    await this.prisma.ztteam_page_sources.deleteMany({ where: { page_id: pageId } });
+    await this.prisma.ztteam_page_sources.deleteMany({ where: { page_id: internalPageId } });
 
     /** 5. Xóa bản ghi Page */
-    await this.prisma.ztteam_pages.delete({ where: { id: pageId } });
+    await this.prisma.ztteam_pages.delete({ where: { id: internalPageId } });
 
     return { message: `Đã xóa Fanpage "${page.name}" và toàn bộ dữ liệu liên quan` };
   }
