@@ -19,9 +19,16 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     wget \
     curl \
+    unzip \
+    python3 \
     locales \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen \
+    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp \
+    && curl -fsSL https://deno.land/x/install/install.sh | sh \
+    && mv /root/.deno/bin/deno /usr/local/bin/deno \
+    && chmod a+rx /usr/local/bin/deno \
     && mkdir -p /usr/share/fonts/truetype/google \
     && wget -q -O /usr/share/fonts/truetype/google/Montserrat-Bold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Bold.ttf" || true \
     && wget -q -O /usr/share/fonts/truetype/google/Montserrat-SemiBold.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-SemiBold.ttf" || true \
