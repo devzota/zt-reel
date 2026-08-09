@@ -42,6 +42,14 @@ export class ZTTeamFacebookService {
       const fbUserId = meResponse.data.id;
       const fbName = meResponse.data.name;
 
+      /** Chặn nếu tài khoản FB này đã được kết nối bởi một user khác */
+      const existingOtherUser = await this.prisma.ztteam_fb_accounts.findFirst({
+        where: { fb_user_id: fbUserId, owner_user_id: { not: userId } }
+      });
+      if (existingOtherUser) {
+        throw new BadRequestException('Tài khoản Facebook này đã được kết nối bởi người quản trị khác. Vui lòng sử dụng tài khoản Facebook của riêng bạn!');
+      }
+
       /** Upsert FB account in DB */
       let fbAccount = await this.prisma.ztteam_fb_accounts.findFirst({
         where: { fb_user_id: fbUserId, owner_user_id: userId }
@@ -70,13 +78,13 @@ export class ZTTeamFacebookService {
     }
   }
 
-  async ztteam_fetchPages(fbAccountId: string) {
+  async ztteam_fetchPages(fbAccountId: string, userId: string) {
     const fbAccount = await this.prisma.ztteam_fb_accounts.findFirst({
-      where: { fb_user_id: fbAccountId }
+      where: { fb_user_id: fbAccountId, owner_user_id: userId }
     });
 
     if (!fbAccount) {
-      throw new Error('FB Account not found');
+      throw new BadRequestException('Không tìm thấy tài khoản Facebook hoặc bạn không có quyền!');
     }
 
     try {

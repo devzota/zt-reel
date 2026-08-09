@@ -13,8 +13,8 @@ export class ZTTeamFacebookController {
   }
 
   @Post('pages/:fbAccountId/fetch')
-  ztteam_fetchPages(@Param('fbAccountId') fbAccountId: string) {
-    return this.facebookService.ztteam_fetchPages(fbAccountId);
+  ztteam_fetchPages(@Param('fbAccountId') fbAccountId: string, @Request() req: any) {
+    return this.facebookService.ztteam_fetchPages(fbAccountId, req.user.sub);
   }
 
   @Get('pages')
