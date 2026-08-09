@@ -494,12 +494,7 @@ export class ZTTeamRenderController {
     const defaultTemplate = await this.prisma.ztteam_templates.findFirst({ where: { format: 'video' } });
     const fallbackTemplateId = defaultTemplate?.id || 'cmsc3wj1a0004ekw74lkhss3n';
 
-    /** 1. Clean up dummy "Reel Restored" entries created by previous test scan */
-    await this.prisma.ztteam_reels.deleteMany({
-      where: {
-        wp_post_title: { startsWith: 'Reel Restored' },
-      },
-    });
+    /** 1. Check template fallback */
 
     /** 2. Auto-assign page custom templates if available */
     let templateAssignedCount = 0;

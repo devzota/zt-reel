@@ -7,7 +7,8 @@ import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
 
 function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
   const navigate = useNavigate();
-  const { ztteam_getPageReport } = useZTTeamFacebookStore();
+  const { ztteam_getPageReport, ztteam_deletePage } = useZTTeamFacebookStore();
+  const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
   const [insights, setInsights] = useState<any>(null);
 
   useEffect(() => {
@@ -66,6 +67,21 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
     const d = new Date(dateStr);
     if (!allowPast && d.getTime() < Date.now()) return 'Đang chờ...';
     return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  };
+
+  const handleDeletePage = async () => {
+    const confirm = await ztteam_showConfirm(
+      'Xóa Fanpage',
+      `Bạn có chắc muốn xóa Fanpage "${page.name}"? Tất cả Reels, Ảnh, Lịch sử, và Cấu hình sẽ bị xóa vĩnh viễn và không thể khôi phục.`
+    );
+    if (confirm) {
+      try {
+        await ztteam_deletePage(page.id);
+        ztteam_showToast(`Đã xóa Fanpage ${page.name} thành công`, 'success');
+      } catch (error: any) {
+        ztteam_showToast(error.message, 'error');
+      }
+    }
   };
 
   return (
@@ -191,6 +207,13 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
           >
             <span className="material-symbols-outlined text-[20px]">open_in_new</span>
           </a>
+          <button 
+            onClick={handleDeletePage}
+            className="w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors ml-1" 
+            title="Xóa Fanpage"
+          >
+            <span className="material-symbols-outlined text-[20px]">delete</span>
+          </button>
         </div>
       </td>
     </tr>

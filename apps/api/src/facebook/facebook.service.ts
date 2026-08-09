@@ -92,7 +92,12 @@ export class ZTTeamFacebookService {
 
       const pages = response.data.data;
 
-      /** Cập nhật hoặc thêm mới Page an toàn, tuyệt đối không xóa cấu hình cũ */
+      /**
+       * Cập nhật hoặc thêm mới Page an toàn, tuyệt đối không xóa cấu hình cũ.
+       * CHỈ update các trường lấy từ Facebook API (name, avatar, category, token, follower_count).
+       * KHÔNG BAO GIỜ ghi đè: default_reel_template_id, auto_create_enabled, schedule_*,
+       * ai_tone, ai_caption_length, ai_custom_prompt, voice_speed, tags, sources, v.v.
+       */
       for (const page of pages) {
         const pageData: any = {
           name: page.name,
@@ -708,11 +713,72 @@ export class ZTTeamFacebookService {
           { message, access_token: page.page_token_encrypted }
         )
       );
-
       return response.data;
     } catch (error: any) {
       this.logger.error('Error publishing comment to Facebook', error.response?.data || error.message);
       throw error;
     }
+  }
+
+  /**
+   * Xóa 1 Fanpage và toàn bộ dữ liệu liên quan (Reels, Images, History, Sources).
+   * Xóa tường minh từng bảng, KHÔNG dựa vào cascade.
+   */
+  async ztteam_deletePage(pageId: string, userId: string) {
+    const fs = require('fs');
+    const { ztteam_getReelsPath, ztteam_getImagesPath } = require('../common/ztteam_storage.util');
+
+    /** Kiểm tra page tồn tại và thuộc quyền user */
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: { id: pageId },
+      include: { fb_account: true },
+    });
+
+    if (!page) {
+      throw new Error('Fanpage không tồn tại');
+    }
+
+    if (page.fb_account.owner_user_id !== userId) {
+      throw new Error('Bạn không có quyền xóa Fanpage này');
+    }
+
+    /** 1. Xóa file video vật lý + record Reels */
+    const reels = await this.prisma.ztteam_reels.findMany({ where: { page_id: pageId } });
+    for (const reel of reels) {
+      try {
+        const reelDir = ztteam_getReelsPath(reel.id);
+        if (fs.existsSync(reelDir)) {
+          fs.rmSync(reelDir, { recursive: true, force: true });
+        }
+      } catch (e) {
+        this.logger.warn(`Error deleting reel files for ${reel.id}`, e);
+      }
+    }
+    await this.prisma.ztteam_reels.deleteMany({ where: { page_id: pageId } });
+
+    /** 2. Xóa file ảnh vật lý + record Images */
+    const images = await this.prisma.ztteam_images.findMany({ where: { page_id: pageId } });
+    for (const image of images) {
+      try {
+        const imageDir = ztteam_getImagesPath(image.id);
+        if (fs.existsSync(imageDir)) {
+          fs.rmSync(imageDir, { recursive: true, force: true });
+        }
+      } catch (e) {
+        this.logger.warn(`Error deleting image files for ${image.id}`, e);
+      }
+    }
+    await this.prisma.ztteam_images.deleteMany({ where: { page_id: pageId } });
+
+    /** 3. Xóa lịch sử Reel */
+    await this.prisma.ztteam_reel_history.deleteMany({ where: { page_id: pageId } });
+
+    /** 4. Xóa nguồn WP gán cho Page */
+    await this.prisma.ztteam_page_sources.deleteMany({ where: { page_id: pageId } });
+
+    /** 5. Xóa bản ghi Page */
+    await this.prisma.ztteam_pages.delete({ where: { id: pageId } });
+
+    return { message: `Đã xóa Fanpage "${page.name}" và toàn bộ dữ liệu liên quan` };
   }
 }

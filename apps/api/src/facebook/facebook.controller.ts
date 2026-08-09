@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Param, UseGuards, Request, Put } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, UseGuards, Request, Put, Delete } from '@nestjs/common';
 import { ZTTeamFacebookService } from './facebook.service';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 
@@ -45,5 +45,10 @@ export class ZTTeamFacebookController {
   @Get('pages/:pageId/top-posts')
   ztteam_getTopPosts(@Param('pageId') pageId: string, @Request() req: any) {
     return this.facebookService.ztteam_getTopPosts(pageId, req.user.sub);
+  }
+
+  @Delete('pages/:pageId')
+  ztteam_deletePage(@Param('pageId') pageId: string, @Request() req: any) {
+    return this.facebookService.ztteam_deletePage(pageId, req.user.sub);
   }
 }
