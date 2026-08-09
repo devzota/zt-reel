@@ -495,11 +495,16 @@ export class ZTTeamRenderController {
     const fallbackTemplateId = defaultTemplate?.id || 'cmsc3wj1a0004ekw74lkhss3n';
 
     /** 0. Check if ztreel_backup.sql exists and build backup reel map & page map */
-    const backupPath = path.join('/usr/src/app', 'ztreel_backup.sql');
+    const possibleBackupPaths = [
+      path.join('/usr/src/app', 'ztreel_backup.sql'),
+      path.join(process.cwd(), '..', '..', 'ztreel_backup.sql'),
+      path.join(process.cwd(), 'ztreel_backup.sql'),
+    ];
+    const backupPath = possibleBackupPaths.find(p => fs.existsSync(p)) || '';
     const backupReelMap = new Map<string, any>();
     const oldPageIdToFbPageIdMap = new Map<string, string>();
 
-    if (fs.existsSync(backupPath)) {
+    if (backupPath && fs.existsSync(backupPath)) {
       try {
         const backupContent = fs.readFileSync(backupPath, 'utf8');
 
