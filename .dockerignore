@@ -7,6 +7,5 @@ storage
 .git
 .agents
 *.sql
-!ztreel_backup.sql
 *.log
 .env
