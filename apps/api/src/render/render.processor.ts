@@ -226,17 +226,21 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     let finalTemplateId = templateId;
     if (!finalTemplateId || finalTemplateId === 'auto' || finalTemplateId === 'default') {
-      const defaultTemplate = await this.prisma.ztteam_templates.findFirst({
-        where: { format: 'video', is_default: true }
-      });
-      if (defaultTemplate) {
-        finalTemplateId = defaultTemplate.id;
+      if (page.default_reel_template_id) {
+        finalTemplateId = page.default_reel_template_id;
       } else {
-        const anyVideoTemplate = await this.prisma.ztteam_templates.findFirst({
-          where: { format: 'video' }
+        const defaultTemplate = await this.prisma.ztteam_templates.findFirst({
+          where: { format: 'video', is_default: true }
         });
-        if (anyVideoTemplate) {
-          finalTemplateId = anyVideoTemplate.id;
+        if (defaultTemplate) {
+          finalTemplateId = defaultTemplate.id;
+        } else {
+          const anyVideoTemplate = await this.prisma.ztteam_templates.findFirst({
+            where: { format: 'video' }
+          });
+          if (anyVideoTemplate) {
+            finalTemplateId = anyVideoTemplate.id;
+          }
         }
       }
     }

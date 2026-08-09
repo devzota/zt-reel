@@ -1,4 +1,6 @@
 import { Controller, Get, Post, Param, Body, Query, UseGuards, Sse, MessageEvent, Header } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ZTTeamRenderProcessor } from './render.processor';
 import { PrismaService } from '../prisma/prisma.service';
@@ -475,4 +477,89 @@ export class ZTTeamRenderController {
       return { error: e.message };
     }
   }
+
+  /**
+   * Scan storage directory on VPS and restore any missing reel video records to DB.
+   * Also auto-assign custom templates to pages. On-demand safe endpoint for a specific VPS.
+   */
+  @Post('scan-storage')
+  async ztteam_scanStorage() {
+    const reelsDir = ztteam_getReelsPath();
+    if (!fs.existsSync(reelsDir)) {
+      return { message: 'Storage directory does not exist', restoredCount: 0 };
+    }
+
+    const pages = await this.prisma.ztteam_pages.findMany();
+    if (pages.length === 0) {
+      return { error: 'Chưa có Fanpage nào trong database' };
+    }
+
+    const defaultPage = pages[0];
+    const defaultTemplate = await this.prisma.ztteam_templates.findFirst({ where: { format: 'video' } });
+    const fallbackTemplateId = defaultTemplate?.id || 'cmsc3wj1a0004ekw74lkhss3n';
+
+    /** 1. Auto-assign page custom templates if available */
+    let templateAssignedCount = 0;
+    for (const p of pages) {
+      const customTemplate = await this.prisma.ztteam_templates.findFirst({
+        where: {
+          OR: [
+            { fb_page_id: p.id },
+            { fb_page_id: p.fb_page_id },
+          ],
+          format: 'video',
+        },
+      });
+      if (customTemplate && !p.default_reel_template_id) {
+        await this.prisma.ztteam_pages.update({
+          where: { id: p.id },
+          data: { default_reel_template_id: customTemplate.id },
+        });
+        templateAssignedCount++;
+      }
+    }
+
+    /** 2. Scan physical folders in storage/reels */
+    const entries = fs.readdirSync(reelsDir, { withFileTypes: true });
+    let restoredCount = 0;
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const reelId = entry.name;
+      const mp4Path = path.join(reelsDir, reelId, 'output.mp4');
+
+      if (!fs.existsSync(mp4Path)) continue;
+
+      const existing = await this.prisma.ztteam_reels.findUnique({
+        where: { id: reelId },
+      });
+
+      if (!existing) {
+        /** Restore missing reel record */
+        await this.prisma.ztteam_reels.create({
+          data: {
+            id: reelId,
+            page_id: defaultPage.id,
+            wp_post_id: 'restored',
+            wp_post_title: `Reel Restored (${reelId.substring(0, 8)})`,
+            template_id: defaultPage.default_reel_template_id || fallbackTemplateId,
+            video_url: `/storage/reels/${reelId}/output.mp4`,
+            thumbnail_url: `/storage/reels/${reelId}/thumbnail.jpg`,
+            audio_url: `/storage/reels/${reelId}/voice.mp3`,
+            status: 'COMPLETED',
+            progress: 100,
+            is_posted: false,
+          },
+        });
+        restoredCount++;
+      }
+    }
+
+    return {
+      message: `Đã tự động phục hồi ${restoredCount} video Reels từ storage và gán ${templateAssignedCount} template custom cho Fanpage`,
+      restoredCount,
+      templateAssignedCount,
+    };
+  }
 }
+
