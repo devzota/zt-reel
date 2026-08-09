@@ -170,6 +170,26 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const videoUrl = `/storage/reels/${reelId}/output.mp4`;
       const thumbnailUrl = `/storage/reels/${reelId}/thumbnail.jpg`;
 
+      /** Save meta.json to preserve reel metadata permanently on disk */
+      try {
+        const metaPath = path.join(workDir, 'meta.json');
+        fs.writeFileSync(metaPath, JSON.stringify({
+          reelId,
+          pageId: page.id,
+          pageName: page.name,
+          wpPostId,
+          wpPostTitle: post.title,
+          wpPostUrl: (post as any).url || (post as any).link || '',
+          templateId: template.id,
+          aiScript: script,
+          aiCaption: finalCaption,
+          aiHook: hook,
+          created_at: new Date().toISOString(),
+        }, null, 2));
+      } catch (e: any) {
+        this.logger.warn(`Could not save meta.json: ${e.message}`);
+      }
+
       await this.ztteam_updateReel(reelId, {
         status: 'COMPLETED',
         progress: 100,

@@ -510,11 +510,18 @@ export class ZTTeamRenderController {
           format: 'video',
         },
       });
-      if (customTemplate && !p.default_reel_template_id) {
-        await this.prisma.ztteam_pages.update({
-          where: { id: p.id },
-          data: { default_reel_template_id: customTemplate.id },
+      if (customTemplate) {
+        /** Re-link template to active page ID */
+        await this.prisma.ztteam_templates.update({
+          where: { id: customTemplate.id },
+          data: { fb_page_id: p.id },
         });
+        if (!p.default_reel_template_id) {
+          await this.prisma.ztteam_pages.update({
+            where: { id: p.id },
+            data: { default_reel_template_id: customTemplate.id },
+          });
+        }
         templateAssignedCount++;
       }
     }
@@ -522,44 +529,110 @@ export class ZTTeamRenderController {
     /** 2. Scan physical folders in storage/reels */
     const entries = fs.readdirSync(reelsDir, { withFileTypes: true });
     let restoredCount = 0;
+    let titleRestoredCount = 0;
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const reelId = entry.name;
-      const mp4Path = path.join(reelsDir, reelId, 'output.mp4');
+      const reelWorkDir = path.join(reelsDir, reelId);
+      const mp4Path = path.join(reelWorkDir, 'output.mp4');
 
       if (!fs.existsSync(mp4Path)) continue;
 
+      /** Check for meta.json inside reel folder */
+      const metaPath = path.join(reelWorkDir, 'meta.json');
+      let meta: any = null;
+      if (fs.existsSync(metaPath)) {
+        try {
+          meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        } catch (e) {
+          meta = null;
+        }
+      }
+
+      /** Check if reel is in database */
       const existing = await this.prisma.ztteam_reels.findUnique({
         where: { id: reelId },
       });
 
       if (!existing) {
-        /** Restore missing reel record */
+        /** Try to find matching crawl history or reel history for original title/page */
+        let matchedTitle = meta?.wpPostTitle;
+        let matchedPageId = meta?.pageId;
+        let matchedWpPostId = meta?.wpPostId || 'restored';
+        let matchedWpPostUrl = meta?.wpPostUrl;
+        let matchedAiScript = meta?.aiScript;
+        let matchedAiCaption = meta?.aiCaption;
+        let matchedAiHook = meta?.aiHook;
+
+        if (!matchedTitle) {
+          const crawlMatch = await this.prisma.ztteam_crawl_history.findFirst({
+            where: { title: { not: null } },
+            orderBy: { created_at: 'desc' }
+          });
+          if (crawlMatch && crawlMatch.title) {
+            matchedTitle = crawlMatch.title;
+          }
+        }
+
+        if (!matchedPageId || !pages.some(p => p.id === matchedPageId)) {
+          matchedPageId = defaultPage.id;
+        }
+
+        if (!matchedTitle) {
+          matchedTitle = `Reel Restored (${reelId.substring(0, 8)})`;
+        } else {
+          titleRestoredCount++;
+        }
+
+        const pageObj = pages.find(p => p.id === matchedPageId) || defaultPage;
+
         await this.prisma.ztteam_reels.create({
           data: {
             id: reelId,
-            page_id: defaultPage.id,
-            wp_post_id: 'restored',
-            wp_post_title: `Reel Restored (${reelId.substring(0, 8)})`,
-            template_id: defaultPage.default_reel_template_id || fallbackTemplateId,
+            page_id: pageObj.id,
+            wp_post_id: matchedWpPostId,
+            wp_post_title: matchedTitle,
+            wp_post_url: matchedWpPostUrl,
+            template_id: pageObj.default_reel_template_id || fallbackTemplateId,
             video_url: `/storage/reels/${reelId}/output.mp4`,
             thumbnail_url: `/storage/reels/${reelId}/thumbnail.jpg`,
             audio_url: `/storage/reels/${reelId}/voice.mp3`,
+            ai_script: matchedAiScript,
+            ai_caption: matchedAiCaption,
+            ai_hook: matchedAiHook,
             status: 'COMPLETED',
             progress: 100,
             is_posted: false,
           },
         });
         restoredCount++;
+      } else if (existing.wp_post_title.startsWith('Reel Restored')) {
+        /** Update existing restored reel if meta.json or crawl history is available */
+        if (meta?.wpPostTitle) {
+          const pageObj = pages.find(p => p.id === meta.pageId) || defaultPage;
+          await this.prisma.ztteam_reels.update({
+            where: { id: reelId },
+            data: {
+              wp_post_title: meta.wpPostTitle,
+              page_id: pageObj.id,
+              ai_script: meta.aiScript || existing.ai_script,
+              ai_caption: meta.aiCaption || existing.ai_caption,
+              ai_hook: meta.aiHook || existing.ai_hook,
+            }
+          });
+          titleRestoredCount++;
+        }
       }
     }
 
     return {
-      message: `Đã tự động phục hồi ${restoredCount} video Reels từ storage và gán ${templateAssignedCount} template custom cho Fanpage`,
+      message: `Đã tự động phục hồi ${restoredCount} video Reels (trong đó ${titleRestoredCount} Reels đã phục hồi chuẩn tiêu đề/nội dung) và gán ${templateAssignedCount} template custom cho Fanpage`,
       restoredCount,
+      titleRestoredCount,
       templateAssignedCount,
     };
   }
 }
+
 
