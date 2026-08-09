@@ -485,10 +485,6 @@ export class ZTTeamRenderController {
   @Post('scan-storage')
   async ztteam_scanStorage() {
     const reelsDir = ztteam_getReelsPath();
-    if (!fs.existsSync(reelsDir)) {
-      return { message: 'Storage directory does not exist', restoredCount: 0 };
-    }
-
     const pages = await this.prisma.ztteam_pages.findMany();
     if (pages.length === 0) {
       return { error: 'Chưa có Fanpage nào trong database' };
@@ -497,6 +493,92 @@ export class ZTTeamRenderController {
     const defaultPage = pages[0];
     const defaultTemplate = await this.prisma.ztteam_templates.findFirst({ where: { format: 'video' } });
     const fallbackTemplateId = defaultTemplate?.id || 'cmsc3wj1a0004ekw74lkhss3n';
+
+    /** 0. Check if ztreel_backup.sql exists and build backup reel map & page map */
+    const backupPath = path.join('/usr/src/app', 'ztreel_backup.sql');
+    const backupReelMap = new Map<string, any>();
+    const oldPageIdToFbPageIdMap = new Map<string, string>();
+
+    if (fs.existsSync(backupPath)) {
+      try {
+        const backupContent = fs.readFileSync(backupPath, 'utf8');
+
+        /** Parse ztteam_pages COPY data to map old page_id -> fb_page_id */
+        const pageCopyMatch = backupContent.match(/COPY public\.ztteam_pages \(([^)]+)\) FROM stdin;\n([\s\S]*?)\\\./);
+        if (pageCopyMatch && pageCopyMatch[2]) {
+          const lines = pageCopyMatch[2].trim().split('\n');
+          for (const line of lines) {
+            const parts = line.split('\t');
+            const oldId = parts[0];
+            const fbPageId = parts[1];
+            if (oldId && fbPageId) {
+              oldPageIdToFbPageIdMap.set(oldId, fbPageId);
+            }
+          }
+        }
+
+        /** Parse ztteam_reels COPY data */
+        const reelsCopyMatch = backupContent.match(/COPY public\.ztteam_reels \(([^)]+)\) FROM stdin;\n([\s\S]*?)\\\./);
+        if (reelsCopyMatch && reelsCopyMatch[2]) {
+          const lines = reelsCopyMatch[2].trim().split('\n');
+          for (const line of lines) {
+            const parts = line.split('\t');
+            if (parts.length >= 20) {
+              const id = parts[0];
+              const oldPageId = parts[1];
+              const wpPostId = parts[2];
+              const wpPostTitle = parts[3];
+              const templateId = parts[4];
+              const videoUrl = parts[5];
+              const thumbnailUrl = parts[6];
+              const aiScript = parts[7] === '\\N' ? null : parts[7];
+              const audioUrl = parts[8];
+              const subtitleDataStr = parts[9] === '\\N' ? null : parts[9];
+              const status = parts[10];
+              const errorLog = parts[11] === '\\N' ? null : parts[11];
+              const progress = parseInt(parts[12] || '100', 10);
+              const isPosted = parts[13] === 't';
+              const postedAt = parts[14] === '\\N' ? null : new Date(parts[14]);
+              const createdAt = parts[15] === '\\N' ? new Date() : new Date(parts[15]);
+              const wpPostUrl = parts[17] === '\\N' ? null : parts[17];
+              const fbPostId = parts[18] === '\\N' ? null : parts[18];
+              const aiCaption = parts[19] === '\\N' ? null : parts[19];
+              const aiHook = parts[20] === '\\N' ? null : parts[20];
+
+              let subtitleData = null;
+              if (subtitleDataStr) {
+                try { subtitleData = JSON.parse(subtitleDataStr); } catch (e) {}
+              }
+
+              backupReelMap.set(id, {
+                id,
+                oldPageId,
+                wpPostId,
+                wpPostTitle,
+                templateId,
+                videoUrl,
+                thumbnailUrl,
+                aiScript,
+                audioUrl,
+                subtitleData,
+                status,
+                errorLog,
+                progress,
+                isPosted,
+                postedAt,
+                createdAt,
+                wpPostUrl,
+                fbPostId,
+                aiCaption,
+                aiHook,
+              });
+            }
+          }
+        }
+      } catch (e: any) {
+        console.warn('Could not parse ztreel_backup.sql:', e.message);
+      }
+    }
 
     /** 1. Auto-assign page custom templates if available */
     let templateAssignedCount = 0;
@@ -511,7 +593,6 @@ export class ZTTeamRenderController {
         },
       });
       if (customTemplate) {
-        /** Re-link template to active page ID */
         await this.prisma.ztteam_templates.update({
           where: { id: customTemplate.id },
           data: { fb_page_id: p.id },
@@ -526,113 +607,103 @@ export class ZTTeamRenderController {
       }
     }
 
-    /** 2. Scan physical folders in storage/reels */
-    const entries = fs.readdirSync(reelsDir, { withFileTypes: true });
+    /** 2. Scan physical folders in storage/reels & restore from DB or backup */
     let restoredCount = 0;
     let titleRestoredCount = 0;
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const reelId = entry.name;
-      const reelWorkDir = path.join(reelsDir, reelId);
-      const mp4Path = path.join(reelWorkDir, 'output.mp4');
+    /** If reelsDir exists, scan physical folders */
+    if (fs.existsSync(reelsDir)) {
+      const entries = fs.readdirSync(reelsDir, { withFileTypes: true });
 
-      if (!fs.existsSync(mp4Path)) continue;
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const reelId = entry.name;
+        const reelWorkDir = path.join(reelsDir, reelId);
+        const mp4Path = path.join(reelWorkDir, 'output.mp4');
 
-      /** Check for meta.json inside reel folder */
-      const metaPath = path.join(reelWorkDir, 'meta.json');
-      let meta: any = null;
-      if (fs.existsSync(metaPath)) {
-        try {
-          meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-        } catch (e) {
-          meta = null;
-        }
-      }
+        if (!fs.existsSync(mp4Path)) continue;
 
-      /** Check if reel is in database */
-      const existing = await this.prisma.ztteam_reels.findUnique({
-        where: { id: reelId },
-      });
-
-      if (!existing) {
-        /** Try to find matching crawl history or reel history for original title/page */
-        let matchedTitle = meta?.wpPostTitle;
-        let matchedPageId = meta?.pageId;
-        let matchedWpPostId = meta?.wpPostId || 'restored';
-        let matchedWpPostUrl = meta?.wpPostUrl;
-        let matchedAiScript = meta?.aiScript;
-        let matchedAiCaption = meta?.aiCaption;
-        let matchedAiHook = meta?.aiHook;
-
-        if (!matchedTitle) {
-          const crawlMatch = await this.prisma.ztteam_crawl_history.findFirst({
-            where: { title: { not: null } },
-            orderBy: { created_at: 'desc' }
-          });
-          if (crawlMatch && crawlMatch.title) {
-            matchedTitle = crawlMatch.title;
-          }
+        const metaPath = path.join(reelWorkDir, 'meta.json');
+        let meta: any = null;
+        if (fs.existsSync(metaPath)) {
+          try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch (e) {}
         }
 
-        if (!matchedPageId || !pages.some(p => p.id === matchedPageId)) {
-          matchedPageId = defaultPage.id;
-        }
-
-        if (!matchedTitle) {
-          matchedTitle = `Reel Restored (${reelId.substring(0, 8)})`;
-        } else {
-          titleRestoredCount++;
-        }
-
-        const pageObj = pages.find(p => p.id === matchedPageId) || defaultPage;
-
-        await this.prisma.ztteam_reels.create({
-          data: {
-            id: reelId,
-            page_id: pageObj.id,
-            wp_post_id: matchedWpPostId,
-            wp_post_title: matchedTitle,
-            wp_post_url: matchedWpPostUrl,
-            template_id: pageObj.default_reel_template_id || fallbackTemplateId,
-            video_url: `/storage/reels/${reelId}/output.mp4`,
-            thumbnail_url: `/storage/reels/${reelId}/thumbnail.jpg`,
-            audio_url: `/storage/reels/${reelId}/voice.mp3`,
-            ai_script: matchedAiScript,
-            ai_caption: matchedAiCaption,
-            ai_hook: matchedAiHook,
-            status: 'COMPLETED',
-            progress: 100,
-            is_posted: false,
-          },
+        const backupItem = backupReelMap.get(reelId);
+        const existing = await this.prisma.ztteam_reels.findUnique({
+          where: { id: reelId },
         });
-        restoredCount++;
-      } else if (existing.wp_post_title.startsWith('Reel Restored')) {
-        /** Update existing restored reel if meta.json or crawl history is available */
-        if (meta?.wpPostTitle) {
-          const pageObj = pages.find(p => p.id === meta.pageId) || defaultPage;
-          await this.prisma.ztteam_reels.update({
-            where: { id: reelId },
+
+        /** Determine page object for this reel */
+        let pageObj = defaultPage;
+        if (meta?.pageId && pages.some(p => p.id === meta.pageId)) {
+          pageObj = pages.find(p => p.id === meta.pageId)!;
+        } else if (backupItem?.oldPageId) {
+          const fbPageId = oldPageIdToFbPageIdMap.get(backupItem.oldPageId);
+          const found = pages.find(p => p.id === backupItem.oldPageId || (fbPageId && p.fb_page_id === fbPageId));
+          if (found) pageObj = found;
+        }
+
+        const titleToUse = backupItem?.wpPostTitle || meta?.wpPostTitle;
+
+        if (!existing) {
+          await this.prisma.ztteam_reels.create({
             data: {
-              wp_post_title: meta.wpPostTitle,
+              id: reelId,
               page_id: pageObj.id,
-              ai_script: meta.aiScript || existing.ai_script,
-              ai_caption: meta.aiCaption || existing.ai_caption,
-              ai_hook: meta.aiHook || existing.ai_hook,
-            }
+              wp_post_id: backupItem?.wpPostId || meta?.wpPostId || 'restored',
+              wp_post_title: titleToUse || `Reel Restored (${reelId.substring(0, 8)})`,
+              wp_post_url: backupItem?.wpPostUrl || meta?.wpPostUrl,
+              template_id: pageObj.default_reel_template_id || backupItem?.templateId || fallbackTemplateId,
+              video_url: `/storage/reels/${reelId}/output.mp4`,
+              thumbnail_url: `/storage/reels/${reelId}/thumbnail.jpg`,
+              audio_url: `/storage/reels/${reelId}/voice.mp3`,
+              subtitle_data: backupItem?.subtitleData || undefined,
+              ai_script: backupItem?.aiScript || meta?.aiScript,
+              ai_caption: backupItem?.aiCaption || meta?.aiCaption,
+              ai_hook: backupItem?.aiHook || meta?.aiHook,
+              status: backupItem?.status || 'COMPLETED',
+              is_posted: backupItem?.isPosted ?? false,
+              posted_at: backupItem?.postedAt,
+              fb_post_id: backupItem?.fbPostId,
+              progress: 100,
+            },
           });
-          titleRestoredCount++;
+          restoredCount++;
+          if (titleToUse) titleRestoredCount++;
+        } else if (existing.wp_post_title.startsWith('Reel Restored') || backupItem) {
+          /** Update existing reel with restored title and exact page */
+          if (titleToUse || backupItem) {
+            await this.prisma.ztteam_reels.update({
+              where: { id: reelId },
+              data: {
+                wp_post_title: titleToUse || existing.wp_post_title,
+                page_id: pageObj.id,
+                wp_post_url: backupItem?.wpPostUrl || meta?.wpPostUrl || existing.wp_post_url,
+                ai_script: backupItem?.aiScript || meta?.aiScript || existing.ai_script,
+                ai_caption: backupItem?.aiCaption || meta?.aiCaption || existing.ai_caption,
+                ai_hook: backupItem?.aiHook || meta?.aiHook || existing.ai_hook,
+                subtitle_data: backupItem?.subtitleData || existing.subtitle_data,
+                status: backupItem?.status || existing.status,
+                is_posted: backupItem?.isPosted ?? existing.is_posted,
+                posted_at: backupItem?.postedAt || existing.posted_at,
+                fb_post_id: backupItem?.fbPostId || existing.fb_post_id,
+              },
+            });
+            titleRestoredCount++;
+          }
         }
       }
     }
 
     return {
-      message: `Đã tự động phục hồi ${restoredCount} video Reels (trong đó ${titleRestoredCount} Reels đã phục hồi chuẩn tiêu đề/nội dung) và gán ${templateAssignedCount} template custom cho Fanpage`,
+      message: `Đã tự động phục hồi ${restoredCount} video Reels (trong đó ${titleRestoredCount} Reels đã phục hồi chuẩn tiêu đề/kịch bản/Fanpage) và gán ${templateAssignedCount} template custom cho Fanpage`,
       restoredCount,
       titleRestoredCount,
       templateAssignedCount,
     };
   }
 }
+
 
 
