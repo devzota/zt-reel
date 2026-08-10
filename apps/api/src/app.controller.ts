@@ -13,9 +13,4 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
-
-  @Get('safe-merge')
-  ztteam_safeMergeDuplicates() {
-    return this.facebookService.ztteam_safeMergeDuplicates();
-  }
 }
