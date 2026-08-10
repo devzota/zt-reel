@@ -123,15 +123,19 @@ export class ZTTeamFacebookService {
         const existingPage = await this.prisma.ztteam_pages.findFirst({
           where: {
             fb_page_id: page.id,
-            fb_account_id: fbAccount.id,
           },
         });
 
         if (existingPage) {
-          await this.prisma.ztteam_pages.update({
-            where: { id: existingPage.id },
-            data: pageData,
-          });
+          /** Nếu Fanpage đã tồn tại và thuộc về tài khoản FB này thì update token */
+          if (existingPage.fb_account_id === fbAccount.id) {
+            await this.prisma.ztteam_pages.update({
+              where: { id: existingPage.id },
+              data: pageData,
+            });
+          }
+          /** Nếu thuộc về tài khoản FB khác (vd: Admin đã thêm), ta bỏ qua không tạo mới để tránh trùng lặp rác. */
+          /** User sẽ không thấy page này trong danh sách trừ khi được Admin phân quyền (user_assets). */
         } else {
           await this.prisma.ztteam_pages.create({
             data: {
@@ -247,7 +251,7 @@ export class ZTTeamFacebookService {
 
     const pages = await this.prisma.ztteam_pages.findMany({
       where: { fb_account_id: { in: accountIds } },
-      include: { fb_account: true },
+      include: { fb_account: true, sources: true, youtube_settings: true },
       orderBy: { name: 'asc' }
     });
 
@@ -286,7 +290,8 @@ export class ZTTeamFacebookService {
       where: { fb_page_id: pageId },
       include: {
         fb_account: true,
-        sources: true
+        sources: true,
+        youtube_settings: true
       }
     });
 
@@ -331,7 +336,14 @@ export class ZTTeamFacebookService {
         target_category_id: s.target_category_id,
         target_tags: s.target_tags,
         is_active: s.is_active
-      }))
+      })),
+      youtube_settings: page.youtube_settings ? {
+        source_id: page.youtube_settings.source_id,
+        is_active: page.youtube_settings.is_active,
+        add_watermark: page.youtube_settings.add_watermark,
+        watermark_text: page.youtube_settings.watermark_text,
+        add_frame: page.youtube_settings.add_frame
+      } : null
     };
   }
 
@@ -387,6 +399,25 @@ export class ZTTeamFacebookService {
             target_tags: s.target_tags,
             is_active: s.is_active !== undefined ? s.is_active : true
           }))
+        });
+      }
+    }
+
+    /** Handle youtube_settings */
+    if (config.youtube_settings) {
+      await this.prisma.ztteam_page_youtube_settings.deleteMany({
+        where: { page_id: page.id }
+      });
+      if (config.youtube_settings.source_id) {
+        await this.prisma.ztteam_page_youtube_settings.create({
+          data: {
+            page_id: page.id,
+            source_id: config.youtube_settings.source_id,
+            is_active: config.youtube_settings.is_active !== undefined ? config.youtube_settings.is_active : true,
+            add_watermark: config.youtube_settings.add_watermark || false,
+            watermark_text: config.youtube_settings.watermark_text || null,
+            add_frame: config.youtube_settings.add_frame || false
+          }
         });
       }
     }
@@ -795,5 +826,111 @@ export class ZTTeamFacebookService {
     await this.prisma.ztteam_pages.delete({ where: { id: internalPageId } });
 
     return { message: `Đã xóa Fanpage "${page.name}" và toàn bộ dữ liệu liên quan` };
+  }
+
+  /**
+   * Khắc phục rác dữ liệu: Tìm tất cả Fanpage bị trùng lặp fb_page_id,
+   * gộp toàn bộ dữ liệu (Reels, History, Sources) về bản ghi gốc (bản được tạo đầu tiên),
+   * sau đó xoá an toàn bản sao để dọn dẹp Database.
+   */
+  async ztteam_safeMergeDuplicates() {
+    this.logger.log('Bắt đầu tiến trình gộp Fanpage trùng lặp (Safe Merge)...');
+    
+    /** Lấy tất cả Fanpage sắp xếp theo ngày tạo (cũ nhất đứng trước) */
+    const pages = await this.prisma.ztteam_pages.findMany({
+      orderBy: { fb_page_id: 'asc' } 
+      /** Do ztteam_pages không có created_at nên ta ưu tiên id nào xuất hiện trước */
+    });
+    
+    const groups = new Map<string, any[]>();
+    for (const p of pages) {
+      if (!groups.has(p.fb_page_id)) {
+        groups.set(p.fb_page_id, []);
+      }
+      groups.get(p.fb_page_id)!.push(p);
+    }
+    
+    const results = [];
+
+    for (const [fb_page_id, duplicates] of groups.entries()) {
+      if (duplicates.length > 1) {
+        /** 
+         * Ưu tiên chọn Bản gốc (Original) là trang có cấu hình đầy đủ nhất
+         * (Ví dụ: có gắn Nguồn Crawler hoặc có gán Template Mặc định).
+         * Tránh việc vô tình lấy trang rỗng của Manager làm gốc.
+         */
+        duplicates.sort((a, b) => {
+          let scoreA = (a.default_reel_template_id ? 1 : 0) + (a.auto_create_enabled ? 1 : 0);
+          let scoreB = (b.default_reel_template_id ? 1 : 0) + (b.auto_create_enabled ? 1 : 0);
+          return scoreB - scoreA; /** Giảm dần, trang điểm cao nhất lên đầu */
+        });
+
+        const original = duplicates[0];
+        const dupesToMerge = duplicates.slice(1);
+        
+        for (const dupe of dupesToMerge) {
+          this.logger.log(`Đang gộp bản sao ${dupe.id} vào bản gốc ${original.id} (${original.name})`);
+          
+          /** 1. Move Reels */
+          await this.prisma.ztteam_reels.updateMany({
+            where: { page_id: dupe.id },
+            data: { page_id: original.id }
+          }).catch(() => null);
+          
+          /** 2. Move Images */
+          await this.prisma.ztteam_images.updateMany({
+            where: { page_id: dupe.id },
+            data: { page_id: original.id }
+          }).catch(() => null);
+          
+          /** 3. Move Page Sources */
+          await this.prisma.ztteam_page_sources.updateMany({
+            where: { page_id: dupe.id },
+            data: { page_id: original.id }
+          }).catch(() => null);
+          
+          /** 4. Move Reel History (Xử lý Unique Constraints) */
+          const dupeReelHistory = await this.prisma.ztteam_reel_history.findMany({ where: { page_id: dupe.id } });
+          for (const history of dupeReelHistory) {
+            try {
+              await this.prisma.ztteam_reel_history.update({
+                where: { id: history.id },
+                data: { page_id: original.id }
+              });
+            } catch (e) {
+              /** Lịch sử này đã tồn tại ở bản gốc, ta có thể xoá bỏ bản sao */
+              await this.prisma.ztteam_reel_history.delete({ where: { id: history.id } }).catch(() => null);
+            }
+          }
+          
+          /** 5. Move Image History */
+          const dupeImageHistory = await this.prisma.ztteam_image_history.findMany({ where: { page_id: dupe.id } });
+          for (const history of dupeImageHistory) {
+            try {
+              await this.prisma.ztteam_image_history.update({
+                where: { id: history.id },
+                data: { page_id: original.id }
+              });
+            } catch (e) {
+              await this.prisma.ztteam_image_history.delete({ where: { id: history.id } }).catch(() => null);
+            }
+          }
+          
+          /** 6. Xoá an toàn bản sao (bây giờ đã trống rỗng) */
+          await this.prisma.ztteam_pages.delete({ where: { id: dupe.id } });
+          
+          results.push(`Đã gộp thành công bản sao ${dupe.id} vào Fanpage gốc ${original.name} (${original.id})`);
+        }
+      }
+    }
+
+    if (results.length === 0) {
+      return { message: 'Không phát hiện Fanpage nào bị trùng lặp.' };
+    }
+
+    return { 
+      message: 'Đã dọn dẹp và gộp thành công các Fanpage trùng lặp!', 
+      details: results 
+    };
   }
 }

@@ -100,6 +100,7 @@ model ztteam_pages {
   reel_history              ztteam_reel_history[]
   images                    ztteam_images[]
   image_history             ztteam_image_history[]
+  youtube_settings          ztteam_page_youtube_settings?
 }
 
 model ztteam_page_sources {
@@ -177,6 +178,7 @@ model ztteam_reels {
   wp_post_id      String
   wp_post_title   String
   wp_post_url     String?
+  source_type     String    @default("WORDPRESS")
   template_id     String
   video_url       String?
   thumbnail_url   String?
@@ -249,4 +251,32 @@ model ztteam_image_history {
   page            ztteam_pages @relation(fields: [page_id], references: [id], onDelete: Cascade)
 
   @@unique([page_id, wp_post_id])
+}
+
+model ztteam_youtube_sources {
+  id            String   @id @default(uuid())
+  name          String
+  source_type   String   /** "CHANNEL" or "LINKS" */
+  url           String   @db.Text
+  is_active     Boolean  @default(true)
+  owner_user_id String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  page_settings ztteam_page_youtube_settings[]
+}
+
+model ztteam_page_youtube_settings {
+  id             String   @id @default(uuid())
+  page_id        String   @unique
+  source_id      String
+  is_active      Boolean  @default(true)
+  
+  /** Custom Render Settings */
+  add_watermark  Boolean  @default(false)
+  watermark_text String?
+  add_frame      Boolean  @default(false)
+
+  page           ztteam_pages           @relation(fields: [page_id], references: [id], onDelete: Cascade)
+  source         ztteam_youtube_sources @relation(fields: [source_id], references: [id], onDelete: Cascade)
 }
