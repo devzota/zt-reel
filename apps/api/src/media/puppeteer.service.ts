@@ -22,7 +22,6 @@ export class ZTTeamPuppeteerService {
         '--disable-setuid-sandbox',
         '--disable-gpu',
         '--disable-dev-shm-usage',
-        '--no-zygote',
         '--disable-software-rasterizer',
         '--disable-breakpad',
         '--disable-background-networking',
