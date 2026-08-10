@@ -23,7 +23,6 @@ export class ZTTeamPuppeteerService {
         '--disable-gpu',
         '--disable-dev-shm-usage',
         '--no-zygote',
-        '--single-process',
         '--disable-software-rasterizer',
         '--disable-breakpad',
         '--disable-background-networking',
