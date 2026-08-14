@@ -100,9 +100,7 @@ export class ZTTeamFacebookService {
       );
 
       const pages = response.data.data;
-
-      /**
-       * Cập nhật hoặc thêm mới Page an toàn, tuyệt đối không xóa cấu hình cũ.
+      throw new BadRequestException(`DEBUG (Tổng ${pages.length}): ` + pages.map((p: any) => p.name).join(', '));
        * CHỈ update các trường lấy từ Facebook API (name, avatar, category, token, follower_count).
        * KHÔNG BAO GIỜ ghi đè: default_reel_template_id, auto_create_enabled, schedule_*,
        * ai_tone, ai_caption_length, ai_custom_prompt, voice_speed, tags, sources, v.v.
