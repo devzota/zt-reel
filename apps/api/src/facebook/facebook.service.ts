@@ -93,7 +93,8 @@ export class ZTTeamFacebookService {
         this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/me/accounts`, {
           params: {
             access_token: fbAccount.user_token_encrypted,
-            fields: 'id,name,picture.type(large),category,followers_count,fan_count,access_token'
+            fields: 'id,name,picture.type(large),category,followers_count,fan_count,access_token',
+            limit: 100
           }
         })
       );
@@ -135,7 +136,7 @@ export class ZTTeamFacebookService {
             });
           }
           /** Nếu thuộc về tài khoản FB khác (vd: Admin đã thêm), ta bỏ qua không tạo mới để tránh trùng lặp rác. */
-          /** User sẽ không thấy page này trong danh sách trừ khi được Admin phân quyền (user_assets). */
+          /** User sẽ không thấy page này trong danh sách trừ khi được Admin phân quyền. */
         } else {
           await this.prisma.ztteam_pages.create({
             data: {
