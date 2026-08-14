@@ -183,7 +183,7 @@ export default function ReelFactory() {
                   </div>
                   
                   <div className="flex items-center gap-1.5">
-                    {reel.status === 'COMPLETED' && reel.video_url === 'DELETED' && (
+                    {reel.video_url === 'DELETED' && (
                       <span className="text-[11px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-medium border border-red-100 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">delete</span>
                         Đã xóa theo cài đặt
@@ -282,11 +282,22 @@ export default function ReelFactory() {
                   ) : (
                     <>
                       {reel.thumbnail_url ? (
-                        <img src={reel.thumbnail_url} alt="Reel thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                        <img 
+                          src={reel.thumbnail_url} 
+                          alt="Reel thumb" 
+                          className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent && !parent.querySelector('.broken-icon')) {
+                               parent.insertAdjacentHTML('afterbegin', '<span class="material-symbols-outlined text-4xl text-gray-500 broken-icon">broken_image</span>');
+                            }
+                          }}
+                        />
                       ) : (
                         <span className="material-symbols-outlined text-4xl text-gray-600">movie</span>
                       )}
-                      {reel.status === 'COMPLETED' && (
+                      {(reel.status === 'COMPLETED' || reel.status === 'POSTED') && (
                         reel.video_url !== 'DELETED' ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors cursor-pointer">
                             <a href={reel.video_url} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
@@ -294,7 +305,7 @@ export default function ReelFactory() {
                             </a>
                           </div>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-2 text-center">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-2 text-center pointer-events-none">
                             <span className="material-symbols-outlined text-2xl mb-1 text-red-400">broken_image</span>
                             <span className="text-xs font-bold">Video đã bị xóa</span>
                           </div>

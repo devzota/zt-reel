@@ -185,7 +185,7 @@ export default function ImageFactory() {
                   </div>
                   
                   <div className="flex items-center gap-1.5">
-                    {image.status === 'COMPLETED' && image.image_url === 'DELETED' && (
+                    {image.image_url === 'DELETED' && (
                       <span className="text-[11px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-medium border border-red-100 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">delete</span>
                         Đã xóa theo cài đặt
@@ -302,7 +302,18 @@ export default function ImageFactory() {
                     <>
                       {image.image_url !== 'DELETED' ? (
                         <>
-                          <img src={image.image_url!} alt="Image thumb" className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" />
+                          <img 
+                            src={image.image_url!} 
+                            alt="Image thumb" 
+                            className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent && !parent.querySelector('.broken-icon')) {
+                                 parent.insertAdjacentHTML('afterbegin', '<span class="material-symbols-outlined text-4xl text-gray-500 broken-icon">broken_image</span>');
+                              }
+                            }}
+                          />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors cursor-pointer">
                             <a href={image.image_url!} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                               <span className="material-symbols-outlined text-3xl text-gray-900 ml-1">open_in_new</span>
