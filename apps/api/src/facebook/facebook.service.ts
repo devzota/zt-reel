@@ -127,6 +127,9 @@ export class ZTTeamFacebookService {
           where: {
             fb_page_id: page.id,
           },
+          include: {
+            fb_account: true
+          }
         });
 
         if (existingPage) {
@@ -136,9 +139,19 @@ export class ZTTeamFacebookService {
               where: { id: existingPage.id },
               data: pageData,
             });
+          } 
+          /** Nếu Fanpage thuộc về tài khoản FB khác nhưng CÙNG 1 người dùng Web -> Chuyển giao quyền sở hữu (Nick cũ bị lỗi) */
+          else if (existingPage.fb_account?.owner_user_id === fbAccount.owner_user_id) {
+            await this.prisma.ztteam_pages.update({
+              where: { id: existingPage.id },
+              data: {
+                ...pageData,
+                fb_account_id: fbAccount.id,
+              },
+            });
+            this.logger.log(`Transferred page ${page.name} to new FB account ${fbAccount.name} for user ${fbAccount.owner_user_id}`);
           }
-          /** Nếu thuộc về tài khoản FB khác (vd: Admin đã thêm), ta bỏ qua không tạo mới để tránh trùng lặp rác. */
-          /** User sẽ không thấy page này trong danh sách trừ khi được Admin phân quyền. */
+          /** Nếu thuộc về User khác hoàn toàn, ta bỏ qua không tạo mới để tránh trùng lặp. */
         } else {
           await this.prisma.ztteam_pages.create({
             data: {
