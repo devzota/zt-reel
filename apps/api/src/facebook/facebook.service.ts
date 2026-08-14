@@ -109,11 +109,14 @@ export class ZTTeamFacebookService {
       for (const page of pages) {
         const pageData: any = {
           name: page.name,
-          avatar: page.picture?.data?.url || null,
           category: page.category || null,
           page_token_encrypted: page.access_token,
           token_status: 'active',
         };
+        
+        if (page.picture?.data?.url) {
+          pageData.avatar = page.picture.data.url;
+        }
 
         const newCount = page.followers_count ?? page.fan_count;
         if (newCount !== undefined) {
