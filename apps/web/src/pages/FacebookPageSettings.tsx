@@ -760,6 +760,15 @@ export default function FacebookPageSettings() {
                 </label>
               </div>
 
+              <div className="bg-red-50 border border-red-100 p-4 rounded-xl">
+                <h5 className="text-red-700 font-bold text-sm flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-[18px]">warning</span> LƯU Ý BẢO MẬT TỪ FACEBOOK</h5>
+                <ul className="list-disc list-inside text-xs text-red-600 space-y-1.5 leading-relaxed">
+                  <li><strong>Tần suất đăng:</strong> KHÔNG đặt lịch quá sát nhau. Việc ép Bot đăng liên tục 5-10 bài/tiếng sẽ bị AI của Facebook đánh dấu là Spam và <strong>chặn tính năng đăng bài</strong> ngay lập tức. Khuyến nghị giãn cách 2-3 tiếng/bài.</li>
+                  <li><strong>Gắn Link (UTM):</strong> Hạn chế bơm link vào 100% bài viết. Việc spam link quá đà sẽ khiến Fanpage bị Facebook "bóp Reach" thảm hại hoặc chặn Domain vĩnh viễn.</li>
+                  <li><strong>Mất kết nối:</strong> Nếu bạn Đổi Mật Khẩu nick FB, cấu hình kết nối sẽ bị đứt. Bạn phải vào lại màn hình danh sách Fanpage và ấn Kết nối lại.</li>
+                </ul>
+              </div>
+
               {!autoPublishEnabled && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-sm flex items-center gap-3">
                   <span className="material-symbols-outlined text-slate-400 text-[24px]">power_settings_new</span>
