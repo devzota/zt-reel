@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useWordpressStore } from '../stores/wordpressStore';
 import { useUIStore } from '../stores/uiStore';
+import { useZTTeamFacebookStore } from '../stores/facebookStore';
 import ReelTemplateEditor, { TemplateMiniPreview } from '../components/ReelTemplateEditor';
 
 export default function FacebookPageSettings() {
@@ -10,6 +11,7 @@ export default function FacebookPageSettings() {
   const navigate = useNavigate();
   const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
   const { sites, ztteam_fetchSites, ztteam_fetchCategories, ztteam_fetchTags } = useWordpressStore();
+  const { pages, ztteam_fetchPagesFromDB } = useZTTeamFacebookStore();
 
   const [activeTab, setActiveTab] = useState(1);
   const [manualCreateFormat, setManualCreateFormat] = useState('video');
@@ -82,10 +84,15 @@ export default function FacebookPageSettings() {
   const [sourceCategoriesCache, setSourceCategoriesCache] = useState<Record<string, any[]>>({});
   const [sourceTagsCache, setSourceTagsCache] = useState<Record<string, any[]>>({});
 
+  /** Youtube Settings */
+  const [youtubeSettings, setYoutubeSettings] = useState<any>({ source_id: '', add_watermark: false, watermark_text: '', add_frame: false, is_active: true });
+  const [youtubeSourcesList, setYoutubeSourcesList] = useState<any[]>([]);
+
   useEffect(() => {
     ztteam_fetchSites();
     fetchSettings();
     fetchTemplates();
+    api.get('/youtube-sources').then(res => setYoutubeSourcesList(res.data.data)).catch(console.error);
     api.get('facebook/pages').then(res => {
       const allTags = new Set<string>();
       if (res.data && Array.isArray(res.data)) {
@@ -350,6 +357,9 @@ export default function FacebookPageSettings() {
       setNextPublishTime(data.next_publish_time || null);
 
       setSources(data.sources || []);
+      if (data.youtube_settings) {
+        setYoutubeSettings(data.youtube_settings);
+      }
 
       /** Prefetch categories for existing sources */
       if (data.sources) {
@@ -410,7 +420,8 @@ export default function FacebookPageSettings() {
         voice_speed: voiceSpeed,
         default_reel_template_id: defaultReelTemplateId,
         default_image_template_id: defaultImageTemplateId,
-        sources
+        sources,
+        youtube_settings: youtubeSettings
       });
       ztteam_showToast('Đã lưu cấu hình thành công', 'success');
     } catch (error: any) {
@@ -437,6 +448,28 @@ export default function FacebookPageSettings() {
   const addSource = () => {
     setSources([...sources, { id: Date.now().toString(), target_site_id: '', target_category_id: '', is_active: true }]);
   };
+
+  useEffect(() => {
+    if (pages.length === 0) {
+      ztteam_fetchPagesFromDB();
+    }
+  }, []);
+
+  const usedTimes = new Set<string>();
+  pages.forEach(p => {
+    if (p.id !== id && p.scheduleFixedTimes) {
+      p.scheduleFixedTimes.forEach((t: string) => usedTimes.add(t));
+    }
+  });
+
+  const predefinedSchedules = [
+    { label: 'Khung 1', times: ['08:00', '16:00', '00:00'] },
+    { label: 'Khung 2', times: ['09:00', '17:00', '01:00'] },
+    { label: 'Khung 3', times: ['10:00', '18:00', '02:00'] },
+    { label: 'Khung 4', times: ['11:00', '19:00', '03:00'] },
+    { label: 'Khung 5', times: ['06:00', '14:00', '22:00'] },
+    { label: 'Khung 6', times: ['07:00', '15:00', '23:00'] },
+  ];
 
   if (isLoading) {
     return <div className="p-8 text-center"><span className="material-symbols-outlined animate-spin text-4xl text-gray-300">sync</span></div>;
@@ -474,6 +507,7 @@ export default function FacebookPageSettings() {
           {[
             { id: 1, icon: 'info', label: 'Thông tin chung' },
             { id: 2, icon: 'movie', label: 'Giao diện Reel' },
+            { id: 7, icon: 'smart_display', label: 'Nguồn YouTube' },
             { id: 3, icon: 'schedule', label: 'Cấu hình đăng bài' },
             { id: 4, icon: 'smart_toy', label: 'Tự động chạy' },
             { id: 5, icon: 'queue_music', label: 'Lịch sử & Hàng đợi' },
@@ -601,15 +635,17 @@ export default function FacebookPageSettings() {
                                       try {
                                         await api.delete(`templates/${t.id}`);
                                         ztteam_showToast('Đã xóa giao diện', 'success');
-                                        if (isSelected) setDefaultReelTemplateId('');
+                                        if (defaultReelTemplateId === t.id) setDefaultReelTemplateId('');
+                                        if (defaultImageTemplateId === t.id) setDefaultImageTemplateId('');
                                         fetchTemplates();
                                       } catch (err: any) {
                                         ztteam_showToast(err.response?.data?.message || 'Lỗi xóa giao diện', 'error');
                                       }
                                     }}
-                                    className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ml-auto"
+                                    className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
                                   >
                                     <span className="material-symbols-outlined text-[14px]">delete</span>
+                                    Xóa
                                   </button>
                                 </>
                               )}
@@ -630,6 +666,83 @@ export default function FacebookPageSettings() {
 
                 </>
               )}
+            </div>
+          )}
+
+          {/* TAB 7: YOUTUBE SOURCES */}
+          {activeTab === 7 && (
+            <div className="glass-card p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <div>
+                  <h4 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-red-500">smart_display</span> 
+                    Quản lý Nguồn YouTube
+                  </h4>
+                  <p className="text-sm text-slate-500 mt-1">Hệ thống sẽ tải video từ nguồn này, dùng AI viết lại trạng thái, xử lý bản quyền (FFmpeg) và đăng tự động.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Chọn Nguồn */}
+                <div className="space-y-4">
+                  <h5 className="font-bold text-slate-800 border-b border-slate-100 pb-2">1. Chọn Nguồn Dữ Liệu</h5>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-slate-700">Trạng thái kích hoạt</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={youtubeSettings.is_active} onChange={e => setYoutubeSettings({ ...youtubeSettings, is_active: e.target.checked })} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Nguồn YouTube (Tạo từ tab Nguồn YouTube ngoài menu)</label>
+                    <select
+                      value={youtubeSettings.source_id || ''}
+                      onChange={e => setYoutubeSettings({ ...youtubeSettings, source_id: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 text-gray-900 text-sm rounded-xl focus:ring-primary focus:border-primary block p-2.5"
+                    >
+                      <option value="">-- Không sử dụng nguồn YouTube --</option>
+                      {youtubeSourcesList.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.source_type})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Tuỳ chỉnh Render */}
+                <div className="space-y-4">
+                  <h5 className="font-bold text-slate-800 border-b border-slate-100 pb-2">2. Tuỳ Chỉnh Render (Lách Bản Quyền)</h5>
+                  <div className="p-4 bg-red-50/50 border border-red-100 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Đóng dấu Watermark</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Thêm text mờ vào video để đánh dấu bản quyền và khác mã băm.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={youtubeSettings.add_watermark} onChange={e => setYoutubeSettings({ ...youtubeSettings, add_watermark: e.target.checked })} className="sr-only peer" />
+                        <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+                    
+                    {youtubeSettings.add_watermark && (
+                      <div className="ml-2 pl-4 border-l-2 border-red-200 animate-in slide-in-from-top-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-1">Nội dung Watermark (vd: @FanpageCuaToi)</label>
+                        <input type="text" value={youtubeSettings.watermark_text || ''} onChange={e => setYoutubeSettings({ ...youtubeSettings, watermark_text: e.target.value })} className="w-full bg-white border border-slate-200 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2" />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-red-100">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Thêm viền (Blur Frame)</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Tạo lớp viền mờ tự động, kết hợp tăng tốc độ 1.05x để lách thuật toán 100%.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={youtubeSettings.add_frame} onChange={e => setYoutubeSettings({ ...youtubeSettings, add_frame: e.target.checked })} className="sr-only peer" />
+                        <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -718,15 +831,49 @@ export default function FacebookPageSettings() {
 
                     {scheduleMode === 'fixed' && (
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <p className="text-xs text-gray-500 mb-3">Thêm các khung giờ (VD: 05:00, 16:30) để hệ thống tự động đẩy bài từ hàng đợi lên Fanpage.</p>
-                        <div className="flex gap-2 mb-3 max-w-xs">
+                        <p className="text-xs text-gray-500 mb-3">Thêm các khung giờ để hệ thống tự động đẩy bài lên Fanpage. <br/><span className="text-red-500 font-semibold">* Lưu ý: Không được chọn trùng giờ với các Fanpage khác.</span></p>
+                        
+                        <div className="mb-4">
+                          <p className="text-xs font-bold text-gray-700 mb-2">Gợi ý khung giờ (cách nhau 8 tiếng):</p>
+                          <div className="flex flex-wrap gap-2">
+                            {predefinedSchedules.map(preset => {
+                              const isConflict = preset.times.some(t => usedTimes.has(t));
+                              return (
+                                <button 
+                                  key={preset.label}
+                                  onClick={() => !isConflict && setScheduleFixedTimes(preset.times)}
+                                  disabled={isConflict}
+                                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-colors ${isConflict ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}
+                                  title={isConflict ? 'Đã có Fanpage khác sử dụng khung giờ này' : `Chọn ${preset.times.join(', ')}`}
+                                >
+                                  {preset.label} ({preset.times.join(', ')})
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-3 max-w-sm">
                           <input type="time" value={timeInput} onChange={e => setTimeInput(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-primary outline-none" />
-                          <button onClick={addTime} className="px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-blue-600">Thêm</button>
+                          <button 
+                            onClick={() => {
+                              if (timeInput.trim() && usedTimes.has(timeInput.trim())) {
+                                ztteam_showToast(`Giờ ${timeInput} đã được dùng ở Fanpage khác!`, 'error');
+                                return;
+                              }
+                              addTime();
+                            }} 
+                            className="px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-blue-600"
+                          >
+                            Thêm tay
+                          </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {scheduleFixedTimes.map(t => (
-                            <span key={t} className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm">
-                              {t} <span onClick={() => setScheduleFixedTimes(scheduleFixedTimes.filter(x => x !== t))} className="material-symbols-outlined text-[14px] cursor-pointer hover:text-red-500">close</span>
+                            <span key={t} className={`px-3 py-1 text-sm font-bold flex items-center gap-2 shadow-sm rounded-full border ${usedTimes.has(t) ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                              {t} 
+                              {usedTimes.has(t) && <span className="text-[10px] uppercase bg-red-500 text-white px-1 rounded">Trùng</span>}
+                              <span onClick={() => setScheduleFixedTimes(scheduleFixedTimes.filter(x => x !== t))} className="material-symbols-outlined text-[14px] cursor-pointer hover:text-red-500">close</span>
                             </span>
                           ))}
                         </div>
@@ -1028,6 +1175,23 @@ export default function FacebookPageSettings() {
                           <p className="text-xs text-gray-500 mb-2">
                             Tạo lúc: {ztteam_formatDate(reel.created_at)}
                           </p>
+
+                          {/** Youtube Original vs AI Comparison */}
+                          {reel.source_type === 'YOUTUBE' && reel.ai_caption && (
+                            <div className="mt-2 mb-3 bg-slate-50 border border-slate-100 rounded-lg p-3">
+                              <p className="text-xs font-bold text-slate-700 mb-1">So sánh Nội dung (YouTube vs AI):</p>
+                              <div className="grid grid-cols-2 gap-3 text-[11px]">
+                                <div>
+                                  <span className="font-semibold text-slate-500">Gốc (YouTube):</span>
+                                  <p className="mt-1 line-clamp-3 text-slate-600 whitespace-pre-wrap">{reel.wp_post_title}</p>
+                                </div>
+                                <div>
+                                  <span className="font-semibold text-primary">AI Caption:</span>
+                                  <p className="mt-1 line-clamp-3 text-slate-800 whitespace-pre-wrap">{reel.ai_caption}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/** Progress bar for RENDERING status */}
                           {reel.status === 'RENDERING' && (

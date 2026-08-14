@@ -360,6 +360,32 @@ export class ZTTeamFacebookService {
       throw new Error('Fanpage không tồn tại hoặc bạn không có quyền');
     }
 
+    /** Kiểm tra trùng lặp giờ đăng cố định giữa các Fanpage */
+    if (config.schedule_mode === 'fixed' && config.schedule_fixed_times && config.schedule_fixed_times.length > 0) {
+      const otherPages = await this.prisma.ztteam_pages.findMany({
+        where: {
+          id: { not: page.id },
+          fb_account: { owner_user_id: userId },
+          schedule_mode: 'fixed'
+        }
+      });
+      
+      const usedTimes = new Set();
+      for (const p of otherPages) {
+        if (p.schedule_fixed_times && Array.isArray(p.schedule_fixed_times)) {
+          for (const time of p.schedule_fixed_times) {
+            usedTimes.add(time);
+          }
+        }
+      }
+      
+      for (const time of config.schedule_fixed_times) {
+        if (usedTimes.has(time)) {
+          throw new BadRequestException(`Giờ đăng ${time} đã được sử dụng ở một Fanpage khác. Vui lòng chọn khung giờ khác để tránh trùng lặp!`);
+        }
+      }
+    }
+
     /** Update main page fields */
     await this.prisma.ztteam_pages.update({
       where: { id: page.id },

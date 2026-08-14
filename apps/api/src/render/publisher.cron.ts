@@ -271,37 +271,24 @@ export class ZTTeamPublisherCron {
       this.eventEmitter.emit('reel.updated', { id: reel.id, status: 'POSTED', fb_post_id: response.id });
       this.logger.log(`Reel ${reel.id} successfully auto-published to page ${page.name}`);
     } catch (error: any) {
-      const currentRetries = (reel.post_retry_count || 0) + 1;
-      this.logger.error(`Failed to auto-publish reel ${reel.id} (Attempt ${currentRetries}/3): ${error.message}`);
+      this.logger.error(`Failed to auto-publish reel ${reel.id}: ${error.message}`);
 
-      if (currentRetries < 3) {
-        /** Giữ COMPLETED để tự động thử lại ở khung giờ tiếp theo */
-        await this.prisma.ztteam_reels.update({
-          where: { id: reel.id },
-          data: {
-            post_retry_count: currentRetries,
-            error_log: `Lần thử ${currentRetries}/3 thất bại: ${error.message}`
-          }
-        });
-        this.logger.log(`Reel ${reel.id} kept in COMPLETED status for next time slot retry (Attempt ${currentRetries}/3)`);
-      } else {
-        /** Đã thử 3 lần thất bại -> đánh dấu FAILED */
-        await this.prisma.ztteam_reels.update({
-          where: { id: reel.id },
-          data: {
-            status: 'FAILED',
-            post_retry_count: currentRetries,
-            error_log: `Lỗi đăng bài sau 3 lần thử: ${error.message}`
-          }
-        });
+      /** Đánh dấu FAILED ngay lập tức và báo Telegram */
+      await this.prisma.ztteam_reels.update({
+        where: { id: reel.id },
+        data: {
+          status: 'FAILED',
+          error_log: `Lỗi đăng bài: ${error.message}`
+        }
+      });
 
-        this.telegramService.ztteam_sendMessage(
-          `🚨 *[LỖI TỰ ĐỘNG ĐĂNG VIDEO - ĐÃ THỬ 3 LẦN]*\n\n` +
-          `• *Fanpage:* ${page.name || 'Không rõ'}\n` +
-          `• *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
-          `• *Lỗi:* ${error.message}`
-        );
-      }
+      this.telegramService.ztteam_sendMessage(
+        `🚨 *[LỖI TỰ ĐỘNG ĐĂNG VIDEO]*\n\n` +
+        `• *Fanpage:* ${page.name || 'Không rõ'}\n` +
+        `• *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
+        `• *Lỗi:* ${error.message}\n\n` +
+        `❌ Vui lòng vào Web để kiểm tra và đăng thủ công!`
+      );
     }
   }
 
