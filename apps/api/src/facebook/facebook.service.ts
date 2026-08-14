@@ -100,9 +100,7 @@ export class ZTTeamFacebookService {
       );
 
       const pages = response.data.data;
-      if (pages.length >= 0) {
-        throw new BadRequestException(`DEBUG (Tổng ${pages.length}): ` + pages.map((p: any) => p.name).join(', '));
-      }
+      throw new BadRequestException(`DEBUG (Tổng ${pages.length}): ` + pages.map((p: any) => p.name).join(', '));
 
       /**
        * CHỈ update các trường lấy từ Facebook API (name, avatar, category, token, follower_count).
