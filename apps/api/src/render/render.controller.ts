@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards, Sse, MessageEvent, Header } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, Sse, MessageEvent, Header, Request } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
@@ -121,7 +121,9 @@ export class ZTTeamRenderController {
    * List all reels with optional filters.
    */
   @Get('list')
+  @UseGuards(ZTTeamAuthGuard)
   async ztteam_listReels(
+    @Request() req: any,
     @Query('pageId') pageId?: string,
     @Query('fbPageId') fbPageId?: string,
     @Query('status') status?: string,
@@ -133,8 +135,16 @@ export class ZTTeamRenderController {
 
     const where: any = {};
     if (pageId) where.page_id = pageId;
-    if (fbPageId) where.page = { fb_page_id: fbPageId };
+    if (fbPageId) where.page = { ...where.page, fb_page_id: fbPageId };
     if (status) where.status = status;
+
+    /** Lọc dữ liệu theo User đang đăng nhập (chặn Manager xem của Admin) */
+    where.page = {
+      ...where.page,
+      fb_account: {
+        owner_user_id: req.user.sub
+      }
+    };
 
     const [reels, total] = await Promise.all([
       this.prisma.ztteam_reels.findMany({

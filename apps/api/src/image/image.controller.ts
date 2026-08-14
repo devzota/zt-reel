@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, Sse, MessageEvent, Header, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, Sse, MessageEvent, Header, Delete, Request } from '@nestjs/common';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ZTTeamImageProcessor } from './image.processor';
 import { PrismaService } from '../prisma/prisma.service';
@@ -72,6 +72,7 @@ export class ZTTeamImageController {
   @Get('list')
   @UseGuards(ZTTeamAuthGuard)
   async ztteam_listImages(
+    @Request() req: any,
     @Query('fbPageId') fbPageId: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
@@ -87,6 +88,14 @@ export class ZTTeamImageController {
       }
       where.page_id = p.id;
     }
+
+    /** Lọc dữ liệu theo User đang đăng nhập */
+    where.page = {
+      ...where.page,
+      fb_account: {
+        owner_user_id: req.user.sub
+      }
+    };
     
     const [images, total] = await Promise.all([
       this.prisma.ztteam_images.findMany({
