@@ -90,9 +90,9 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           {page.avatar ? (
-            <img src={page.avatar} alt={page.name} className="w-10 h-10 rounded-xl object-cover bg-slate-100" />
+            <img src={page.avatar} alt={page.name} className="w-11 h-11 rounded-2xl object-cover bg-slate-100 border border-slate-200/60 shadow-sm" />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center">
+            <div className="w-11 h-11 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shadow-sm">
               <span className="material-symbols-outlined">pages</span>
             </div>
           )}
@@ -100,15 +100,43 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
             <p className="font-bold text-gray-900">{page.name}</p>
             <div className="flex flex-col gap-1 mt-0.5">
               <span className="text-[12px] text-gray-500">ID: {page.id}</span>
-              {page.tags && page.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {page.tags.map((t: string) => (
-                    <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
+              
+              {/* Mini Status Indicators under Page Name */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                {page.autoPublishEnabled !== false ? (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    ĐĂNG: BẬT
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    ĐĂNG: TẮT
+                  </span>
+                )}
+
+                {page.autoCreateEnabled ? (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    TẠO: BẬT
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    TẠO: TẮT
+                  </span>
+                )}
+
+                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200/60 rounded-full text-[10px] font-extrabold">
+                  🎨 {page.defaultReelTemplateName || 'Template Mặc định'}
+                </span>
+
+                {page.tags && page.tags.length > 0 && page.tags.map((t: string) => (
+                  <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold">
+                    {t}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -161,12 +189,12 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
       </td>
       <td className="px-6 py-4">
         {isExpired ? (
-          <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
+          <div className="flex items-center gap-2 text-red-600 font-bold text-sm bg-red-50 px-3 py-1 rounded-full border border-red-200/60 w-fit">
             <span className="material-symbols-outlined text-[16px]">error</span>
             <span>Expired</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+          <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60 w-fit">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Connected</span>
           </div>
@@ -219,59 +247,101 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
     </tr>
     <tr>
         <td colSpan={6} className="px-6 pb-6 pt-2 border-b border-slate-100">
-          <div className="bg-slate-50/50 border border-slate-200/60 rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-slate-50/60 border border-slate-200/60 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4 shadow-sm">
+            {/* Column 1: Auto Publish Configuration */}
             <div>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Cấu hình Đăng bài</p>
-              <div className="flex flex-col gap-1">
-                <span className={`text-sm font-semibold ${page.autoPublishEnabled !== false ? 'text-gray-700' : 'text-gray-400'}`}>
-                  {page.autoPublishEnabled !== false 
-                    ? (page.scheduleMode === 'immediate' ? 'Đang bật (Giãn cách)' : 'Đang bật (Giờ cố định)') 
-                    : 'Đang tắt tự động đăng'}
-                </span>
+              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Đăng Bài</p>
+              <div className="flex flex-col gap-1.5">
+                {page.autoPublishEnabled !== false ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>🟢 Đang BẬT tự động đăng</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span>🔴 Đã TẮT tự động đăng</span>
+                  </div>
+                )}
+
                 {page.autoPublishEnabled !== false && page.scheduleMode === 'immediate' && (
-                  <span className="text-xs text-gray-500">Giãn cách: {page.scheduleImmediateGapMinutes} phút</span>
+                  <span className="text-xs font-medium text-slate-600">Giãn cách: <b>{page.scheduleImmediateGapMinutes} phút/bài</b></span>
                 )}
                 {page.autoPublishEnabled !== false && page.scheduleMode === 'fixed' && page.scheduleFixedTimes && (
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {page.scheduleFixedTimes.map((t: string) => (
-                      <span key={t} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">{t}</span>
+                      <span key={t} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200/60 text-[10px] font-extrabold rounded-md">{t}</span>
                     ))}
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Column 2: Auto Create Configuration & Template */}
             <div>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Cấu hình Tạo Video</p>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-semibold text-gray-700">
-                  {page.autoCreateEnabled ? 'Đang bật tự động tạo' : 'Đang tắt'}
-                </span>
-                {page.autoCreateEnabled && (
-                  <span className="text-xs text-gray-500">Chu kỳ: {page.autoScanIntervalHours} tiếng/lần</span>
+              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Tạo Video</p>
+              <div className="flex flex-col gap-1.5">
+                {page.autoCreateEnabled ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>🟢 Đang BẬT tự động tạo</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span>🔴 Đã TẮT tự động tạo</span>
+                  </div>
                 )}
-                {/* REEL TEMPLATE BADGE REMOVED AS PER AUTO ONLY LOGIC */}
+
+                {page.autoCreateEnabled && (
+                  <span className="text-xs font-medium text-slate-600">Chu kỳ quét: <b>{page.autoScanIntervalHours} tiếng/lần</b></span>
+                )}
+
+                {/* PROMINENT REEL TEMPLATE BADGE */}
+                <div className="mt-1 pt-1.5 border-t border-slate-200/60">
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200/60 inline-flex items-center gap-1 shadow-sm">
+                    🎨 Giao diện: <b>{page.defaultReelTemplateName || 'Mặc định'}</b>
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Column 3: Next Scheduled Post */}
             <div>
-              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Bài chuẩn bị đăng</p>
-              <div className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-gray-900 leading-snug" title={ztteam_decodeHtmlEntity(page.nextVideoTitle) || ''}>
-                  {page.nextVideoTitle ? ztteam_decodeHtmlEntity(page.nextVideoTitle) : 'Không có bài chờ'}
+              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Bài Chuẩn Bị Đăng</p>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug" title={ztteam_decodeHtmlEntity(page.nextVideoTitle) || ''}>
+                  {page.nextVideoTitle ? ztteam_decodeHtmlEntity(page.nextVideoTitle) : 'Chưa có bài chờ trong hàng đợi'}
                 </span>
-                <span className="text-[11px] font-semibold text-emerald-600 mt-0.5">
-                  {page.autoPublishEnabled !== false ? ztteam_formatDate(page.nextPublishTime) : 'Tắt tự động đăng'}
-                </span>
+                {page.autoPublishEnabled !== false ? (
+                  <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    {ztteam_formatDate(page.nextPublishTime)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">block</span>
+                    Đã tắt tự động đăng
+                  </span>
+                )}
               </div>
             </div>
 
+            {/* Column 4: Next Render Scan Time */}
             <div>
-              <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">Lần lấy bài tiếp theo</p>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-bold text-gray-900 truncate">
-                  {page.autoCreateEnabled ? ztteam_formatDate(page.nextRenderTime) : 'N/A'}
-                </span>
+              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Lịch Tạo Video Tiếp Theo</p>
+              <div className="flex flex-col gap-1.5">
+                {page.autoCreateEnabled ? (
+                  <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">update</span>
+                    {ztteam_formatDate(page.nextRenderTime)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">block</span>
+                    Đã tắt tự động tạo
+                  </span>
+                )}
               </div>
             </div>
           </div>
