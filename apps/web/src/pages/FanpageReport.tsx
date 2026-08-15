@@ -168,7 +168,19 @@ export default function FanpageReport() {
           {page && (
             <div className="flex items-center gap-4">
               {page.avatar ? (
-                <img src={page.avatar} alt={page.name} className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm shrink-0" />
+                <img 
+                  src={page.avatar} 
+                  alt={page.name} 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.fallback) {
+                      target.dataset.fallback = 'true';
+                      target.src = `https://graph.facebook.com/${page.fb_page_id || page.id}/picture?type=large`;
+                    }
+                  }}
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm shrink-0" 
+                />
               ) : (
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-2xl">pages</span>

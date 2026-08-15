@@ -90,7 +90,19 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           {page.avatar ? (
-            <img src={page.avatar} alt={page.name} className="w-11 h-11 rounded-2xl object-cover bg-slate-100 border border-slate-200/60 shadow-sm" />
+            <img 
+              src={page.avatar} 
+              alt={page.name} 
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.dataset.fallback) {
+                  target.dataset.fallback = 'true';
+                  target.src = `https://graph.facebook.com/${page.fb_page_id || page.id}/picture?type=large`;
+                }
+              }}
+              className="w-11 h-11 rounded-2xl object-cover bg-slate-100 border border-slate-200/60 shadow-sm" 
+            />
           ) : (
             <div className="w-11 h-11 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shadow-sm">
               <span className="material-symbols-outlined">pages</span>
