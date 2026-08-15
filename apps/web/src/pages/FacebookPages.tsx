@@ -105,30 +105,31 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 {page.autoPublishEnabled !== false ? (
                   <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="material-symbols-outlined text-[12px]">play_circle</span>
                     ĐĂNG: BẬT
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    <span className="material-symbols-outlined text-[12px]">pause_circle</span>
                     ĐĂNG: TẮT
                   </span>
                 )}
 
                 {page.autoCreateEnabled ? (
                   <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="material-symbols-outlined text-[12px]">videocam</span>
                     TẠO: BẬT
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    <span className="material-symbols-outlined text-[12px]">videocam_off</span>
                     TẠO: TẮT
                   </span>
                 )}
 
-                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200/60 rounded-full text-[10px] font-extrabold">
-                  🎨 {page.defaultReelTemplateName || 'Template Mặc định'}
+                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">palette</span>
+                  {page.defaultReelTemplateName || 'Template Mặc định'}
                 </span>
 
                 {page.tags && page.tags.length > 0 && page.tags.map((t: string) => (
@@ -253,14 +254,14 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Đăng Bài</p>
               <div className="flex flex-col gap-1.5">
                 {page.autoPublishEnabled !== false ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>🟢 Đang BẬT tự động đăng</span>
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    <span>Đang BẬT tự động đăng</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span>🔴 Đã TẮT tự động đăng</span>
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[14px]">cancel</span>
+                    <span>Đã TẮT tự động đăng</span>
                   </div>
                 )}
 
@@ -282,14 +283,14 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Tạo Video</p>
               <div className="flex flex-col gap-1.5">
                 {page.autoCreateEnabled ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>🟢 Đang BẬT tự động tạo</span>
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[14px]">video_settings</span>
+                    <span>Đang BẬT tự động tạo</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span>🔴 Đã TẮT tự động tạo</span>
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[14px]">block</span>
+                    <span>Đã TẮT tự động tạo</span>
                   </div>
                 )}
 
@@ -297,10 +298,11 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
                   <span className="text-xs font-medium text-slate-600">Chu kỳ quét: <b>{page.autoScanIntervalHours} tiếng/lần</b></span>
                 )}
 
-                {/* PROMINENT REEL TEMPLATE BADGE */}
-                <div className="mt-1 pt-1.5 border-t border-slate-200/60">
-                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200/60 inline-flex items-center gap-1 shadow-sm">
-                    🎨 Giao diện: <b>{page.defaultReelTemplateName || 'Mặc định'}</b>
+                {/* REEL TEMPLATE BADGE WITHOUT TOP BORDER */}
+                <div className="mt-1 flex items-center gap-1">
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">palette</span>
+                    Giao diện: <b>{page.defaultReelTemplateName || 'Mặc định'}</b>
                   </span>
                 </div>
               </div>
