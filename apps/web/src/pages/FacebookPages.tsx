@@ -116,31 +116,31 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               {/* Mini Status Indicators under Page Name */}
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 {page.autoPublishEnabled !== false ? (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">play_circle</span>
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] leading-none">play_circle</span>
                     ĐĂNG: BẬT
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">pause_circle</span>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] leading-none">pause_circle</span>
                     ĐĂNG: TẮT
                   </span>
                 )}
 
                 {page.autoCreateEnabled ? (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">videocam</span>
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] leading-none">videocam</span>
                     TẠO: BẬT
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">videocam_off</span>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] leading-none">videocam_off</span>
                     TẠO: TẮT
                   </span>
                 )}
 
-                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-extrabold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px]">palette</span>
+                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px] leading-none">palette</span>
                   {page.defaultReelTemplateName || 'Template Mặc định'}
                 </span>
 
@@ -202,12 +202,12 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
       </td>
       <td className="px-6 py-4">
         {isExpired ? (
-          <div className="flex items-center gap-2 text-red-600 font-bold text-sm bg-red-50 px-3 py-1 rounded-full border border-red-200/60 w-fit">
-            <span className="material-symbols-outlined text-[16px]">error</span>
+          <div className="flex items-center gap-1.5 text-red-600 font-bold text-xs bg-red-50 px-2.5 py-1 rounded-full border border-red-200/60 w-fit">
+            <span className="material-symbols-outlined text-[14px] leading-none">error</span>
             <span>Expired</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60 w-fit">
+          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60 w-fit">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Connected</span>
           </div>
@@ -218,42 +218,42 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
           <button 
             onClick={() => handleTestPost(page.id)}
             disabled={testingPageId === page.id || isExpired}
-            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50" 
+            className="w-8 h-8 flex items-center justify-center text-primary hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50" 
             title="Test đăng bài"
           >
-            <span className={`material-symbols-outlined text-[20px] ${testingPageId === page.id ? 'animate-spin' : ''}`}>
+            <span className={`material-symbols-outlined text-[18px] ${testingPageId === page.id ? 'animate-spin' : ''}`}>
               {testingPageId === page.id ? 'sync' : 'send'}
             </span>
           </button>
           <button 
             onClick={() => navigate(`/facebook/pages/${page.id}/settings`)}
-            className="w-10 h-10 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors" 
+            className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors" 
             title="Cấu hình Fanpage"
           >
-            <span className="material-symbols-outlined text-[20px]">settings</span>
+            <span className="material-symbols-outlined text-[18px]">settings</span>
           </button>
           <button 
             onClick={() => navigate(`/facebook/pages/${page.id}/report`)}
-            className="w-10 h-10 flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded-full transition-colors" 
+            className="w-8 h-8 flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded-full transition-colors" 
             title="Thống kê"
           >
-            <span className="material-symbols-outlined text-[20px]">query_stats</span>
+            <span className="material-symbols-outlined text-[18px]">query_stats</span>
           </button>
           <a 
             href={`https://facebook.com/${page.fb_page_id || page.id}`} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="w-10 h-10 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-full transition-colors" 
+            className="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-full transition-colors" 
             title="Xem page"
           >
-            <span className="material-symbols-outlined text-[20px]">open_in_new</span>
+            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
           </a>
           <button 
             onClick={handleDeletePage}
-            className="w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors ml-1" 
+            className="w-8 h-8 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors ml-0.5" 
             title="Xóa Fanpage"
           >
-            <span className="material-symbols-outlined text-[20px]">delete</span>
+            <span className="material-symbols-outlined text-[18px]">delete</span>
           </button>
         </div>
       </td>
@@ -266,13 +266,13 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Đăng Bài</p>
               <div className="flex flex-col gap-1.5">
                 {page.autoPublishEnabled !== false ? (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
-                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[13px] leading-none">check_circle</span>
                     <span>Đang BẬT tự động đăng</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
-                    <span className="material-symbols-outlined text-[14px]">cancel</span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[13px] leading-none">cancel</span>
                     <span>Đã TẮT tự động đăng</span>
                   </div>
                 )}
@@ -295,13 +295,13 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-2">Cấu hình Tạo Video</p>
               <div className="flex flex-col gap-1.5">
                 {page.autoCreateEnabled ? (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
-                    <span className="material-symbols-outlined text-[14px]">video_settings</span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[13px] leading-none">video_settings</span>
                     <span>Đang BẬT tự động tạo</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
-                    <span className="material-symbols-outlined text-[14px]">block</span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-200/60 w-fit">
+                    <span className="material-symbols-outlined text-[13px] leading-none">block</span>
                     <span>Đã TẮT tự động tạo</span>
                   </div>
                 )}
@@ -312,8 +312,8 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
 
                 {/* REEL TEMPLATE BADGE WITHOUT TOP BORDER */}
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full inline-flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">palette</span>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] leading-none">palette</span>
                     Giao diện: <b>{page.defaultReelTemplateName || 'Mặc định'}</b>
                   </span>
                 </div>
@@ -329,12 +329,12 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
                 </span>
                 {page.autoPublishEnabled !== false ? (
                   <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    <span className="material-symbols-outlined text-[14px]">schedule</span>
                     {ztteam_formatDate(page.nextPublishTime)}
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">block</span>
+                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">block</span>
                     Đã tắt tự động đăng
                   </span>
                 )}
@@ -347,12 +347,12 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
               <div className="flex flex-col gap-1.5">
                 {page.autoCreateEnabled ? (
                   <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">update</span>
+                    <span className="material-symbols-outlined text-[14px]">update</span>
                     {ztteam_formatDate(page.nextRenderTime)}
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">block</span>
+                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200/60 w-fit flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">block</span>
                     Đã tắt tự động tạo
                   </span>
                 )}
