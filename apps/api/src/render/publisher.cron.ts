@@ -80,13 +80,21 @@ export class ZTTeamPublisherCron {
           continue;
         }
 
-        /** Lấy bài đăng gần nhất (Reel hoặc Ảnh) của Page này để tính khoảng cách thời gian */
+        /** Lấy bài đăng gần nhất (thành công HOẶC thất bại) của Page này để tính khoảng cách thời gian. 
+         * Điều này giúp ngăn chặn việc cố đăng liên tục nhiều bài nếu bài đầu tiên bị lỗi (vì vẫn nằm trong khung 5 phút). 
+         */
         const lastPostedReel = await this.prisma.ztteam_reels.findFirst({
-          where: { page_id: pageId, is_posted: true },
+          where: { 
+            page_id: pageId, 
+            OR: [{ is_posted: true }, { status: 'FAILED' }] 
+          },
           orderBy: { updated_at: 'desc' }
         });
         const lastPostedImage = await this.prisma.ztteam_images.findFirst({
-          where: { page_id: pageId, is_posted: true },
+          where: { 
+            page_id: pageId, 
+            OR: [{ is_posted: true }, { status: 'FAILED' }] 
+          },
           orderBy: { updated_at: 'desc' }
         });
 
@@ -94,11 +102,12 @@ export class ZTTeamPublisherCron {
         let lastPostType: 'reel' | 'image' | null = null;
 
         if (lastPostedReel) {
-          lastPostTime = lastPostedReel.posted_at ? new Date(lastPostedReel.posted_at) : new Date(lastPostedReel.updated_at);
+          /** Dùng updated_at thay vì posted_at vì có thể nó là FAILED */
+          lastPostTime = new Date(lastPostedReel.updated_at);
           lastPostType = 'reel';
         }
         if (lastPostedImage) {
-          const imageTime = lastPostedImage.posted_at ? new Date(lastPostedImage.posted_at) : new Date(lastPostedImage.updated_at);
+          const imageTime = new Date(lastPostedImage.updated_at);
           if (!lastPostTime || imageTime > lastPostTime) {
             lastPostTime = imageTime;
             lastPostType = 'image';
@@ -271,14 +280,19 @@ export class ZTTeamPublisherCron {
       this.eventEmitter.emit('reel.updated', { id: reel.id, status: 'POSTED', fb_post_id: response.id });
       this.logger.log(`Reel ${reel.id} successfully auto-published to page ${page.name}`);
     } catch (error: any) {
-      this.logger.error(`Failed to auto-publish reel ${reel.id}: ${error.message}`);
+      let errorMsg = error.message;
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMsg = error.response.data.error.message || error.response.data.error.type || 'Facebook API Error';
+      }
+
+      this.logger.error(`Failed to auto-publish reel ${reel.id}: ${errorMsg}`);
 
       /** Đánh dấu FAILED ngay lập tức và báo Telegram */
       await this.prisma.ztteam_reels.update({
         where: { id: reel.id },
         data: {
           status: 'FAILED',
-          error_log: `Lỗi đăng bài: ${error.message}`
+          error_log: `Lỗi đăng bài: ${errorMsg}`
         }
       });
 
@@ -286,7 +300,7 @@ export class ZTTeamPublisherCron {
         `🚨 *[LỖI TỰ ĐỘNG ĐĂNG VIDEO]*\n\n` +
         `• *Fanpage:* ${page.name || 'Không rõ'}\n` +
         `• *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
-        `• *Lỗi:* ${error.message}\n\n` +
+        `• *Lỗi:* ${errorMsg}\n\n` +
         `❌ Vui lòng vào Web để kiểm tra và đăng thủ công!`
       );
     }
@@ -354,7 +368,7 @@ export class ZTTeamPublisherCron {
             '🔗 Learn more at:'
           ];
           const commentPrefix = commentPrefixes[Math.floor(Math.random() * commentPrefixes.length)];
-          const commentText = image.ai_first_comment 
+          const commentText = image.ai_first_comment
             ? `${image.ai_first_comment}\n\n${commentPrefix} ${trackingLink}`
             : `${commentPrefix} ${trackingLink}`;
           await this.facebookService.ztteam_publishComment(page.fb_page_id, fbPostId, commentText);
