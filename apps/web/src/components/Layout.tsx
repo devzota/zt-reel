@@ -41,6 +41,7 @@ export default function Layout() {
         { to: '/facebook', icon: 'qr_code_2', label: 'Facebook Pages', hasSubmenu: true },
         { to: '/wordpress', icon: 'language', label: 'WordPress & Crawler' },
         { to: '/youtube', icon: 'smart_display', label: 'Nguồn YouTube' },
+        { to: '/tiktok-clone', icon: 'content_copy', label: 'TikTok Clone' },
         { to: '/reel-factory', icon: 'movie_filter', label: 'AI Reel Factory' },
         { to: '/image-factory', icon: 'image', label: 'AI Image Factory' },
         { to: '/youtube-test', icon: 'smart_display', label: 'Kiểm thử YouTube' },

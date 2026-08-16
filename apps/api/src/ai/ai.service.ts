@@ -12,7 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ZTTeamAIService {
   private readonly logger = new Logger('ZTTeamAIService');
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private async getSettings() {
     const records = await this.prisma.ztteam_settings.findMany({
@@ -24,13 +24,58 @@ export class ZTTeamAIService {
     });
     const settings: Record<string, string> = {};
     records.forEach(r => settings[r.key] = r.value);
-    
+
     return {
       activeProvider: settings['active_ai_provider'] || 'openai',
       openaiKey: settings['openai_api_key'] || process.env.OPENAI_API_KEY,
       deepseekKey: settings['deepseek_api_key'] || process.env.DEEPSEEK_API_KEY,
       geminiKey: settings['gemini_api_key'] || process.env.GEMINI_API_KEY
     };
+  }
+
+  /**
+   * Generate a simple short caption for YouTube videos
+   */
+  async ztteam_generateShortCaption(promptText: string): Promise<string> {
+    const settings = await this.getSettings();
+    if (!settings.openaiKey && !settings.deepseekKey && !settings.geminiKey) {
+      this.logger.warn('No API keys found, returning default caption');
+      return 'Awesome short video!';
+    }
+    try {
+      if (settings.activeProvider === 'gemini' && settings.geminiKey) {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(settings.geminiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(promptText);
+        const response = await result.response;
+        return response.text().trim();
+      } else {
+        const OpenAI = require('openai').default;
+        const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
+        const rawKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const apiKey = (rawKey || '').trim();
+        const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
+        const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
+
+        if (!apiKey) throw new Error(`Missing API Key for ${settings.activeProvider}`);
+
+        const openai = new OpenAI({ apiKey, baseURL });
+        const response = await openai.chat.completions.create({
+          model: modelName,
+          messages: [
+            { role: 'user', content: promptText }
+          ],
+          max_tokens: 300,
+          temperature: 0.8,
+        });
+
+        return response.choices[0]?.message?.content?.trim() || 'Awesome short video!';
+      }
+    } catch (e: any) {
+      this.logger.error(`Error generating short caption: ${e.message}`);
+      return 'Awesome short video!';
+    }
   }
 
   /**
@@ -89,7 +134,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
             maxOutputTokens: Math.max(150, Math.round(maxWords * 2.5)),
           }
         });
-        
+
         const result = await model.generateContent(`${promptWithRules}\n\n${userContent}`);
         const text = result.response.text();
         const jsonResult = JSON.parse(text || '{}');
@@ -122,7 +167,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
 
         const resultString = response.choices[0]?.message?.content?.trim() || '{}';
         const result = JSON.parse(resultString);
-        
+
         this.logger.log(`Script generated: Hook="${result.hook}"`);
         return {
           caption: result.caption || '',
@@ -184,7 +229,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
             maxOutputTokens: 500,
           }
         });
-        
+
         const result = await model.generateContent(`${promptWithRules}\n\n${userContent}`);
         const text = result.response.text();
         const jsonResult = JSON.parse(text || '{}');
@@ -215,7 +260,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
 
         const resultString = response.choices[0]?.message?.content?.trim() || '{}';
         const result = JSON.parse(resultString);
-        
+
         return {
           caption: result.caption || '',
           comment: result.comment || ''
@@ -228,9 +273,10 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
   }
 
   /**
-   * Generate subtitle timing data from a script.
-   * Splits the script into sentences and assigns timestamps evenly across the audio duration.
-   * @param script - The script text
+   * Generate subtitles with precise timing synchronization.
+   * Uses smart chunking (breaks on punctuation like commas and periods)
+   * and calculates sentence durations using speech pause weights to match natural TTS audio timing.
+   * @param script - Full text script
    * @param audioDuration - Total audio duration in seconds
    * @returns Array of subtitle entries with start, end, and text
    */
@@ -238,19 +284,71 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
     script: string,
     audioDuration: number,
   ): Array<{ start: number; end: number; text: string }> {
-    /** Split script into sentences by punctuation */
-    const sentences = script
-      .split(/(?<=[.!?。])\s+/)
-      .filter(s => s.trim().length > 0);
+    /** Clean text and split into words */
+    const cleanedScript = script.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = cleanedScript.split(' ').filter(w => w.length > 0);
+    
+    if (words.length === 0 || audioDuration <= 0) return [];
+
+    const sentences: string[] = [];
+    let currentChunk: string[] = [];
+
+    for (const word of words) {
+      currentChunk.push(word);
+      /** Break chunk if:
+       * 1. Reaches 6 words max (ideal for readable short video subtitles)
+       * 2. Ends with comma/semicolon/colon when chunk has >= 3 words
+       * 3. Ends with period/question/exclamation mark
+       */
+      const isSentenceEnd = /[.!?。]$/.test(word);
+      const isClauseEnd = /[,;:，；:]$/.test(word) && currentChunk.length >= 3;
+      const isMaxWords = currentChunk.length >= 6;
+
+      if (isSentenceEnd || isClauseEnd || isMaxWords) {
+        sentences.push(currentChunk.join(' '));
+        currentChunk = [];
+      }
+    }
+    if (currentChunk.length > 0) {
+      sentences.push(currentChunk.join(' '));
+    }
 
     if (sentences.length === 0) return [];
 
-    const segmentDuration = audioDuration / sentences.length;
-    return sentences.map((text, i) => ({
-      start: Math.round(i * segmentDuration * 100) / 100,
-      end: Math.round((i + 1) * segmentDuration * 100) / 100,
-      text: text.trim(),
-    }));
+    /** 
+     * Calculate speech weight for each sentence chunk:
+     * - Base weight: 0.28s per word
+     * - Character weight: 0.04s per character
+     * - Comma/Clause pause weight: +0.35s
+     * - Sentence end pause weight: +0.55s
+     */
+    const weights = sentences.map(text => {
+      const wordCount = text.split(/\s+/).length;
+      const charCount = text.length;
+      const hasPause = /[,;:，；:]$/.test(text);
+      const hasStop = /[.!?。]$/.test(text);
+
+      let weight = (wordCount * 0.28) + (charCount * 0.04);
+      if (hasPause) weight += 0.35;
+      if (hasStop) weight += 0.55;
+
+      return Math.max(0.6, weight);
+    });
+
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+    let currentTime = 0;
+    
+    return sentences.map((text, i) => {
+      const sentenceDuration = (weights[i] / totalWeight) * audioDuration;
+      
+      const start = Math.round(currentTime * 100) / 100;
+      const end = Math.round((currentTime + sentenceDuration) * 100) / 100;
+      
+      currentTime = end;
+      
+      return { start, end, text: text.trim() };
+    });
   }
 
   /**
@@ -287,8 +385,8 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Noto Sans,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,8,40,40,${marginV},1
-Style: Hook,Montserrat,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,8,40,40,${topMarginV},1
+Style: Default,Montserrat Black,60,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,0,2,8,40,40,${marginV},1
+Style: Hook,Montserrat Black,70,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,0,3,8,40,40,${topMarginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -304,7 +402,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       const durationSec = sub.end - sub.start;
       const words = sub.text.split(' ').filter(w => w.trim().length > 0);
       if (words.length === 0) continue;
-      
+
       /** Fake karaoke effect: split duration equally among words */
       const wordDurationCs = Math.round((durationSec * 100) / words.length);
       const karaokeText = words.map(w => `{\\k${wordDurationCs}}${w}`).join(' ');
@@ -319,5 +417,145 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   private ztteam_getMockScript(postContent: string): string {
     const firstSentence = postContent.split(/[.!?]/)[0]?.trim() || 'Tin tức nóng hổi';
     return `Bạn có biết? ${firstSentence}. Đây là thông tin bạn không nên bỏ lỡ. Theo dõi ngay để cập nhật thêm!`;
+  }
+
+  /**
+   * Transcribe an audio file using OpenAI Whisper (Speech to Text)
+   * @param audioPath - Path to the local MP3/WAV file
+   * @returns The transcribed text
+   */
+  async ztteam_transcribeAudio(audioPath: string): Promise<string> {
+    const settings = await this.getSettings();
+    if (!settings.openaiKey) {
+      throw new Error('Bạn chưa cấu hình OpenAI API Key để dùng Whisper.');
+    }
+
+    this.logger.log(`Transcribing audio: ${audioPath}`);
+    const fs = require('fs');
+
+    try {
+      const OpenAI = require('openai').default;
+      const openai = new OpenAI({ apiKey: settings.openaiKey.trim() });
+
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: 'whisper-1',
+        language: 'vi',
+        prompt: 'Đây là một video TikTok tiếng Việt. Nếu có đoạn nhạc không lời hoặc im lặng, hãy bỏ qua và không ghi gì cả.',
+        temperature: 0,
+      });
+
+      let text = transcription.text.trim();
+
+      /** Basic filter for common Whisper hallucinations on silence/music */
+      const hallucinations = ['Biên lơn thắng cô hồn', 'cảm ơn các bạn', 'đăng ký kênh', 'hẹn gặp lại', 'chúc các bạn', 'Amara.org'];
+      for (const h of hallucinations) {
+        if (text.toLowerCase().includes(h.toLowerCase()) && text.length < 50) {
+          text = '';
+        }
+      }
+
+      return text;
+    } catch (error: any) {
+      this.logger.error(`Error transcribing audio: ${error.message}`);
+      throw new Error('Lỗi chuyển đổi giọng nói thành văn bản: ' + error.message);
+    }
+  }
+
+  /**
+   * Rewrite an original script (e.g. from TikTok) into a new, unique script for a Reel.
+   * @param originalText - The transcribed text from original video
+   * @param customPrompt - Optional custom instructions
+   * @returns The generated script object
+   */
+  async ztteam_rewriteTikTokScript(
+    originalText: string,
+    customPrompt?: string | null,
+  ): Promise<{ caption: string; hook: string; sub_voice: string }> {
+    this.logger.log(`Rewriting TikTok script`);
+
+    const settings = await this.getSettings();
+    if (!settings.openaiKey && !settings.deepseekKey && !settings.geminiKey) {
+      throw new Error('Chưa cấu hình API Key (OpenAI/Gemini/Deepseek) để viết lại kịch bản.');
+    }
+
+    const defaultSystemPrompt = `Bạn là chuyên gia Reup nội dung Video ngắn (Reel/TikTok) chuyên nghiệp.
+Dưới đây là nội dung bóc băng từ một video TikTok của người khác. Nhiệm vụ của bạn là VIẾT LẠI (Rephrase) kịch bản này để làm một video mới.
+
+QUY TẮC TUYỆT ĐỐI CẦN TUÂN THỦ:
+- BÁM SÁT NỘI DUNG GỐC: Bạn PHẢI giữ nguyên ý nghĩa cốt lõi của bản gốc.
+- NGẮN GỌN & GIẬT GÂN: Kịch bản mới phải mang hơi hướng kịch tính, giật gân, gây sốc nhẹ hoặc tò mò tột độ. Viết thật ngắn gọn, súc tích (khoảng 80 - 120 từ).
+- CHỈ THAY ĐỔI CÂU TỪ: Hãy diễn đạt lại bằng từ đồng nghĩa, tuyệt đối không trùng lặp từ ngữ với bản gốc (để lách bản quyền).
+- Hook (Câu đầu tiên) phải cực kỳ giật gân và thu hút.
+- BẮT BUỘC Ở CUỐI VIDEO: Bạn phải thêm chính xác câu này vào cuối kịch bản: "Liên hệ với chúng tôi qua Zalo 0919901493 hoặc gọi trực tiếp để được hỗ trợ nhanh hơn".
+- KHÔNG dùng emoji, hashtag, hay kí tự đặc biệt trong kịch bản giọng đọc (sub_voice).`;
+
+    const systemPrompt = customPrompt ? customPrompt : defaultSystemPrompt;
+    const promptWithRules = `${systemPrompt}
+
+IMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN VIETNAMESE.
+YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
+{
+  "caption": "A catchy social media caption (with hashtags)",
+  "hook": "A short, engaging text hook to display on the video",
+  "sub_voice": "The spoken script for the voiceover. BẮT BUỘC PHẢI KẾT THÚC BẰNG CÂU LIÊN HỆ ZALO 0919901493."
+}`;
+
+    const userContent = `Original Script:\n\n${originalText.substring(0, 3000)}`;
+
+    try {
+      if (settings.activeProvider === 'gemini' && settings.geminiKey) {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(settings.geminiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.8,
+            maxOutputTokens: 500,
+          }
+        });
+
+        const result = await model.generateContent(`${promptWithRules}\n\n${userContent}`);
+        const text = result.response.text();
+        const jsonResult = JSON.parse(text || '{}');
+        return {
+          caption: jsonResult.caption || '',
+          hook: jsonResult.hook || '',
+          sub_voice: jsonResult.sub_voice || ''
+        };
+      } else {
+        const OpenAI = require('openai').default;
+        const isDeepseek = settings.activeProvider === 'deepseek' && settings.deepseekKey;
+        const rawKey = isDeepseek ? settings.deepseekKey : settings.openaiKey;
+        const apiKey = (rawKey || '').trim();
+        const baseURL = isDeepseek ? 'https://api.deepseek.com' : undefined;
+        const modelName = isDeepseek ? 'deepseek-chat' : 'gpt-4o-mini';
+
+        const openai = new OpenAI({ apiKey, baseURL });
+        const response = await openai.chat.completions.create({
+          model: modelName,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: promptWithRules },
+            { role: 'user', content: userContent },
+          ],
+          max_tokens: 500,
+          temperature: 0.8,
+        });
+
+        const resultString = response.choices[0]?.message?.content?.trim() || '{}';
+        const result = JSON.parse(resultString);
+
+        return {
+          caption: result.caption || '',
+          hook: result.hook || '',
+          sub_voice: result.sub_voice || ''
+        };
+      }
+    } catch (error: any) {
+      this.logger.error(`AI rewrite failed: ${error.message}`);
+      throw new Error('Lỗi khi AI viết lại kịch bản: ' + error.message);
+    }
   }
 }

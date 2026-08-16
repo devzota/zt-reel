@@ -11,6 +11,9 @@ import SystemSettingsPage from './pages/SystemSettingsPage'
 import Login from './pages/Login'
 import FanpageReport from './pages/FanpageReport'
 import UserManagement from './pages/UserManagement'
+import YoutubeTest from './pages/YoutubeTest'
+import YoutubeSources from './pages/YoutubeSources'
+import TiktokClone from './pages/TiktokClone'
 import { useZTTeamAuthStore } from './stores/authStore'
 import './index.css'
 
@@ -42,9 +45,12 @@ function App() {
           <Route path="facebook/pages/:id/settings" element={<FacebookPageSettings />} />
           <Route path="facebook/pages/:id/report" element={<FanpageReport />} />
           <Route path="wordpress" element={<WordPressSites />} />
+          <Route path="youtube" element={<YoutubeSources />} />
+          <Route path="tiktok-clone" element={<TiktokClone />} />
           <Route path="reel-factory" element={<ReelFactory />} />
           <Route path="image-factory" element={<ImageFactory />} />
           <Route path="statistics" element={<StatisticsPage />} />
+          <Route path="youtube-test" element={<YoutubeTest />} />
           <Route path="settings" element={<SystemSettingsPage />} />
           <Route path="users" element={<UserManagement />} />
         </Route>

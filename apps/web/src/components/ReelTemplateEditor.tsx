@@ -275,12 +275,18 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
                 <label className="block text-sm font-semibold text-slate-700 mb-1 pl-2">Giọng đọc riêng của template</label>
                 <select name="voice_id" value={formData.voice_id || ''} onChange={handleChange} className="w-full bg-gray-100 border-2 border-transparent focus:outline-none focus:ring-0 focus:border-primary rounded-full px-5 py-2.5 transition-colors appearance-none cursor-pointer">
                   <option value="">(theo Cài đặt chung)</option>
-                  <option value="alloy">Alloy (Nam, trung tính)</option>
-                  <option value="echo">Echo (Nam, ấm áp)</option>
-                  <option value="fable">Fable (Nam, Anh-Anh)</option>
-                  <option value="onyx">Onyx (Nam, trầm ấm)</option>
-                  <option value="nova">Nova (Nữ, năng động)</option>
-                  <option value="shimmer">Shimmer (Nữ, nhẹ nhàng)</option>
+                  <optgroup label="🇻🇳 Revid API (CapCut Tiếng Việt)">
+                    <option value="3001">Linh (CapCut Nữ - Truyền cảm, Tự nhiên)</option>
+                    <option value="8001">Ngọc Huyền (CapCut Nữ - Nhẹ nhàng, Hiện đại)</option>
+                  </optgroup>
+                  <optgroup label="🌐 OpenAI TTS (Quốc tế)">
+                    <option value="onyx">Onyx (Nam, trầm ấm)</option>
+                    <option value="alloy">Alloy (Nam, trung tính)</option>
+                    <option value="echo">Echo (Nam, ấm áp)</option>
+                    <option value="fable">Fable (Nam, Anh-Anh)</option>
+                    <option value="nova">Nova (Nữ, năng động)</option>
+                    <option value="shimmer">Shimmer (Nữ, nhẹ nhàng)</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="flex items-end">

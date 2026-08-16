@@ -3,16 +3,21 @@ import { FileInterceptor } from '@nestjs/platform-express';
 /** @ts-ignore */
 import { diskStorage } from 'multer';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { ZTTeamTemplatesService } from './templates.service';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ztteam_getTemplatesPath } from '../common/ztteam_storage.util';
-import OpenAI from 'openai';
+import { ZTTeamTTSService } from '../audio/tts.service';
 
 @Controller('templates')
 /** @UseGuards(ZTTeamAuthGuard) */
 export class ZTTeamTemplatesController {
 
-  constructor(private readonly templatesService: ZTTeamTemplatesService) {}
+  constructor(
+    private readonly templatesService: ZTTeamTemplatesService,
+    private readonly ttsService: ZTTeamTTSService,
+  ) {}
 
   @Get()
   ztteam_getTemplates(@Query('format') format?: string, @Query('pageId') pageId?: string) {
@@ -50,17 +55,18 @@ export class ZTTeamTemplatesController {
     return this.templatesService.ztteam_duplicateTemplate(id);
   }
 
-  @Post(':id/upload-bg')
+  @Post(':id/bg')
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: (req: any, file: any, cb: any) => {
-        cb(null, ztteam_getTemplatesPath());
+        const templatesPath = ztteam_getTemplatesPath();
+        cb(null, templatesPath);
       },
       filename: (req: any, file: any, cb: any) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, req.params.id + '-' + uniqueSuffix + path.extname(file.originalname));
+        cb(null, uniqueSuffix + path.extname(file.originalname));
       },
-    }),
+    })
   }))
   async ztteam_uploadBg(@Param('id') id: string, @UploadedFile() file: any) {
     const url = `/storage/templates/${file.filename}`;
@@ -70,27 +76,20 @@ export class ZTTeamTemplatesController {
   @Post('tts/test')
   async ztteam_testVoice(@Body() body: { voice: string, text: string }) {
     try {
-      const settingsDb = await this.templatesService['prisma'].ztteam_settings.findUnique({
-        where: { key: 'openai_api_key' },
-      });
-      const apiKey = (settingsDb?.value || process.env.OPENAI_API_KEY || '').trim();
-
-      if (!apiKey) {
-        return { url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', message: 'MOCK AUDIO (No API Key)' };
-      }
-      
-      const openai = new OpenAI({ apiKey });
-      const mp3 = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: body.voice as any || 'alloy',
-        input: body.text || 'Đây là bản nghe thử giọng đọc của hệ thống.',
-      });
-      const buffer = Buffer.from(await mp3.arrayBuffer());
+      const tempDir = path.join(os.tmpdir(), `test_tts_${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      const audioPath = await this.ttsService.ztteam_textToSpeech(
+        body.text || 'Đây là bản nghe thử giọng đọc của hệ thống.',
+        body.voice || 'Phạm Tuyên',
+        tempDir,
+      );
+      const buffer = fs.readFileSync(audioPath);
       const base64 = buffer.toString('base64');
+      fs.rmSync(tempDir, { recursive: true, force: true });
       return { url: `data:audio/mp3;base64,${base64}` };
     } catch (e: any) {
       throw new HttpException(
-        e.response?.data?.error?.message || e.message || 'Lỗi tạo giọng đọc',
+        e.message || 'Lỗi tạo giọng đọc',
         HttpStatus.BAD_REQUEST,
       );
     }

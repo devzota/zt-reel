@@ -33,7 +33,7 @@
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "@types/fluent-ffmpeg": "^2.1.28",
-    "axios": "^1.18.1",
+    "axios": "^1.19.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.81.2",
     "cheerio": "^1.2.0",

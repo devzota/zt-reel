@@ -17,6 +17,7 @@ export interface ZTTeamYoutubeMetadata {
 
 export interface ZTTeamYoutubeDownloadResult {
   filePath: string;
+  url: string;
   metadata: ZTTeamYoutubeMetadata;
 }
 
@@ -61,7 +62,7 @@ export class ZTTeamYoutubeService {
     const cmd = `yt-dlp --format "bv*[vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4]/b" --output "${outputTemplate}" --write-info-json --no-warnings "${url}"`;
 
     try {
-      await execAsync(cmd, { timeout: 120000 }); // 2 phút timeout
+      await execAsync(cmd, { timeout: 120000 }); /** 2 phút timeout */
     } catch (error: any) {
       this.logger.error(`yt-dlp failed for ${url}: ${error.message}`);
       throw new BadRequestException(`Lỗi tải video YouTube: ${error.message}`);
@@ -81,7 +82,7 @@ export class ZTTeamYoutubeService {
     try {
       const jsonContent = fs.readFileSync(jsonPath, 'utf8');
       metadata = JSON.parse(jsonContent);
-      // Clean up the info json file
+      /** Clean up the info json file */
       fs.unlinkSync(jsonPath);
     } catch (err) {
       this.logger.error(`Failed to parse json metadata for ${url}`);
@@ -114,12 +115,15 @@ export class ZTTeamYoutubeService {
 
     } catch (err: any) {
       this.logger.error(`FFprobe verification failed for ${videoFilePath}: ${err.message}`);
-      fs.unlinkSync(videoFilePath); // Xóa file lỗi
+      fs.unlinkSync(videoFilePath); /** Xóa file lỗi */
       throw new BadRequestException(`File video không hợp lệ hoặc bị hỏng trong quá trình tải.`);
     }
 
+    const fileName = path.basename(videoFilePath);
+
     return {
       filePath: videoFilePath,
+      url: `/storage/youtube/${fileName}`,
       metadata: {
         id: videoId,
         title: metadata.title || '',

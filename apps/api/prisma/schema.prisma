@@ -211,6 +211,8 @@ model ztteam_reel_history {
   id              String   @id @default(cuid())
   page_id         String
   wp_post_id      String
+  title           String?  @db.Text
+  description     String?  @db.Text
   created_at      DateTime @default(now())
 
   page            ztteam_pages @relation(fields: [page_id], references: [id], onDelete: Cascade)

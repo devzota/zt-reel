@@ -19,6 +19,8 @@ import { ZTTeamDashboardModule } from './dashboard/dashboard.module';
 import { ZTTeamSettingsModule } from './settings/settings.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { StorageModule } from './storage-cleanup/storage.module';
+import { YoutubeSourcesModule } from './youtube-sources/youtube-sources.module';
+import { TiktokCloneModule } from './tiktok-clone/tiktok-clone.module';
 
 @Module({
   imports: [
@@ -40,9 +42,10 @@ import { StorageModule } from './storage-cleanup/storage.module';
     ZTTeamSettingsModule,
     TelegramModule,
     StorageModule,
+    YoutubeSourcesModule,
+    TiktokCloneModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-

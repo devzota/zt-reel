@@ -28,9 +28,9 @@ export class ZTTeamFFmpegService {
     this.logger.log(`Preparing image: ${imagePath} for frame ${vw}x${vh}`);
 
     /**
-     * Scale the original image to fill the specified vw x vh frame without distortion (using crop)
+     * Keep original image ratio (fit) and fill the rest with a blurred version of the same image
      */
-    const cmd = `ffmpeg -y -i "${imagePath}" -vf "scale=${vw}:${vh}:force_original_aspect_ratio=increase,crop=${vw}:${vh}" -frames:v 1 "${outputPath}"`;
+    const cmd = `ffmpeg -y -i "${imagePath}" -vf "split[original][copy];[copy]scale=${vw}:${vh}:force_original_aspect_ratio=increase,crop=${vw}:${vh},boxblur=20:20[bg];[original]scale=${vw}:${vh}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -frames:v 1 "${outputPath}"`;
 
     try {
       execSync(cmd, { stdio: 'pipe', timeout: 30000 });
@@ -61,39 +61,64 @@ export class ZTTeamFFmpegService {
       throw new Error('Không có ảnh để tạo slideshow');
     }
 
-    const perImage = totalDuration / images.length;
-
-    /**
-     * Create a concat file for FFmpeg.
-     * Each image is displayed for perImage seconds.
-     */
-    const concatDir = path.dirname(outputPath);
-    const concatFile = path.join(concatDir, 'concat.txt');
-    const concatContent = images
-      .map(img => `file '${img.replace(/\\/g, '/')}'\nduration ${perImage}`)
-      .join('\n');
-    /** Add last image again without duration (FFmpeg concat requirement) */
-    const lastImage = images[images.length - 1].replace(/\\/g, '/');
-    fs.writeFileSync(concatFile, concatContent + `\nfile '${lastImage}'\n`);
-
-    /**
-     * Ken Burns effect: gentle zoom from 100% to 110% over each image's duration.
-     * zoompan filter: z starts at 1.0 and increases to 1.1, d = frames per image.
-     */
     const fps = 30;
-    const framesPerImage = Math.round(perImage * fps);
+    
+    // For xfade, we need overlaps. 
+    // Let's define a crossfade duration (e.g. 1 second).
+    const transitionDuration = 1;
+    const baseImageDur = 5; // Each image shows for roughly 5 seconds max
+    
+    // Calculate how many segments we need to fill totalDuration
+    let numImages = images.length;
+    let actualN = Math.max(numImages, Math.ceil((totalDuration - transitionDuration) / (baseImageDur - transitionDuration)));
+    if (actualN < 1) actualN = 1;
+    
+    const imageDur = actualN > 1 
+      ? (totalDuration + (actualN - 1) * transitionDuration) / actualN
+      : totalDuration;
 
-    const cmd = `ffmpeg -y -f concat -safe 0 -i "${concatFile}" -vf "zoompan=z='min(zoom+0.0015,1.1)':d=${framesPerImage}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${vw}x${vh}:fps=${fps}" -c:v libx264 -pix_fmt yuv420p -t ${totalDuration} "${outputPath}"`;
+    let inputs = '';
+    let filterComplex = '';
+
+    for (let i = 0; i < actualN; i++) {
+      const imgPath = images[i % images.length];
+      inputs += `-loop 1 -t ${imageDur} -i "${imgPath}" `;
+      // Just ensure it's in yuv420p format (no zoompan to avoid jitter)
+      filterComplex += `[${i}:v]format=yuv420p[v${i}];`;
+    }
+
+    if (actualN === 1) {
+      filterComplex += `[v0]copy[vout]`;
+    } else {
+      let lastOut = `v0`;
+      const xfadeTransitions = [
+        'fade', 'wipeleft', 'wiperight', 'wipeup', 'wipedown',
+        'slideleft', 'slideright', 'slideup', 'slidedown',
+        'smoothleft', 'smoothright', 'smoothup', 'smoothdown',
+        'rectcrop', 'circlecrop', 'circleclose', 'circleopen',
+        'horzclose', 'horzopen', 'vertclose', 'vertopen',
+        'diagbl', 'diagbr', 'diagtl', 'diagtr',
+        'hlslice', 'hrslice', 'vuslice', 'vdslice',
+        'distance', 'radial'
+      ];
+      
+      for (let i = 1; i < actualN; i++) {
+        const offset = (imageDur - transitionDuration) * i;
+        const outName = i === actualN - 1 ? 'vout' : `v_fade_${i}`;
+        const randomTransition = xfadeTransitions[Math.floor(Math.random() * xfadeTransitions.length)];
+        filterComplex += `[${lastOut}][v${i}]xfade=transition=${randomTransition}:duration=${transitionDuration}:offset=${offset}[${outName}];`;
+        lastOut = outName;
+      }
+    }
+
+    const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" -c:v libx264 -preset fast -t ${totalDuration} "${outputPath}"`;
 
     try {
       execSync(cmd, { stdio: 'pipe', timeout: 120000 });
       this.logger.log(`Slideshow created: ${outputPath}`);
     } catch (error: any) {
       this.logger.error(`Slideshow creation failed: ${error.message}`);
-      throw new Error(`Lỗi tạo slideshow: ${error.message}`);
-    } finally {
-      /** Clean up concat file */
-      if (fs.existsSync(concatFile)) fs.unlinkSync(concatFile);
+      throw new Error(`Lỗi tạo slideshow đa hiệu ứng: ${error.message}`);
     }
   }
 
@@ -136,10 +161,12 @@ export class ZTTeamFFmpegService {
 
     if (options.bgImagePath && fs.existsSync(options.bgImagePath)) {
       inputs = `-loop 1 -t ${duration} -i "${options.bgImagePath}" -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
-      filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}'[vout]`;
+      filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[1:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(Y,800),255,if(gt(Y,1280),0,255*pow((1280-Y)/480,2)))'[slide_faded];[bg][slide_faded]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
     } else {
-      inputs = `-f lavfi -i color=c=black:s=1080x1920 -t ${duration} -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
-      filterComplex = `[0:v][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}'[vout]`;
+      // Dynamic blurred background from the slideshow itself
+      // We add a dummy color input (0:v) to keep the input indices (3:a for voice) consistent with the bgImagePath branch
+      inputs = `-f lavfi -i color=c=black:s=10x10 -stream_loop -1 -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
+      filterComplex = `[1:v]scale=216:384:force_original_aspect_ratio=increase,crop=216:384,boxblur=10:10,scale=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
     }
     let audioMap = '';
 
