@@ -326,7 +326,7 @@ export default function StatisticsPage() {
           <div className="px-5 py-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between z-10">
             <div>
               <h3 className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight">Top Fanpage Xuất Sắc</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Xếp hạng theo lượt tương tác</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Xếp hạng theo lượt xem & follower mới</p>
             </div>
             <span className="flex items-center gap-1 text-[9px] uppercase font-bold text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded-md shadow-sm border border-emerald-200/50">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -392,15 +392,15 @@ export default function StatisticsPage() {
                       <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Đã đăng {page.published} bài</p>
                     </div>
                     
-                    {/* Stats Inline on Right */}
+                    {/* Stats Inline on Right: Views & New Followers */}
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg" title="Số bài đã đăng thành công trên Fanpage">
-                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                        <span className="text-[11px] font-black">{page.published} bài</span>
+                      <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg" title="Tổng lượt xem (Media Views) từ Facebook Insights">
+                        <span className="material-symbols-outlined text-[13px]">visibility</span>
+                        <span className="text-[11px] font-black">{page.views?.toLocaleString() || 0} xem</span>
                       </div>
-                      <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg" title="Tổng lượt tương tác (Like, React, Comment, Share) từ Facebook">
-                        <span className="material-symbols-outlined text-[13px]">trending_up</span>
-                        <span className="text-[11px] font-black">{page.interactions?.toLocaleString() || 0} TT</span>
+                      <div className="flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-1 rounded-lg" title="Số follower mới trong 7 ngày gần nhất">
+                        <span className="material-symbols-outlined text-[13px]">person_add</span>
+                        <span className="text-[11px] font-black">+{page.newFollowers?.toLocaleString() || 0} fl</span>
                       </div>
                     </div>
                   </div>

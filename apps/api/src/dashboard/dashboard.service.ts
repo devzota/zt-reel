@@ -410,42 +410,44 @@ export class ZTTeamDashboardService {
         rate: published + failed > 0 ? Math.round((published / (published + failed)) * 100) : 100,
         fbPageId: page.fb_page_id,
         pageToken: page.page_token_encrypted,
-        interactions: 0
+        interactions: 0,
+        views: 0,
+        newFollowers: 0
       });
     }
 
     leaderboard.sort((a, b) => b.published - a.published);
     const topLeaderboard = leaderboard.slice(0, 10);
     
-    /** Interactions cho Leaderboard */
+    /** Lấy Views & Follower Mới cho Leaderboard từ Insights */
     await Promise.all(topLeaderboard.map(async (item) => {
       try {
-        const res = await fetch(`https://graph.facebook.com/v19.0/${item.fbPageId}/published_posts?fields=id,reactions.summary(true),comments.summary(true),shares,attachments&limit=30&access_token=${item.pageToken}`);
-        const json = await res.json();
-        if (json.data && Array.isArray(json.data)) {
-          let totalEngagements = 0;
-          json.data.forEach((post: any) => {
-            let isMedia = true;
-            if (post.attachments && post.attachments.data) {
-              const type = post.attachments.data[0]?.type;
-              const media_type = post.attachments.data[0]?.media_type;
-              if (type?.includes('video') || type?.includes('photo') || media_type === 'video' || media_type === 'photo') {
-                 isMedia = true;
-              }
-            }
-            if (isMedia) {
-              const reactions = post.reactions?.summary?.total_count || 0;
-              const comments = post.comments?.summary?.total_count || 0;
-              const shares = post.shares?.count || 0;
-              totalEngagements += (reactions + comments + shares);
-            }
-          });
-          item.interactions = totalEngagements;
+        const report = await this.facebookService.ztteam_getPageInsights(item.pageId, userId);
+        if (Array.isArray(report)) {
+          const viewMetric = report.find((m: any) => m.name === 'page_media_view');
+          if (viewMetric?.values) {
+            item.views = viewMetric.values.slice(-days).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          } else {
+            item.views = 0;
+          }
+          const followMetric = report.find((m: any) => m.name === 'page_daily_follows');
+          if (followMetric?.values) {
+            item.newFollowers = followMetric.values.slice(-7).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          } else {
+            item.newFollowers = 0;
+          }
+          const engMetric = report.find((m: any) => m.name === 'page_post_engagements');
+          if (engMetric?.values) {
+            item.interactions = engMetric.values.slice(-days).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          }
         }
-      } catch(e) { /* ignore */ }
+      } catch(e) { 
+        item.views = 0;
+        item.newFollowers = 0;
+      }
     }));
 
-    topLeaderboard.sort((a, b) => b.interactions - a.interactions);
+    topLeaderboard.sort((a, b) => (b.views || 0) - (a.views || 0));
 
     /** Báo cáo chi tiết: Highlighted Posts */
     let highlightedPosts: any[] = [];
