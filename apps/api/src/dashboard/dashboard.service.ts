@@ -227,15 +227,12 @@ export class ZTTeamDashboardService {
     });
     const accountIds = fbAccounts.map(a => a.id);
     
-    const pageWhere: any = { fb_account_id: { in: accountIds } };
-    if (pageId) pageWhere.id = pageId;
-
-    const pages = await this.prisma.ztteam_pages.findMany({
-      where: pageWhere,
+    let pages = await this.prisma.ztteam_pages.findMany({
+      where: { fb_account_id: { in: accountIds } },
       select: { id: true, name: true, avatar: true, fb_page_id: true, page_token_encrypted: true },
     });
-    const pageIds = pages.map(p => p.id);
 
+    /** Apply siteId filter if selected */
     const siteWhere: any = { owner_user_id: userId };
     if (siteId) siteWhere.id = siteId;
 
@@ -247,9 +244,21 @@ export class ZTTeamDashboardService {
     
     const sources = await this.prisma.ztteam_crawl_sources.findMany({
       where: { target_site_id: { in: siteIds } },
-      select: { id: true, target_site_id: true },
+      select: { id: true, target_site_id: true, page_id: true },
     });
     const sourceIds = sources.map(s => s.id);
+
+    if (siteId) {
+      const allowedPageIds = new Set(sources.map(s => s.page_id).filter(Boolean));
+      pages = pages.filter(p => allowedPageIds.has(p.id));
+    }
+
+    /** Apply pageId filter if selected */
+    if (pageId) {
+      pages = pages.filter(p => p.id === pageId || p.fb_page_id === pageId);
+    }
+
+    const pageIds = pages.map(p => p.id);
 
     /** Build mappings and distinct names for initializing 0 */
     const sourceToSiteName = new Map<string, string>();
@@ -264,6 +273,36 @@ export class ZTTeamDashboardService {
     });
 
     const allPageNames = pages.map(p => p.name);
+
+    /** Aggregate Facebook Insights Metrics across selected pages */
+    let overviewMediaViews = 0;
+    let overviewUniqueReach = 0;
+    let overviewEngagements = 0;
+    let overviewNewFollowers = 0;
+
+    await Promise.all(pages.slice(0, 15).map(async (p) => {
+      try {
+        const report = await this.facebookService.ztteam_getPageReport(p.id, userId);
+        if (Array.isArray(report)) {
+          const viewMetric = report.find((m: any) => m.name === 'page_media_view');
+          if (viewMetric?.values) {
+            overviewMediaViews += viewMetric.values.slice(-days).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          }
+          const reachMetric = report.find((m: any) => m.name === 'page_total_media_view_unique');
+          if (reachMetric?.values) {
+            overviewUniqueReach += reachMetric.values.slice(-days).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          }
+          const engMetric = report.find((m: any) => m.name === 'page_post_engagements');
+          if (engMetric?.values) {
+            overviewEngagements += engMetric.values.slice(-days).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          }
+          const followMetric = report.find((m: any) => m.name === 'page_daily_follows');
+          if (followMetric?.values) {
+            overviewNewFollowers += followMetric.values.slice(-7).reduce((s: number, v: any) => s + (v.value || 0), 0);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }));
 
     const chartData = [];
 
@@ -355,42 +394,37 @@ export class ZTTeamDashboardService {
         if (r.status === 'FAILED') failed += r._count.id;
       });
 
-      if (published > 0 || failed > 0) {
-        leaderboard.push({
-          pageId: page.id,
-          pageName: page.name,
-          avatar: page.avatar,
-          totalReels: published + failed,
-          published,
-          rate: Math.round((published / (published + failed)) * 100),
-          fbPageId: page.fb_page_id,
-          pageToken: page.page_token_encrypted,
-          interactions: 0
-        });
-      }
+      leaderboard.push({
+        pageId: page.id,
+        pageName: page.name,
+        avatar: page.avatar,
+        totalReels: published + failed,
+        published,
+        rate: published + failed > 0 ? Math.round((published / (published + failed)) * 100) : 100,
+        fbPageId: page.fb_page_id,
+        pageToken: page.page_token_encrypted,
+        interactions: 0
+      });
     }
+
     leaderboard.sort((a, b) => b.published - a.published);
     const topLeaderboard = leaderboard.slice(0, 10);
     
-    /** Interactions cho Leaderboard (chỉ đếm video/ảnh) */
+    /** Interactions cho Leaderboard */
     await Promise.all(topLeaderboard.map(async (item) => {
       try {
-        /** Fallback or multiple fetches. We fetch recent 30 posts to calculate interactions */
         const res = await fetch(`https://graph.facebook.com/v19.0/${item.fbPageId}/published_posts?fields=id,reactions.summary(true),comments.summary(true),shares,attachments&limit=30&access_token=${item.pageToken}`);
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
           let totalEngagements = 0;
           json.data.forEach((post: any) => {
-            /** Check if it's a video or photo by attachments */
-            let isMedia = false;
+            let isMedia = true;
             if (post.attachments && post.attachments.data) {
               const type = post.attachments.data[0]?.type;
               const media_type = post.attachments.data[0]?.media_type;
               if (type?.includes('video') || type?.includes('photo') || media_type === 'video' || media_type === 'photo') {
                  isMedia = true;
               }
-            } else {
-              isMedia = true; /** Fallback to true if attachments are omitted */
             }
             if (isMedia) {
               const reactions = post.reactions?.summary?.total_count || 0;
@@ -404,10 +438,10 @@ export class ZTTeamDashboardService {
       } catch(e) { /* ignore */ }
     }));
 
-    /** Báo cáo chi tiết: Highlighted Posts bằng cách gọi trực tiếp ztteam_getTopPosts từ FacebookService */
+    topLeaderboard.sort((a, b) => b.interactions - a.interactions);
+
+    /** Báo cáo chi tiết: Highlighted Posts */
     let highlightedPosts: any[] = [];
-    
-    /** We only fetch for the top 5 active pages to avoid rate limits and slow API responses */
     const activePages = topLeaderboard.slice(0, 5);
     
     await Promise.all(activePages.map(async (pageInfo) => {
@@ -420,7 +454,7 @@ export class ZTTeamDashboardService {
           pageName: pageInfo.pageName,
           date: post.created_time,
           views: post.views,
-          reactions: post.reactions || post.engagements, /** Fallback to engagements if reactions is 0 */
+          reactions: post.reactions || post.engagements,
           videoUrl: ''
         }));
         highlightedPosts = [...highlightedPosts, ...mappedPosts];
@@ -429,13 +463,16 @@ export class ZTTeamDashboardService {
       }
     }));
     
-    /** Sắp xếp các post của TẤT CẢ các page lại với nhau theo views (hoặc engagements) */
-    /** Để "trùng với chỗ thống kê bên page" mà họ hay nhìn, bên kia sắp xếp theo engagements! */
     highlightedPosts.sort((a, b) => b.views - a.views);
-    /** Take the top 15 across all pages */
     highlightedPosts = highlightedPosts.slice(0, 15);
 
     return {
+      overview: {
+        totalMediaViews: overviewMediaViews,
+        totalUniqueReach: overviewUniqueReach,
+        totalEngagements: overviewEngagements,
+        newFollowers: overviewNewFollowers
+      },
       chartData,
       details: highlightedPosts,
       leaderboard: topLeaderboard

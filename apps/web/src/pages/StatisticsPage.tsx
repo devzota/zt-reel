@@ -94,15 +94,16 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header & Filter Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Báo cáo Thống kê</h2>
-          <p className="text-sm text-gray-500 mt-1">Hiệu suất cào bài và đăng video toàn hệ thống</p>
+          <p className="text-sm text-gray-500 mt-1">Hiệu suất cào bài, đăng video và tương tác Facebook Insights toàn hệ thống</p>
         </div>
         
         <div className="flex flex-wrap gap-2 items-center">
             <select
-              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary focus:ring-0 cursor-pointer"
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-slate-200/60 text-slate-700 outline-none focus:border-primary focus:ring-0 cursor-pointer shadow-sm"
               value={selectedPageId}
               onChange={(e) => setSelectedPageId(e.target.value)}
             >
@@ -113,7 +114,7 @@ export default function StatisticsPage() {
             </select>
 
             <select
-              className="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary focus:ring-0 cursor-pointer"
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-slate-200/60 text-slate-700 outline-none focus:border-primary focus:ring-0 cursor-pointer shadow-sm"
               value={selectedSiteId}
               onChange={(e) => setSelectedSiteId(e.target.value)}
             >
@@ -123,10 +124,73 @@ export default function StatisticsPage() {
               ))}
             </select>
 
-            <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+            <div className="flex items-center bg-white border border-slate-200/60 rounded-full p-1 shadow-sm">
               <button onClick={() => setDays(7)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${days === 7 ? 'bg-primary text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}>7 Ngày</button>
               <button onClick={() => setDays(30)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${days === 30 ? 'bg-primary text-white shadow' : 'text-gray-500 hover:text-gray-900'}`}>30 Ngày</button>
             </div>
+        </div>
+      </div>
+
+      {/* 4 KPI Overview Cards (Facebook Insights) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="glass-card p-5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-slate-400 text-xs font-extrabold uppercase tracking-wider">Tổng Lượt Xem (Views)</span>
+            <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">visibility</span>
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-slate-800">
+              {(data as any).overview?.totalMediaViews?.toLocaleString() || 0}
+            </span>
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">FB Insights</span>
+          </div>
+        </div>
+
+        <div className="glass-card p-5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-slate-400 text-xs font-extrabold uppercase tracking-wider">Lượt Tiếp Cận (Reach)</span>
+            <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">campaign</span>
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-slate-800">
+              {(data as any).overview?.totalUniqueReach?.toLocaleString() || 0}
+            </span>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Unique</span>
+          </div>
+        </div>
+
+        <div className="glass-card p-5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-slate-400 text-xs font-extrabold uppercase tracking-wider">Tổng Tương Tác</span>
+            <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">thumb_up</span>
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-slate-800">
+              {(data as any).overview?.totalEngagements?.toLocaleString() || 0}
+            </span>
+            <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Reactions+</span>
+          </div>
+        </div>
+
+        <div className="glass-card p-5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-slate-400 text-xs font-extrabold uppercase tracking-wider">Follower Mới</span>
+            <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">person_add</span>
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-slate-800">
+              +{(data as any).overview?.newFollowers?.toLocaleString() || 0}
+            </span>
+            <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">7 ngày</span>
+          </div>
         </div>
       </div>
 
@@ -299,7 +363,19 @@ export default function StatisticsPage() {
                     {/* Avatar */}
                     <div className="relative shrink-0 ml-1">
                       {page.avatar ? (
-                        <img src={page.avatar} alt="" className="w-10 h-10 rounded-full shadow-sm object-cover ring-2 ring-white" />
+                        <img 
+                          src={page.avatar} 
+                          alt="" 
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.dataset.fallback) {
+                              target.dataset.fallback = 'true';
+                              target.src = `https://graph.facebook.com/${page.fbPageId || page.pageId}/picture?type=large`;
+                            }
+                          }}
+                          className="w-10 h-10 rounded-full shadow-sm object-cover ring-2 ring-white" 
+                        />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center ring-2 ring-white">
                           <span className="material-symbols-outlined text-[18px] text-slate-400">storefront</span>
@@ -313,7 +389,7 @@ export default function StatisticsPage() {
                     {/* Page Info */}
                     <div className="flex-1 min-w-0 ml-3">
                       <p className="text-[13px] sm:text-[14px] font-bold text-slate-800 truncate leading-snug">{page.pageName}</p>
-                      <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Đã đăng {page.totalReels} video</p>
+                      <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Đã đăng {page.published} bài</p>
                     </div>
                     
                     {/* Stats Inline on Right */}
@@ -378,7 +454,12 @@ export default function StatisticsPage() {
 
                     {/* Thumbnail - Compact Reel Ratio */}
                     <div className="w-14 h-20 rounded-xl bg-slate-100 shrink-0 relative overflow-hidden shadow-sm">
-                      <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img 
+                        src={post.thumbnail} 
+                        alt={post.title} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
                       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                         <span className="material-symbols-outlined text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">play_arrow</span>
                       </div>
