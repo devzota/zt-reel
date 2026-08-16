@@ -56,6 +56,7 @@ WORKDIR /usr/src/app
 # Sao chép file gốc
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
 
 # Cài đặt dependencies
 RUN npm install --legacy-peer-deps
