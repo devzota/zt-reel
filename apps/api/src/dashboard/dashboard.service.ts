@@ -76,7 +76,7 @@ export class ZTTeamDashboardService {
       where: {
         page_id: { in: pageIds },
         is_posted: true,
-        updated_at: { gte: today },
+        posted_at: { gte: today },
       },
     });
 
@@ -345,7 +345,7 @@ export class ZTTeamDashboardService {
         where: {
           page_id: { in: pageIds },
           is_posted: true,
-          updated_at: { gte: startOfDay, lte: endOfDay }
+          posted_at: { gte: startOfDay, lte: endOfDay }
         },
         _count: { id: true }
       });

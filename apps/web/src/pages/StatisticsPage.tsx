@@ -394,13 +394,13 @@ export default function StatisticsPage() {
                     
                     {/* Stats Inline on Right */}
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg">
-                        <span className="material-symbols-outlined text-[13px] hidden sm:inline-block">check_circle</span>
-                        <span className="text-[11px] sm:text-[12px] font-black">{page.published}</span>
+                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg" title="Số bài đã đăng thành công trên Fanpage">
+                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                        <span className="text-[11px] font-black">{page.published} bài</span>
                       </div>
-                      <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
-                        <span className="material-symbols-outlined text-[13px] hidden sm:inline-block">trending_up</span>
-                        <span className="text-[11px] sm:text-[12px] font-black">{page.interactions?.toLocaleString() || 0}</span>
+                      <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg" title="Tổng lượt tương tác (Like, React, Comment, Share) từ Facebook">
+                        <span className="material-symbols-outlined text-[13px]">trending_up</span>
+                        <span className="text-[11px] font-black">{page.interactions?.toLocaleString() || 0} TT</span>
                       </div>
                     </div>
                   </div>
