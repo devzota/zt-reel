@@ -10,7 +10,8 @@ import { useWordpressStore } from '../stores/wordpressStore';
 
 export default function StatisticsPage() {
   const { user } = useZTTeamAuthStore();
-  const isAdmin = user?.role === 'ADMIN';
+  const userRole = (user?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRATOR';
 
   const { pages, ztteam_fetchPagesFromDB } = useZTTeamFacebookStore();
   const { sites, ztteam_fetchSites } = useWordpressStore();
@@ -33,9 +34,8 @@ export default function StatisticsPage() {
     ztteam_fetchSites();
     if (isAdmin) {
       api.get('/users').then(res => {
-        if (Array.isArray(res.data)) {
-          setSystemUsers(res.data);
-        }
+        const userList = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        setSystemUsers(userList);
       }).catch(console.error);
     }
   }, [ztteam_fetchPagesFromDB, ztteam_fetchSites, isAdmin]);
