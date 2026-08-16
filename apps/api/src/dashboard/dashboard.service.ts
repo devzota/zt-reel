@@ -11,10 +11,17 @@ export class ZTTeamDashboardService {
     private readonly facebookService: ZTTeamFacebookService
   ) {}
 
-  async ztteam_getStats(userId: string, pageId?: string, siteId?: string) {
-    /** 1. Get user's FB accounts and pages */
+  async ztteam_getStats(userId: string, pageId?: string, siteId?: string, targetUserId?: string) {
+    const caller = await this.prisma.ztteam_users.findUnique({ where: { id: userId }, select: { role: true } });
+    const isAdmin = caller?.role === 'ADMIN';
+
+    const accountWhere: any = {};
+    if (!isAdmin || targetUserId) {
+      accountWhere.owner_user_id = targetUserId || userId;
+    }
+
     const fbAccounts = await this.prisma.ztteam_fb_accounts.findMany({
-      where: { owner_user_id: userId },
+      where: accountWhere,
       select: { id: true },
     });
     const accountIds = fbAccounts.map(a => a.id);
@@ -220,9 +227,17 @@ export class ZTTeamDashboardService {
     };
   }
 
-  async ztteam_getChartData(userId: string, days: number = 7, pageId?: string, siteId?: string) {
+  async ztteam_getChartData(userId: string, days: number = 7, pageId?: string, siteId?: string, targetUserId?: string) {
+    const caller = await this.prisma.ztteam_users.findUnique({ where: { id: userId }, select: { role: true } });
+    const isAdmin = caller?.role === 'ADMIN';
+
+    const accountWhere: any = {};
+    if (!isAdmin || targetUserId) {
+      accountWhere.owner_user_id = targetUserId || userId;
+    }
+
     const fbAccounts = await this.prisma.ztteam_fb_accounts.findMany({
-      where: { owner_user_id: userId },
+      where: accountWhere,
       select: { id: true },
     });
     const accountIds = fbAccounts.map(a => a.id);
@@ -233,7 +248,10 @@ export class ZTTeamDashboardService {
     });
 
     /** Apply siteId filter if selected */
-    const siteWhere: any = { owner_user_id: userId };
+    const siteWhere: any = {};
+    if (!isAdmin || targetUserId) {
+      siteWhere.owner_user_id = targetUserId || userId;
+    }
     if (siteId) siteWhere.id = siteId;
 
     const targetSites = await this.prisma.ztteam_target_sites.findMany({

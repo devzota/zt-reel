@@ -11,9 +11,10 @@ export class ZTTeamDashboardController {
   async ztteam_getStats(
     @Request() req: any,
     @Query('pageId') pageId?: string,
-    @Query('siteId') siteId?: string
+    @Query('siteId') siteId?: string,
+    @Query('targetUserId') targetUserId?: string
   ) {
-    return this.dashboardService.ztteam_getStats(req.user.sub, pageId, siteId);
+    return this.dashboardService.ztteam_getStats(req.user.sub, pageId, siteId, targetUserId);
   }
 
   @Get('chart')
@@ -21,9 +22,10 @@ export class ZTTeamDashboardController {
     @Request() req: any, 
     @Query('days') days?: string,
     @Query('pageId') pageId?: string,
-    @Query('siteId') siteId?: string
+    @Query('siteId') siteId?: string,
+    @Query('targetUserId') targetUserId?: string
   ) {
     const daysInt = parseInt(days || '7', 10);
-    return this.dashboardService.ztteam_getChartData(req.user.sub, daysInt, pageId, siteId);
+    return this.dashboardService.ztteam_getChartData(req.user.sub, daysInt, pageId, siteId, targetUserId);
   }
 }

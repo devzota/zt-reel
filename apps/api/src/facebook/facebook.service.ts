@@ -497,15 +497,17 @@ export class ZTTeamFacebookService {
     }
   }
 
-  async ztteam_getPageInsights(pageId: string, userId: string) {
+  async ztteam_getPageInsights(pageId: string, userId?: string) {
     const page = await this.prisma.ztteam_pages.findFirst({
-      where: { fb_page_id: pageId },
+      where: { OR: [{ id: pageId }, { fb_page_id: pageId }] },
       include: { fb_account: true }
     });
 
-    if (!page || page.fb_account.owner_user_id !== userId) {
-      throw new Error('Fanpage không tồn tại hoặc bạn không có quyền');
+    if (!page) {
+      throw new Error('Fanpage không tồn tại');
     }
+
+    const realFbPageId = page.fb_page_id;
 
     try {
       const metrics = ['page_media_view', 'page_total_media_view_unique', 'page_views_total', 'page_post_engagements', 'page_daily_follows'];
@@ -515,7 +517,7 @@ export class ZTTeamFacebookService {
         try {
           const res = await firstValueFrom(
             this.httpService.get(
-              `https://graph.facebook.com/${this.API_VERSION}/${pageId}/insights`,
+              `https://graph.facebook.com/${this.API_VERSION}/${realFbPageId}/insights`,
               {
                 params: { metric, period: 'day', date_preset: 'last_28d', access_token: page.page_token_encrypted }
               }

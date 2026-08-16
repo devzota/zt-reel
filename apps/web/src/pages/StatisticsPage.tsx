@@ -4,10 +4,14 @@ import {
   BarChart, Bar, Area, AreaChart, ComposedChart
 } from 'recharts';
 import api from '../services/api';
+import { useZTTeamAuthStore } from '../stores/authStore';
 import { useZTTeamFacebookStore } from '../stores/facebookStore';
 import { useWordpressStore } from '../stores/wordpressStore';
 
 export default function StatisticsPage() {
+  const { user } = useZTTeamAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
   const { pages, ztteam_fetchPagesFromDB } = useZTTeamFacebookStore();
   const { sites, ztteam_fetchSites } = useWordpressStore();
 
@@ -19,20 +23,29 @@ export default function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [days, setDays] = useState(7);
   
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedPageId, setSelectedPageId] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState('');
-  const [activeChartTab, setActiveChartTab] = useState<'CRAWL' | 'PUBLISH'>('CRAWL');
+  const [systemUsers, setSystemUsers] = useState<any[]>([]);
 
   useEffect(() => {
     ztteam_fetchPagesFromDB();
     ztteam_fetchSites();
-  }, [ztteam_fetchPagesFromDB, ztteam_fetchSites]);
+    if (isAdmin) {
+      api.get('/users').then(res => {
+        if (Array.isArray(res.data)) {
+          setSystemUsers(res.data);
+        }
+      }).catch(console.error);
+    }
+  }, [ztteam_fetchPagesFromDB, ztteam_fetchSites, isAdmin]);
 
   useEffect(() => {
     const fetchChart = async () => {
       setIsLoading(true);
       try {
         let url = `dashboard/chart?days=${days}`;
+        if (selectedUserId) url += `&targetUserId=${selectedUserId}`;
         if (selectedPageId) url += `&pageId=${selectedPageId}`;
         if (selectedSiteId) url += `&siteId=${selectedSiteId}`;
         
@@ -47,7 +60,7 @@ export default function StatisticsPage() {
       }
     };
     fetchChart();
-  }, [days, selectedPageId, selectedSiteId]);
+  }, [days, selectedUserId, selectedPageId, selectedSiteId]);
 
   /** Extract dynamic chart keys */
   const crawlKeys = useMemo(() => {
@@ -102,6 +115,19 @@ export default function StatisticsPage() {
         </div>
         
         <div className="flex flex-wrap gap-2 items-center">
+            {isAdmin && (
+              <select
+                className="px-4 py-2 rounded-full text-sm font-semibold bg-purple-50 border border-purple-200 text-purple-800 outline-none focus:border-primary focus:ring-0 cursor-pointer shadow-sm"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+              >
+                <option value="">👤 Tất cả Thành viên</option>
+                {systemUsers.map((u) => (
+                  <option key={u.id} value={u.id}>👤 {u.email} ({u.role})</option>
+                ))}
+              </select>
+            )}
+
             <select
               className="px-4 py-2 rounded-full text-sm font-semibold bg-white border border-slate-200/60 text-slate-700 outline-none focus:border-primary focus:ring-0 cursor-pointer shadow-sm"
               value={selectedPageId}
