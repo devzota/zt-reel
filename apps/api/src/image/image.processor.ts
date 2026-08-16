@@ -128,24 +128,38 @@ export class ZTTeamImageProcessor implements OnModuleInit {
 
       let pageName = 'Không rõ';
       let wpPostTitle = 'Không rõ';
+      let memberEmail = 'N/A';
       try {
         const imageRecord = await this.prisma.ztteam_images.findUnique({ where: { id: imageId } });
         if (imageRecord && imageRecord.wp_post_title) {
           wpPostTitle = imageRecord.wp_post_title;
         }
         if (pageId) {
-          const p = await this.prisma.ztteam_pages.findUnique({ where: { id: pageId } });
-          if (p) pageName = p.name;
+          const p = await this.prisma.ztteam_pages.findUnique({
+            where: { id: pageId },
+            include: { fb_account: true }
+          });
+          if (p) {
+            pageName = p.name;
+            if (p.fb_account?.owner_user_id) {
+              const u = await this.prisma.ztteam_users.findUnique({
+                where: { id: p.fb_account.owner_user_id },
+                select: { email: true }
+              });
+              if (u) memberEmail = u.email;
+            }
+          }
         }
       } catch (e) {
         /** ignore */
       }
 
       this.telegramService.ztteam_sendMessage(
-        `🚨 *[LỖI TẠO ẢNH]*\n\n` +
-        `• *Fanpage:* ${pageName}\n` +
-        `• *Ảnh:* ${wpPostTitle}\n` +
-        `• *Lỗi:* ${error.message}`
+        `🚨 *[LỖI TẠO ẢNH AI]*\n\n` +
+        `👤 *Thành viên:* ${memberEmail}\n` +
+        `🚩 *Fanpage:* ${pageName}\n` +
+        `🖼 *Ảnh:* ${wpPostTitle}\n` +
+        `❌ *Chi tiết lỗi:* ${error.message}`
       );
 
       throw error;

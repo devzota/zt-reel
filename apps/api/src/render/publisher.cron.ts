@@ -296,12 +296,19 @@ export class ZTTeamPublisherCron {
         }
       });
 
+      let ownerEmail = 'N/A';
+      if (page?.fb_account?.owner_user_id) {
+        const u = await this.prisma.ztteam_users.findUnique({ where: { id: page.fb_account.owner_user_id }, select: { email: true } });
+        if (u) ownerEmail = u.email;
+      }
+
       this.telegramService.ztteam_sendMessage(
         `🚨 *[LỖI TỰ ĐỘNG ĐĂNG VIDEO]*\n\n` +
-        `• *Fanpage:* ${page.name || 'Không rõ'}\n` +
-        `• *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
-        `• *Lỗi:* ${errorMsg}\n\n` +
-        `❌ Vui lòng vào Web để kiểm tra và đăng thủ công!`
+        `👤 *Thành viên:* ${ownerEmail}\n` +
+        `🚩 *Fanpage:* ${page.name || 'Không rõ'}\n` +
+        `🎬 *Video:* ${reel.wp_post_title || 'Không rõ'}\n` +
+        `❌ *Chi tiết lỗi:* ${errorMsg}\n\n` +
+        `👉 Vui lòng kiểm tra lại cấu hình hoặc token Fanpage!`
       );
     }
   }
@@ -412,11 +419,18 @@ export class ZTTeamPublisherCron {
           }
         });
 
+        let ownerEmail = 'N/A';
+        if (page?.fb_account?.owner_user_id) {
+          const u = await this.prisma.ztteam_users.findUnique({ where: { id: page.fb_account.owner_user_id }, select: { email: true } });
+          if (u) ownerEmail = u.email;
+        }
+
         this.telegramService.ztteam_sendMessage(
-          `🚨 *[LỖI TỰ ĐỘNG ĐĂNG ẢNH - ĐÃ THỬ 3 LẦN]*\n\n` +
-          `• *Fanpage:* ${page.name || 'Không rõ'}\n` +
-          `• *Ảnh:* ${image.wp_post_title || 'Không rõ'}\n` +
-          `• *Lỗi:* ${error.message}`
+          `🚨 *[LỖI TỰ ĐỘNG ĐĂNG ẢNH]*\n\n` +
+          `👤 *Thành viên:* ${ownerEmail}\n` +
+          `🚩 *Fanpage:* ${page.name || 'Không rõ'}\n` +
+          `🖼 *Ảnh:* ${image.wp_post_title || 'Không rõ'}\n` +
+          `❌ *Chi tiết lỗi:* ${error.message}`
         );
       }
     }

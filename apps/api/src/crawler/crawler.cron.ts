@@ -231,11 +231,21 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         this.logger.error(`Failed to process URL ${url}: ${err.message}`);
         
         let sourceName = source.name || 'Không rõ';
+        let memberEmail = 'N/A';
+        if (source.target_site?.owner_user_id) {
+          const u = await this.prisma.ztteam_users.findUnique({
+            where: { id: source.target_site.owner_user_id },
+            select: { email: true }
+          });
+          if (u) memberEmail = u.email;
+        }
+
         this.telegramService.ztteam_sendMessage(
           `🚨 *[LỖI CRAWL BÀI VIẾT]*\n\n` +
-          `• *Nguồn:* ${sourceName}\n` +
-          `• *URL:* ${url}\n` +
-          `• *Lỗi:* ${err.message}`
+          `👤 *Thành viên:* ${memberEmail}\n` +
+          `🌐 *Website Nguồn:* ${sourceName}\n` +
+          `🔗 *URL:* ${url}\n` +
+          `❌ *Chi tiết lỗi:* ${err.message}`
         );
         
         try {

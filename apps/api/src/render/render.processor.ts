@@ -45,7 +45,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     private readonly ffmpegService: ZTTeamFFmpegService,
     private readonly eventEmitter: EventEmitter2,
     private readonly telegramService: TelegramService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     /** Initialize Redis connection for BullMQ */
@@ -103,7 +103,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     /** Update status to RENDERING */
     await this.ztteam_updateReel(reelId, { status: 'RENDERING', progress: 0 });
-    
+
     /** Fetch reel to get original wp_post_url */
     const reelRecord = await this.prisma.ztteam_reels.findUnique({
       where: { id: reelId }
@@ -114,6 +114,12 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     fs.mkdirSync(workDir, { recursive: true });
 
     try {
+      /** ========== YOUTUBE BRANCH ========== */
+      if (reelRecord?.source_type === 'YOUTUBE') {
+        await this.ztteam_processYoutubeRenderJob(reelId, pageId, wpPostId, templateId, workDir, reelRecord);
+        return;
+      }
+
       /** ========== STEP 1: Fetch data ========== */
       await this.ztteam_updateReel(reelId, { progress: 5 });
       const { page, template, post } = await this.ztteam_step1_fetchData(pageId, wpPostId, templateId);
@@ -207,20 +213,218 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
         status: 'FAILED',
         error_log: error.message || 'Unknown error',
       });
-      
+
       let pageName = 'Không rõ';
+      let memberEmail = 'N/A';
       if (reelRecord && reelRecord.page_id) {
-        const p = await this.prisma.ztteam_pages.findUnique({ where: { id: reelRecord.page_id } });
-        if (p) pageName = p.name;
+        const p = await this.prisma.ztteam_pages.findUnique({
+          where: { id: reelRecord.page_id },
+          include: { fb_account: true }
+        });
+        if (p) {
+          pageName = p.name;
+          if (p.fb_account?.owner_user_id) {
+            const u = await this.prisma.ztteam_users.findUnique({
+              where: { id: p.fb_account.owner_user_id },
+              select: { email: true }
+            });
+            if (u) memberEmail = u.email;
+          }
+        }
       }
-      
+
       this.telegramService.ztteam_sendMessage(
-        `🚨 *[LỖI TẠO VIDEO]*\n\n` +
-        `• *Fanpage:* ${pageName}\n` +
-        `• *Video:* ${reelRecord?.wp_post_title || 'Không rõ'}\n` +
-        `• *Lỗi:* ${error.message}`
+        `🚨 *[LỖI TẠO VIDEO AI]*\n\n` +
+        `👤 *Thành viên:* ${memberEmail}\n` +
+        `🚩 *Fanpage:* ${pageName}\n` +
+        `🎬 *Video:* ${reelRecord?.wp_post_title || 'Không rõ'}\n` +
+        `❌ *Chi tiết lỗi:* ${error.message}`
       );
-      
+
+      throw error;
+    }
+  }
+
+  private async ztteam_processYoutubeRenderJob(reelId: string, pageId: string, wpPostId: string, templateId: string, workDir: string, reelRecord: any): Promise<void> {
+    this.logger.log(`===== START YOUTUBE RENDER: reel=${reelId} =====`);
+
+    await this.ztteam_updateReel(reelId, { status: 'RENDERING', progress: 5 });
+
+    try {
+      const page = await this.prisma.ztteam_pages.findUnique({
+        where: { id: pageId },
+        include: { youtube_settings: true }
+      });
+      if (!page) throw new Error('Page not found');
+
+      const originalTitle = reelRecord.wp_post_title || 'Video YouTube';
+      const ytUrl = reelRecord.wp_post_url;
+
+      if (!ytUrl) throw new Error('Missing YouTube URL in wp_post_url');
+
+      /** Step 1: Dùng yt-dlp tải video */
+      await this.ztteam_updateReel(reelId, { progress: 20 });
+      const rawVideoPath = path.join(workDir, 'raw.mp4');
+      const thumbnailPath = path.join(workDir, 'thumbnail.jpg');
+
+      const { promisify } = require('util');
+      const exec = promisify(require('child_process').exec);
+
+      /** Tải video */
+      await exec(`yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -o "${rawVideoPath}" "${ytUrl}"`);
+      /** Tải thumbnail */
+      await exec(`yt-dlp --write-thumbnail --skip-download -o "${path.join(workDir, 'raw_thumb')}" "${ytUrl}"`).catch(() => { });
+
+      /** Chuyển thumbnail sang jpg nếu cần, hoặc dùng hình mặc định */
+      if (fs.existsSync(path.join(workDir, 'raw_thumb.webp'))) {
+        await sharp(path.join(workDir, 'raw_thumb.webp')).jpeg().toFile(thumbnailPath);
+      } else if (fs.existsSync(path.join(workDir, 'raw_thumb.jpg'))) {
+        fs.copyFileSync(path.join(workDir, 'raw_thumb.jpg'), thumbnailPath);
+      } else {
+        /** Fallback thumbnail đen */
+        await sharp({ create: { width: 1080, height: 1920, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+          .jpeg()
+          .toFile(thumbnailPath);
+      }
+
+      /** Step 2: Dùng AI sinh Caption từ Title và Description gốc */
+      await this.ztteam_updateReel(reelId, { progress: 50 });
+      let aiCaption = '';
+      try {
+        const originalDescription = reelRecord.ai_script || '';
+        const prompt = `Viết một trạng thái (caption) Facebook hấp dẫn, ngắn gọn cho video.\n` +
+          `Tiêu đề gốc: "${originalTitle}".\n` +
+          `Mô tả gốc: "${originalDescription.substring(0, 1000)}".\n` +
+          `Giọng điệu: ${page.ai_tone || 'hấp dẫn'}.\n` +
+          `Sử dụng hashtag phù hợp.\n${page.ai_custom_prompt || ''}\nIMPORTANT: YOU MUST ALWAYS RETURN THE RESULT IN ENGLISH.`;
+        aiCaption = await this.aiService.ztteam_generateShortCaption(prompt);
+      } catch (err: any) {
+        this.logger.warn(`AI Caption failed: ${err.message}`);
+        aiCaption = `Enjoy this amazing short! #shorts\n\nOriginal: ${originalTitle}`;
+      }
+
+      await this.ztteam_updateReel(reelId, { ai_caption: aiCaption, progress: 60 });
+
+      /** Step 3: Dùng FFmpeg xử lý chống bản quyền (tuỳ chỉnh settings) */
+      await this.ztteam_updateReel(reelId, { progress: 70 });
+      const outputPath = path.join(workDir, 'output.mp4');
+
+      const ytSettings = page.youtube_settings;
+      const watermark = ytSettings?.add_watermark ? ytSettings.watermark_text : null;
+      const addFrame = ytSettings?.add_frame || false;
+
+      /** Xử lý FFmpeg: Tốc độ luôn 1.05x để lách bản quyền cơ bản */
+
+      /** Kiểm tra xem video có audio hay không */
+      const hasAudio = await exec(`ffprobe -i "${rawVideoPath}" -show_streams -select_streams a -loglevel error`).then((res: any) => res.stdout.trim().length > 0).catch(() => false);
+
+      /** Sinh màu Gradient ngẫu nhiên nổi bật (Loại bỏ màu đen và tối) */
+      const colors = ['#FF416C', '#FF4B2B', '#8E2DE2', '#4A00E0', '#f12711', '#f5af19', '#fc4a1a', '#f7b733', '#11998e', '#38ef7d'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+      /** Dùng sharp tạo 1 file gradient PNG Kép (Trên và Dưới) để FFmpeg overlay */
+      const gradientSvg = `<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg"><defs>
+        <linearGradient id="gradTop" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:${randomColor};stop-opacity:0.95" />
+          <stop offset="25%" style="stop-color:${randomColor};stop-opacity:0" />
+        </linearGradient>
+        <linearGradient id="gradBottom" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="60%" style="stop-color:${randomColor};stop-opacity:0" />
+          <stop offset="85%" style="stop-color:${randomColor};stop-opacity:0.9" />
+          <stop offset="100%" style="stop-color:${randomColor};stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="1080" height="1920" fill="url(#gradTop)" />
+      <rect width="1080" height="1920" fill="url(#gradBottom)" />
+      </svg>`;
+      const gradPngPath = path.join(workDir, 'gradient.png');
+      await sharp(Buffer.from(gradientSvg)).png().toFile(gradPngPath);
+
+      /** 
+       * Tối ưu bộ lọc FFmpeg: Cinematic Blur Background (mượt hơn) + Smart Crop + Dual Gradient
+       */
+      let filterComplex = `[0:v]setpts=PTS/1.05,scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=8:8,scale=1080:1920,eq=brightness=-0.1:saturation=0.6[bg];` +
+        `[0:v]setpts=PTS/1.05,scale=1134:2016:force_original_aspect_ratio=decrease,crop=iw/1.05:ih/1.05,eq=saturation=1.15:contrast=1.05[fg];` +
+        `[bg][fg]overlay=(W-w)/2:(H-h)/2[v1];` +
+        `[v1][1:v]overlay=0:0[v2]`;
+
+      if (hasAudio) {
+        filterComplex += `;[0:a]atempo=1.05[a]`;
+      }
+
+      /** Xử lý Font và Text để chèn Title (Word Wrap an toàn) */
+      /** Lọc bỏ 100% Emoji và các ký tự vô hình/đặc biệt gây lỗi ô vuông, chỉ giữ lại chữ, số và Tiếng Việt */
+      const safeTitle = (originalTitle || 'Video AI')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/[^\x20-\x7E\u00C0-\u024F\u1E00-\u1EFF]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const wrapText = (text: string, maxChars: number) => {
+        const words = text.split(' ');
+        let line = '';
+        let lines = [];
+        for (let w of words) {
+          if (line.length + w.length + 1 <= maxChars) {
+            line += (line.length ? ' ' : '') + w;
+          } else {
+            lines.push(line);
+            line = w;
+          }
+        }
+        if (line) lines.push(line);
+        return lines;
+      };
+
+      /** Số ký tự 35 để chữ dàn ra vừa đủ sát viền (padding khoảng 15px) */
+      const linesArray = wrapText(safeTitle, 35);
+      const fontPath = 'storage/Roboto-Medium.ttf';
+      let currentFilter = 'v2';
+
+      /** Chèn từng dòng chữ để tránh việc FFmpeg render ký tự xuống dòng \n thành ô vuông */
+      for (let i = 0; i < linesArray.length; i++) {
+        const lineText = linesArray[i];
+        const titleTxtPath = path.join(workDir, `title_${i}.txt`);
+        fs.writeFileSync(titleTxtPath, '\uFEFF' + lineText, 'utf8');
+
+        const relTitleTxtPath = `storage/reels/${reelId}/title_${i}.txt`;
+        const yPos = `h-320+(${i}*70)`; /** Kéo chữ xuống thấp hơn để nằm trọn trong vùng màu tối của Gradient */
+        const nextFilter = i === linesArray.length - 1 ? (watermark ? 'v3' : 'v_out') : `v_line_${i}`;
+
+        filterComplex += `;[${currentFilter}]drawtext=fontfile='${fontPath}':textfile='${relTitleTxtPath}':fontcolor=white:fontsize=55:shadowcolor=black@0.8:shadowx=3:shadowy=3:x=(w-text_w)/2:y=${yPos}[${nextFilter}]`;
+        currentFilter = nextFilter;
+      }
+
+      /** Chèn Watermark (Watermark ở góc trên cùng bên trái, padding 15px) */
+      if (watermark) {
+        filterComplex += `;[v3]drawtext=fontfile='${fontPath}':text='${watermark}':fontcolor=white@0.7:fontsize=35:x=15:y=15[v_out]`;
+      }
+
+      const audioMap = hasAudio ? `-map "[a]" -c:a aac -b:a 128k` : `-an`;
+
+      /** Tối ưu tốc độ: Sử dụng preset superfast để render nhanh hơn đáng kể */
+      await exec(`ffmpeg -loglevel warning -i "${rawVideoPath}" -i "${gradPngPath}" -filter_complex "${filterComplex}" -map "[v_out]" ${audioMap} -c:v libx264 -preset superfast -crf 23 "${outputPath}" -y`);
+
+      await this.ztteam_updateReel(reelId, { progress: 95 });
+
+      /** Save result */
+      const videoUrl = `/storage/reels/${reelId}/output.mp4`;
+      const thumbnailUrl = `/storage/reels/${reelId}/thumbnail.jpg`;
+
+      await this.ztteam_updateReel(reelId, {
+        status: 'COMPLETED',
+        progress: 100,
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+      });
+
+      this.logger.log(`===== YOUTUBE RENDER COMPLETE: reel=${reelId} =====`);
+    } catch (error: any) {
+      this.logger.error(`YouTube Render failed for reel ${reelId}: ${error.message}`);
+      await this.ztteam_updateReel(reelId, {
+        status: 'FAILED',
+        error_log: error.message || 'Unknown error',
+      });
       throw error;
     }
   }
@@ -357,7 +561,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     } else {
       audioPath = await this.ttsService.ztteam_textToSpeech(aiResult.sub_voice, voiceId, workDir, voiceSpeed);
     }
-    
+
     const audioDuration = this.ttsService.ztteam_getAudioDuration(audioPath);
     const subtitles = this.aiService.ztteam_generateSubtitles(aiResult.sub_voice, audioDuration);
 
@@ -388,12 +592,12 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
           responseType: 'arraybuffer',
           timeout: 15000,
         });
-        
+
         /** Convert to pure JPEG using sharp to support avif, webp, etc. */
         const jpegBuffer = await sharp(response.data)
           .jpeg({ quality: 90 })
           .toBuffer();
-          
+
         fs.writeFileSync(rawPath, jpegBuffer);
 
         /** Prepare for dimensions with blur background */
@@ -440,7 +644,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     const videoX = (layout as any)?.video?.x ?? 0;
     const videoW = (layout as any)?.video?.w ?? 1080;
     const videoH = (layout as any)?.video?.h ?? 1080;
-    
+
     htmlContent = htmlContent.replace(/{{video_area\.x}}/g, String(videoX));
     htmlContent = htmlContent.replace(/{{video_area\.y}}/g, String(videoY));
     htmlContent = htmlContent.replace(/{{video_area\.w}}/g, String(videoW));
@@ -460,17 +664,17 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
     let bgImageUrl = layout?.bg_image_url || '';
     let bgImagePath = '';
-    
+
     if (bgImageUrl && bgImageUrl.startsWith('/storage/')) {
       const relativePath = bgImageUrl.replace(/^\/storage\//, '');
       bgImagePath = path.join(ztteam_getStorageRoot(), relativePath);
     }
-    
+
     htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, '');
     htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');
 
     htmlContent = htmlContent.replace(/{{{fontFace}}}/g, '');
-    
+
     const avatarHtml = page.avatar ? `<img src="${page.avatar}" style="width:100%;height:100%;object-fit:cover;" />` : '<div style="background:#ddd;width:100%;height:100%"></div>';
     htmlContent = htmlContent.replace(/{{{logoSvg}}}/g, () => avatarHtml);
     htmlContent = htmlContent.replace(/{{fanpageName}}/g, () => (page.name || 'Fanpage'));
