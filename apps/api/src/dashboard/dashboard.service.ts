@@ -244,12 +244,19 @@ export class ZTTeamDashboardService {
     
     const sources = await this.prisma.ztteam_crawl_sources.findMany({
       where: { target_site_id: { in: siteIds } },
-      select: { id: true, target_site_id: true, page_id: true },
+      select: { id: true, target_site_id: true },
     });
     const sourceIds = sources.map(s => s.id);
 
     if (siteId) {
-      const allowedPageIds = new Set(sources.map(s => s.page_id).filter(Boolean));
+      const sitePages = await this.prisma.ztteam_pages.findMany({
+        where: {
+          fb_account_id: { in: accountIds },
+          sources: { some: { target_site_id: siteId } }
+        },
+        select: { id: true }
+      });
+      const allowedPageIds = new Set(sitePages.map(p => p.id));
       pages = pages.filter(p => allowedPageIds.has(p.id));
     }
 
@@ -282,7 +289,7 @@ export class ZTTeamDashboardService {
 
     await Promise.all(pages.slice(0, 15).map(async (p) => {
       try {
-        const report = await this.facebookService.ztteam_getPageReport(p.id, userId);
+        const report = await this.facebookService.ztteam_getPageInsights(p.id, userId);
         if (Array.isArray(report)) {
           const viewMetric = report.find((m: any) => m.name === 'page_media_view');
           if (viewMetric?.values) {
