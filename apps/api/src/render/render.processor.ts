@@ -279,7 +279,23 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const ytdlpArgs = `${cookieFlag} ${clientArgs} --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
       
       /** Tải video (ưu tiên mp4/m4a, linh hoạt fallback để không bao giờ bị Requested format is not available) */
-      await exec(`yt-dlp ${ytdlpArgs} -f "bv*+ba/b/18/best" -o "${rawVideoPath}" "${ytUrl}"`);
+      await exec(`yt-dlp ${ytdlpArgs} --merge-output-format mp4 -f "bv*+ba/b/18/best" -o "${rawVideoPath}" "${ytUrl}"`);
+
+      /** Kiểm tra file rawVideoPath. Nếu yt-dlp lưu dưới dạng raw.webm, raw.mkv hay raw.mp4.webm ➔ Tự động đổi tên sang raw.mp4 */
+      if (!fs.existsSync(rawVideoPath)) {
+        const filesInDir = fs.readdirSync(workDir);
+        const downloadedVideo = filesInDir.find(f => (f.startsWith('raw') || f.includes('raw')) && !f.endsWith('.json') && !f.endsWith('.png') && !f.endsWith('.jpg') && !f.endsWith('.txt') && !f.endsWith('.ttf') && !f.endsWith('.mp3'));
+        if (downloadedVideo) {
+          const actualPath = path.join(workDir, downloadedVideo);
+          this.logger.log(`[render.processor] yt-dlp lưu file dạng ${downloadedVideo}, đang đổi tên thành raw.mp4...`);
+          fs.renameSync(actualPath, rawVideoPath);
+        }
+      }
+
+      if (!fs.existsSync(rawVideoPath)) {
+        throw new Error(`Không tìm thấy file video raw.mp4 sau khi gọi yt-dlp. Vui lòng kiểm tra lại link YouTube hoặc Cookies.`);
+      }
+
       /** Tải thumbnail */
       await exec(`yt-dlp ${ytdlpArgs} --write-thumbnail --skip-download -o "${path.join(workDir, 'raw_thumb')}" "${ytUrl}"`).catch(() => { });
 
