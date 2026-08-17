@@ -42,12 +42,24 @@ export class ZTTeamFacebookService {
       const fbUserId = meResponse.data.id;
       const fbName = meResponse.data.name;
 
-      /** Chặn nếu tài khoản FB này đã được kết nối bởi một user khác */
+      /** Kiểm tra nếu tài khoản FB này đã được kết nối bởi một user khác */
       const existingOtherUser = await this.prisma.ztteam_fb_accounts.findFirst({
         where: { fb_user_id: fbUserId, owner_user_id: { not: userId } }
       });
       if (existingOtherUser) {
-        throw new BadRequestException('Tài khoản Facebook này đã được kết nối bởi người quản trị khác. Vui lòng sử dụng tài khoản Facebook của riêng bạn!');
+        /** Kiểm tra xem tài khoản FB cũ này có còn Fanpage nào đang tồn tại không */
+        const activePagesCount = await this.prisma.ztteam_pages.count({
+          where: { fb_account_id: existingOtherUser.id }
+        });
+        if (activePagesCount > 0) {
+          throw new BadRequestException('Tài khoản Facebook này đã được kết nối bởi người quản trị khác. Vui lòng sử dụng tài khoản Facebook của riêng bạn!');
+        } else {
+          /** Nếu tài khoản FB cũ đã bị xóa hết Page ➔ Tự động chuyển quyền sở hữu sang userId hiện tại */
+          await this.prisma.ztteam_fb_accounts.update({
+            where: { id: existingOtherUser.id },
+            data: { owner_user_id: userId, user_token_encrypted: longLivedToken, name: fbName }
+          });
+        }
       }
 
       /** Upsert FB account in DB */
@@ -868,6 +880,16 @@ export class ZTTeamFacebookService {
 
     /** 5. Xóa bản ghi Page */
     await this.prisma.ztteam_pages.delete({ where: { id: internalPageId } });
+
+    /** 6. Dọn dẹp FB Account nếu không còn Fanpage nào liên kết */
+    if (page.fb_account_id) {
+      const remainingPages = await this.prisma.ztteam_pages.count({
+        where: { fb_account_id: page.fb_account_id }
+      });
+      if (remainingPages === 0) {
+        await this.prisma.ztteam_fb_accounts.delete({ where: { id: page.fb_account_id } }).catch(() => null);
+      }
+    }
 
     return { message: `Đã xóa Fanpage "${page.name}" và toàn bộ dữ liệu liên quan` };
   }
