@@ -111,7 +111,8 @@ export class YoutubeCrawlerService {
       } else if (source.source_type === 'CHANNEL') {
         const channelUrl = source.url;
         /** Dùng yt-dlp để lấy 20 video Shorts mới nhất từ kênh (để bù trừ những video đã tải) */
-        const cmd = `yt-dlp --flat-playlist --match-filter "duration <= 60" --max-downloads 20 --print id "${channelUrl}/shorts"`;
+        const ytdlpArgs = `--extractor-args "youtube:player_client=android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+        const cmd = `yt-dlp ${ytdlpArgs} --flat-playlist --match-filter "duration <= 60" --max-downloads 20 --print id "${channelUrl}/shorts"`;
         const { stdout } = await execAsync(cmd);
         const ids = stdout.split('\n').map(id => id.trim()).filter(id => id);
         videoUrls = ids.map(id => `https://www.youtube.com/watch?v=${id}`);
@@ -153,7 +154,8 @@ export class YoutubeCrawlerService {
     try {
       const tmpFile = path.join(process.cwd(), `yt_info_${Date.now()}.json`);
       try {
-        await execAsync(`yt-dlp --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
+        const ytdlpArgs = `--extractor-args "youtube:player_client=android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+        await execAsync(`yt-dlp ${ytdlpArgs} --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
         if (fs.existsSync(tmpFile)) {
           const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
           if (info.title) originalTitle = info.title;
