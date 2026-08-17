@@ -1,4 +1,4 @@
-FROM node:20-bullseye-slim
+FROM node:20-bookworm-slim
 
 # Cài đặt các thư viện hệ thống cần thiết cho FFmpeg, Chromium (Puppeteer) và Bộ font Tiếng Việt đầy đủ
 RUN apt-get update && apt-get install -y \
