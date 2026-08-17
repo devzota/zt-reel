@@ -153,7 +153,7 @@ export class TiktokCloneController {
   async renderVideo(
     @Request() req: any, 
     @UploadedFiles() files: Array<any>, 
-    @Body() body: { audio_url: string; hook: string; sub_voice: string }
+    @Body() body: { audio_url: string; hook: string; sub_voice: string; reel_id?: string }
   ) {
     if (!files || files.length === 0) {
       throw new HttpException('Vui lòng tải lên ít nhất 1 ảnh', HttpStatus.BAD_REQUEST);
@@ -199,9 +199,8 @@ export class TiktokCloneController {
 
       /** 4. Generate Subtitles ASS */
       const subtitles = this.aiService.ztteam_generateSubtitles(body.sub_voice, audioDuration);
-      /** Add Hook to subtitles at start (0 to 3 seconds) at top of screen (Đã loại bỏ Hook khỏi Karaoke Subtitles theo yêu cầu của user) */
       
-      const assContent = this.aiService.ztteam_generateASSContent(subtitles, 0, 1080, undefined, 1100); /** 1100 is y-pos for sub (on top of the image) */
+      const assContent = this.aiService.ztteam_generateASSContent(subtitles, 0, 1080, undefined, 1100); /** 1100 is y-pos for sub */
       const subtitlePath = path.join(renderDir, 'subtitles.ass');
       fs.writeFileSync(subtitlePath, assContent, 'utf-8');
 
@@ -213,10 +212,9 @@ export class TiktokCloneController {
       const finalVideoPath = path.join(renderDir, 'final.mp4');
       
       /** Fixed background color #0368ff (blue) */
-      const bgColor = '0x0368ff';
       const fontPath = path.relative(process.cwd(), path.join(process.cwd(), 'assets', 'Montserrat-Black.ttf')).replace(/\\/g, '/');
 
-      /** 6. Generate Title (Hook) image with text using FFmpeg drawtext on a gradient background */
+      /** Generate Title (Hook) image with text using FFmpeg drawtext */
       let drawtextArg = '';
       if (body.hook && body.hook.length > 0) {
         const words = body.hook.split(' ');
@@ -236,14 +234,12 @@ export class TiktokCloneController {
         const fontSize = 50;
         const lineSpacing = 10;
         const lineHeight = fontSize + lineSpacing;
-        const totalHeight = lines.length * lineHeight;
         
         const startY = 1350;
         
         for (let i = 0; i < lines.length; i++) {
            const yPos = Math.round(startY + i * lineHeight);
            const safeText = lines[i].replace(/'/g, "\u2019").replace(/:/g, '\\:');
-           /** First line white, remaining lines yellow (like the reference TikTok video) */
            const color = i === 0 ? 'white' : 'yellow';
            textFilters.push(`drawtext=fontfile='${fontPath}':text='${safeText}':fontcolor=${color}:fontsize=50:x=40:y=${yPos}`);
         }
@@ -251,10 +247,6 @@ export class TiktokCloneController {
         drawtextArg = `,${textFilters.join(',')}`;
       }
       
-      /** 
-       * Step A: Generate bg.png - SVG background with dark-to-bright blue gradient and Neon Lock Icon
-       * Rendered directly via sharp for maximum performance (<0.1s)
-       */
       const bgPath = path.join(renderDir, 'bg.png');
       const svgBg = `<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -272,7 +264,6 @@ export class TiktokCloneController {
     </filter>
   </defs>
   <rect width="1080" height="1920" fill="url(#bgGrad)"/>
-  <!-- Perfectly Centered Neon Glow & Lock Icon (Violet/Magenta Glow) -->
   <g transform="translate(800, 1600)" filter="url(#neonGlow)">
     <circle cx="0" cy="0" r="240" fill="#a855f7" opacity="0.3"/>
     <g transform="translate(-140, -160)">
@@ -286,21 +277,9 @@ export class TiktokCloneController {
       const sharp = require('sharp');
       await sharp(Buffer.from(svgBg)).toFile(bgPath);
 
-      /** 
-       * Step B: Generate overlay.png - Transparent canvas containing ONLY the Title Text
-       * The slideshow bottom alpha dissolve is handled directly in FFmpeg filterComplex,
-       * so overlay.png doesn't draw any solid color background, eliminating all horizontal seams 100%!
-       */
       const overlayPath = path.join(renderDir, 'overlay.png');
       require('child_process').execSync(`ffmpeg -y -f lavfi -i "color=c=black@0.0:s=1080x1920,format=rgba" -vf "format=rgba${drawtextArg}" -frames:v 1 "${overlayPath}"`);
 
-      /**
-       * Merge layers:
-       * Layer 0 (bottom): bg.png - colored gradient
-       * Layer 1 (middle): slideshow.mp4 at Y=0
-       * Layer 2 (top):    overlay.png - transparent fade + title text
-       * Layer 3:          voice audio
-       */
       await this.ffmpegService.ztteam_mergeAll({
         slideshowPath,
         voicePath: audioPath,
@@ -313,10 +292,19 @@ export class TiktokCloneController {
         bgImagePath: bgPath,
       });
 
+      const relativeVideoUrl = `/storage/tmp/${renderId}/final.mp4`;
+
+      if (body.reel_id) {
+        await this.prisma.ztteam_reels.update({
+          where: { id: body.reel_id },
+          data: { video_url: relativeVideoUrl, status: 'COMPLETED' }
+        }).catch(() => { });
+      }
+
       return {
         success: true,
         data: {
-          video_url: `/storage/tmp/${renderId}/final.mp4`
+          video_url: relativeVideoUrl
         }
       };
     } catch (error: any) {

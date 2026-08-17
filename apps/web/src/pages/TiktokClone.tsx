@@ -17,21 +17,12 @@ const VOICES = [
 ];
 
 export default function TiktokClone() {
-  const [activeTab, setActiveTab] = useState<'single' | 'batch' | 'history'>('single');
+  const [activeTab, setActiveTab] = useState<'batch' | 'history'>('batch');
 
-  /** Single Mode State */
-  const [url, setUrl] = useState('');
+  /** Voice settings */
   const [prompt, setPrompt] = useState('');
   const [voiceId, setVoiceId] = useState('3001');
   const [voiceSpeed, setVoiceSpeed] = useState(1.1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRewriting, setIsRewriting] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  
-  /** Render State */
-  const [images, setImages] = useState<File[]>([]);
-  const [isRendering, setIsRendering] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   /** Batch Mode State */
   const [batchUrlsText, setBatchUrlsText] = useState('');
@@ -43,22 +34,11 @@ export default function TiktokClone() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
+  /** Inline Render State for History / Batch items */
+  const [renderingItemMap, setRenderingItemMap] = useState<{ [key: string]: boolean }>({});
+  const [itemImagesMap, setItemImagesMap] = useState<{ [key: string]: File[] }>({});
+
   const { ztteam_showToast } = useUIStore();
-
-  useEffect(() => {
-    const savedResult = localStorage.getItem('tiktok_clone_result');
-    if (savedResult) {
-      try {
-        setResult(JSON.parse(savedResult));
-      } catch (e) {}
-    }
-  }, []);
-
-  useEffect(() => {
-    if (result) {
-      localStorage.setItem('tiktok_clone_result', JSON.stringify(result));
-    }
-  }, [result]);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -77,27 +57,6 @@ export default function TiktokClone() {
       ztteam_showToast('Không thể tải lịch sử TikTok Clone', 'error');
     } finally {
       setIsLoadingHistory(false);
-    }
-  };
-
-  const handleProcess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url) return;
-
-    try {
-      setIsLoading(true);
-      const res = await api.post('/tiktok-clone/process', {
-        url,
-        prompt,
-        voice_id: voiceId,
-        voice_speed: voiceSpeed,
-      });
-      setResult(res.data.data);
-      ztteam_showToast('Xử lý thành công!', 'success');
-    } catch (e: any) {
-      ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra khi xử lý link', 'error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -120,6 +79,7 @@ export default function TiktokClone() {
       if (res.data?.success) {
         setBatchResults(res.data.data || []);
         ztteam_showToast(res.data.message || 'Đã xử lý hàng loạt thành công!', 'success');
+        if (activeTab === 'history') fetchHistory();
       }
     } catch (e: any) {
       ztteam_showToast(e.response?.data?.message || 'Có lỗi khi xử lý hàng loạt', 'error');
@@ -128,58 +88,48 @@ export default function TiktokClone() {
     }
   };
 
-  const handleRewrite = async () => {
-    if (!result?.original_text) return;
-
-    try {
-      setIsRewriting(true);
-      const res = await api.post('/tiktok-clone/rewrite', {
-        original_text: result.original_text,
-        prompt,
-        voice_id: voiceId,
-        voice_speed: voiceSpeed,
-      });
-      setResult({
-        ...result,
-        new_script: res.data.data.new_script,
-        audio_url: res.data.data.audio_url,
-      });
-      ztteam_showToast('Đã tạo lại kịch bản mới!', 'success');
-    } catch (e: any) {
-      ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra khi tạo lại', 'error');
-    } finally {
-      setIsRewriting(false);
-    }
+  const handleItemImageChange = (key: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newFiles = Array.from(files);
+    setItemImagesMap(prev => ({
+      ...prev,
+      [key]: [...(prev[key] || []), ...newFiles]
+    }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
-      setImages(prev => [...prev, ...newFiles]);
-    }
+  const removeItemImage = (key: string, index: number) => {
+    setItemImagesMap(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).filter((_, i) => i !== index)
+    }));
   };
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRender = async () => {
-    if (!result?.audio_url || !result?.new_script?.sub_voice) {
-      ztteam_showToast('Chưa có kịch bản và giọng đọc AI', 'error');
-      return;
-    }
+  const handleRenderVideoForItem = async (key: string, item: any) => {
+    const images = itemImagesMap[key] || [];
     if (images.length === 0) {
-      ztteam_showToast('Vui lòng chọn ít nhất 1 ảnh', 'error');
+      ztteam_showToast('Vui lòng chọn ít nhất 1 ảnh để dựng video', 'error');
+      return;
+    }
+
+    const audioUrl = item.audio_url;
+    const subVoice = item.ai_caption || item.new_script?.sub_voice;
+    const hookText = item.ai_hook || item.new_script?.hook || '';
+
+    if (!audioUrl || !subVoice) {
+      ztteam_showToast('Chưa có giọng đọc AI hoặc kịch bản để dựng video', 'error');
       return;
     }
 
     try {
-      setIsRendering(true);
+      setRenderingItemMap(prev => ({ ...prev, [key]: true }));
       const formData = new FormData();
-      formData.append('audio_url', result.audio_url);
-      formData.append('sub_voice', result.new_script.sub_voice);
-      formData.append('hook', result.new_script.hook || '');
-      
+      formData.append('audio_url', audioUrl);
+      formData.append('sub_voice', subVoice);
+      formData.append('hook', hookText);
+      if (item.id) {
+        formData.append('reel_id', item.id);
+      }
+
       images.forEach(img => {
         formData.append('images', img);
       });
@@ -187,12 +137,20 @@ export default function TiktokClone() {
       const res = await api.post('/tiktok-clone/render', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setVideoUrl(res.data.data.video_url);
-      ztteam_showToast('Render Video thành công!', 'success');
+
+      const generatedVideoUrl = res.data.data?.video_url;
+      ztteam_showToast('Dựng Video thành công!', 'success');
+
+      // Update local item video URL
+      if (item.id) {
+        fetchHistory();
+      } else if (key) {
+        setBatchResults(prev => prev.map(b => b.url === item.url ? { ...b, video_url: generatedVideoUrl } : b));
+      }
     } catch (e: any) {
-      ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra khi render', 'error');
+      ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra khi dựng video', 'error');
     } finally {
-      setIsRendering(false);
+      setRenderingItemMap(prev => ({ ...prev, [key]: false }));
     }
   };
 
@@ -211,22 +169,13 @@ export default function TiktokClone() {
         {/* Tab Navigation Buttons */}
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-full border border-slate-200/60 self-start md:self-auto">
           <button
-            onClick={() => setActiveTab('single')}
-            className={`px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'single' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">link</span>
-            Xử Lý 1 Link
-          </button>
-          <button
             onClick={() => setActiveTab('batch')}
             className={`px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'batch' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span className="material-symbols-outlined text-sm">dynamic_feed</span>
-            Tạo Hàng Loạt
+            Tạo Hàng Loạt (1 hoặc Nhiều Link)
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -235,83 +184,41 @@ export default function TiktokClone() {
             }`}
           >
             <span className="material-symbols-outlined text-sm">history</span>
-            Lịch Sử Render
+            Lịch Sử Render (Video & Kịch Bản)
           </button>
         </div>
       </div>
 
-      {/* TAB 1: SINGLE LINK MODE */}
-      {activeTab === 'single' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Form Configuration */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">tune</span>
-                Cấu Hình Bóc Băng
-              </h2>
+      {/* TAB 1: BATCH MULTI-LINKS MODE */}
+      {activeTab === 'batch' && (
+        <div className="space-y-6">
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">dynamic_feed</span>
+              Nhập Danh Sách Link TikTok / Shorts / Reels (Dán 1 hoặc Nhiều Link)
+            </h2>
 
-              <form onSubmit={handleProcess} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
-                    Đường dẫn Video TikTok / Shorts / Reels
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://www.tiktok.com/@user/video/..."
-                    className="w-full rounded-full bg-gray-100 border-2 border-transparent px-5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium"
-                  />
-                </div>
-
+            <form onSubmit={handleBatchProcess} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
                     Giọng Đọc AI (TTS)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={voiceId}
-                      onChange={(e) => setVoiceId(e.target.value)}
-                      className="flex-1 rounded-full bg-gray-100 border-2 border-transparent px-5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium cursor-pointer appearance-none"
-                    >
-                      {VOICES.map(v => (
-                        <option key={v.id} value={v.id}>{v.label}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const res = await api.post('/templates/tts/test', {
-                            voice: voiceId,
-                            text: 'Xin chào, đây là bản nghe thử giọng đọc AI.'
-                          });
-                          if (res.data?.url) {
-                            const audio = new Audio(res.data.url);
-                            audio.playbackRate = voiceSpeed;
-                            audio.play();
-                          }
-                        } catch (e) {
-                          ztteam_showToast('Không thể test giọng đọc này', 'error');
-                        }
-                      }}
-                      className="px-3 py-2.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                      title="Nghe thử giọng đọc"
-                    >
-                      <span className="material-symbols-outlined text-sm">volume_up</span>
-                    </button>
-                  </div>
+                  <select
+                    value={voiceId}
+                    onChange={(e) => setVoiceId(e.target.value)}
+                    className="w-full rounded-full bg-gray-100 border-2 border-transparent px-5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium cursor-pointer"
+                  >
+                    {VOICES.map(v => (
+                      <option key={v.id} value={v.id}>{v.label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1.5 pl-1 pr-1">
-                    <label className="text-sm font-semibold text-slate-700">
-                      Tốc Độ Đọc (Voice Speed)
-                    </label>
-                    <span className="text-xs font-bold text-primary bg-blue-50 px-2 py-0.5 rounded-full">{voiceSpeed}x</span>
-                  </div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
+                    Tốc Độ Giọng Đọc: <span className="text-primary font-bold">{voiceSpeed}x</span>
+                  </label>
                   <input
                     type="range"
                     min="0.8"
@@ -319,334 +226,197 @@ export default function TiktokClone() {
                     step="0.05"
                     value={voiceSpeed}
                     onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                    className="w-full accent-primary cursor-pointer"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary mt-3"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
-                    Custom Prompt (Định hướng viết lại)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Ví dụ: Đổi xưng hô sang Mình/Các bạn, văn phong hài hước, kích thích tò mò..."
-                    className="w-full rounded-2xl bg-gray-100 border-2 border-transparent p-4 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium resize-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-primary text-white py-3 rounded-full font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer"
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin">refresh</span>
-                      Đang Tải & Bóc Băng...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">auto_fix_high</span>
-                      Bóc Băng & Viết Lại Kịch Bản
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* Right Column: Result Details & Render */}
-          <div className="lg:col-span-2 space-y-6">
-            {result ? (
-              <>
-                {/* Step 1: Original STT Text */}
-                <div className="glass-card p-6">
-                  <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-500">record_voice_over</span>
-                    Lịch Sử Lời Thoại Gốc (Whisper STT Bóc Tách)
-                  </h3>
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 max-h-48 overflow-y-auto">
-                    <p className="text-sm text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{result.original_text}</p>
-                  </div>
-                </div>
-
-                {/* Step 2: AI Rewritten Script */}
-                <div className="glass-card p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-emerald-500">psychology</span>
-                      Kịch Bản Mới Biến Tấu AI Rewrite
-                    </h3>
-                    <button
-                      onClick={handleRewrite}
-                      disabled={isRewriting}
-                      className="px-3.5 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-full font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      <span className={`material-symbols-outlined text-sm ${isRewriting ? 'animate-spin' : ''}`}>refresh</span>
-                      Viết Lại Bản Khác
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Hook Badge */}
-                    <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                      <span className="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider block mb-1">CÂU TIÊU ĐỀ HOOK (Hiển thị đầu video):</span>
-                      <p className="text-sm font-bold text-purple-900">{result.new_script?.hook}</p>
-                    </div>
-
-                    {/* Full Voice Script */}
-                    <div>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1 pl-1">LỜI THOẠI ĐỌC (Voice Sub):</span>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60">
-                        <p className="text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">{result.new_script?.sub_voice}</p>
-                      </div>
-                    </div>
-
-                    {/* Audio Preview */}
-                    {result.audio_url && (
-                      <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-primary text-2xl">graphic_eq</span>
-                          <div>
-                            <p className="text-xs font-bold text-slate-800">File Giọng Đọc AI Đã Tạo</p>
-                            <p className="text-[11px] text-slate-500">Sẵn sàng dùng để ghép video</p>
-                          </div>
-                        </div>
-                        <audio src={`${api.defaults.baseURL?.replace('/api', '')}${result.audio_url}`} controls className="h-8 max-w-[200px]" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Step 3: Video Rendering Section */}
-                <div className="glass-card p-6">
-                  <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-purple-600">movie_filter</span>
-                    Tải Ảnh & Dựng Video Slideshow + Subtitles
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
-                      <input 
-                        type="file" 
-                        multiple 
-                        accept="image/*" 
-                        onChange={handleImageChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <span className="material-symbols-outlined text-3xl text-slate-400 mb-1">cloud_upload</span>
-                      <p className="text-slate-700 font-bold text-sm">Bấm hoặc Kéo thả ảnh vào đây</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Khuyên dùng từ 3-6 ảnh 9:16 dọc</p>
-                    </div>
-
-                    {images.length > 0 && (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                        {images.map((img, idx) => (
-                          <div key={idx} className="relative aspect-[9/16] bg-slate-100 rounded-xl overflow-hidden group shadow-sm border border-slate-200/60">
-                            <img src={URL.createObjectURL(img)} alt={`img-${idx}`} className="w-full h-full object-cover" />
-                            <button 
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-sm">close</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {videoUrl && (
-                      <div className="mt-6 p-6 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex flex-col items-center">
-                        <h4 className="font-bold text-emerald-800 mb-4 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-emerald-600">check_circle</span>
-                          Video Đã Render Thành Công!
-                        </h4>
-                        <video 
-                          src={`${api.defaults.baseURL?.replace('/api', '')}${videoUrl}`} 
-                          controls 
-                          className="w-[240px] h-[426px] rounded-2xl shadow-xl bg-black"
-                        />
-                        <a 
-                          href={`${api.defaults.baseURL?.replace('/api', '')}${videoUrl}`} 
-                          download
-                          target="_blank"
-                          className="mt-4 px-6 py-2.5 bg-emerald-600 text-white rounded-full font-bold hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 shadow-md shadow-emerald-600/20"
-                        >
-                          <span className="material-symbols-outlined text-sm">download</span>
-                          Tải Video Xuống
-                        </a>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleRender}
-                      disabled={isRendering || images.length === 0}
-                      className="w-full mt-2 bg-emerald-600 text-white py-3 rounded-full font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
-                    >
-                      {isRendering ? (
-                        <>
-                          <span className="material-symbols-outlined animate-spin">refresh</span>
-                          Đang Dựng Video Ngầm (Vui lòng chờ)...
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined">movie</span>
-                          Render Video (Slideshow + Subtitles + Voice)
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="glass-card p-12 flex flex-col items-center justify-center text-center text-slate-400 min-h-[400px]">
-                <span className="material-symbols-outlined text-6xl mb-4 text-slate-300">smart_toy</span>
-                <p className="font-semibold text-slate-600">Dán Link TikTok ở bên trái để AI tự động bóc băng lời thoại<br/>và chuyển đổi sang kịch bản hoàn toàn mới.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: BATCH MULTI-LINKS MODE */}
-      {activeTab === 'batch' && (
-        <div className="glass-card p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">dynamic_feed</span>
-                Nhập Danh Sách Link TikTok Hàng Loạt
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Dán nhiều link (mỗi link 1 dòng). Hệ thống sẽ bóc băng Whisper STT và tạo kịch bản mới ngầm không làm chậm web.</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleBatchProcess} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
-                Danh Sách Links (TikTok / Shorts / Reels) - Mỗi link 1 dòng
-              </label>
-              <textarea
-                rows={6}
-                required
-                value={batchUrlsText}
-                onChange={(e) => setBatchUrlsText(e.target.value)}
-                placeholder="https://www.tiktok.com/@user/video/11111&#10;https://www.tiktok.com/@user/video/22222&#10;https://www.youtube.com/shorts/33333"
-                className="w-full rounded-2xl bg-gray-100 border-2 border-transparent p-4 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
-                  Giọng Đọc AI (TTS)
-                </label>
-                <select
-                  value={voiceId}
-                  onChange={(e) => setVoiceId(e.target.value)}
-                  className="w-full rounded-full bg-gray-100 border-2 border-transparent px-5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium cursor-pointer"
-                >
-                  {VOICES.map(v => (
-                    <option key={v.id} value={v.id}>{v.label}</option>
-                  ))}
-                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
-                  Custom Prompt Chi Phối AI
+                  Yêu Cầu Tùy Chỉnh AI Rewrite (System Prompt - Tùy chọn)
                 </label>
                 <input
                   type="text"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ví dụ: Đổi xưng hô sang Mình/Các bạn..."
+                  placeholder="Ví dụ: Viết lại kịch bản theo phong cách hài hước, kích thích mua hàng..."
                   className="w-full rounded-full bg-gray-100 border-2 border-transparent px-5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-medium"
                 />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={isBatchProcessing}
-              className="w-full bg-primary text-white py-3.5 rounded-full font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer"
-            >
-              {isBatchProcessing ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin">refresh</span>
-                  Đang Xử Lý Hàng Loạt Ngầm (Vui lòng chờ)...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">bolt</span>
-                  Bắt Đầu Xử Lý Hàng Loạt
-                </>
-              )}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5 pl-1">
+                  Danh Sách Link Video (Mỗi link 1 dòng - Có thể dán 1 link hoặc 100 link cùng lúc)
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={batchUrlsText}
+                  onChange={(e) => setBatchUrlsText(e.target.value)}
+                  placeholder={`https://www.tiktok.com/@user/video/11111111\nhttps://www.tiktok.com/@user/video/22222222\nhttps://www.youtube.com/shorts/33333333`}
+                  className="w-full rounded-2xl bg-gray-100 border-2 border-transparent p-4 text-sm text-slate-800 focus:outline-none focus:ring-0 focus:border-primary transition-all font-mono leading-relaxed"
+                />
+              </div>
 
-          {/* Batch Results Overview */}
+              <button
+                type="submit"
+                disabled={isBatchProcessing}
+                className="w-full py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-full shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isBatchProcessing ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-xl">refresh</span>
+                    <span>Đang Bóc Băng & Viết Lại Kịch Bản AI Ngầm (Vui lòng chờ)...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-xl">bolt</span>
+                    <span>Xử Lý Hàng Loạt Ngầm (Bóc Băng + AI Rewrite + Tạo Audio)</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Batch Results View */}
           {batchResults.length > 0 && (
-            <div className="mt-8 space-y-4 border-t border-slate-100 pt-6">
+            <div className="glass-card p-6 space-y-4">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <span className="material-symbols-outlined text-emerald-600">task_alt</span>
-                Kết Quả Xử Lý Hàng Loạt ({batchResults.filter(r => r.success).length}/{batchResults.length} Thành công)
+                Kết Quả Xử Lý Hàng Loạt ({batchResults.filter(r => r.success).length}/{batchResults.length} thành công)
               </h3>
 
-              <div className="divide-y divide-slate-100 bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden">
-                {batchResults.map((item, idx) => (
-                  <div key={idx} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      {item.cover ? (
-                        <img src={item.cover} alt="cover" className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200/60" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
-                          <span className="material-symbols-outlined">videocam</span>
+              <div className="space-y-4">
+                {batchResults.map((item, idx) => {
+                  const key = `batch_${idx}`;
+                  const isRenderingThis = renderingItemMap[key];
+                  const itemImages = itemImagesMap[key] || [];
+
+                  return (
+                    <div key={idx} className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 space-y-3">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          {item.cover ? (
+                            <img src={item.cover} alt="cover" className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200/60" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                              <span className="material-symbols-outlined">videocam</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-sm text-slate-900 line-clamp-1">{item.title || item.url}</p>
+                            {item.success ? (
+                              <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                                <span className="material-symbols-outlined text-xs">check_circle</span>
+                                Đã tạo kịch bản & Giọng đọc AI
+                              </p>
+                            ) : (
+                              <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-0.5">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                Lỗi: {item.error}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-bold text-sm text-slate-900 line-clamp-1">{item.title || item.url}</p>
-                        {item.success ? (
-                          <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-                            <span className="material-symbols-outlined text-xs">check_circle</span>
-                            Đã tạo kịch bản & giọng đọc AI thành công
-                          </p>
-                        ) : (
-                          <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-0.5">
-                            <span className="material-symbols-outlined text-xs">error</span>
-                            Lỗi: {item.error}
-                          </p>
+
+                        {item.success && item.audio_url && (
+                          <div className="flex items-center gap-2">
+                            <audio src={`${api.defaults.baseURL?.replace('/api', '')}${item.audio_url}`} controls className="h-8 max-w-[180px]" />
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    {item.success && item.audio_url && (
-                      <div className="flex items-center gap-2">
-                        <audio src={`${api.defaults.baseURL?.replace('/api', '')}${item.audio_url}`} controls className="h-8 max-w-[180px]" />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      {/* Video Output Preview if Rendered */}
+                      {item.video_url && (
+                        <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="h-32 w-auto rounded-lg shadow-sm" />
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">Video MP4 Hoàn Chỉnh</p>
+                              <p className="text-[11px] text-slate-500">Đã ghép ảnh + Giọng đọc AI + Subtitles</p>
+                            </div>
+                          </div>
+                          <a
+                            href={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            download
+                            className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-full hover:opacity-90 transition-opacity flex items-center gap-1.5 self-start sm:self-auto"
+                          >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Tải Video MP4
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Inline Image Uploader & Video Render for Batch Item */}
+                      {item.success && item.audio_url && !item.video_url && (
+                        <div className="p-3 bg-white rounded-xl border border-slate-200/60 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-purple-600 text-sm">movie_filter</span>
+                              Chọn Ảnh để dựng Video Slideshow:
+                            </span>
+                            <label className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold rounded-full cursor-pointer transition-colors">
+                              + Chọn Ảnh
+                              <input type="file" multiple accept="image/*" onChange={(e) => handleItemImageChange(key, e.target.files)} className="hidden" />
+                            </label>
+                          </div>
+
+                          {itemImages.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {itemImages.map((img, i) => (
+                                <div key={i} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200">
+                                  <img src={URL.createObjectURL(img)} alt="thumb" className="w-full h-full object-cover" />
+                                  <button
+                                    onClick={() => removeItemImage(key, i)}
+                                    className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-0"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => handleRenderVideoForItem(key, item)}
+                            disabled={isRenderingThis || itemImages.length === 0}
+                            className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-full shadow-sm transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                          >
+                            {isRenderingThis ? (
+                              <>
+                                <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
+                                <span>Đang Render Video...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-sm">movie</span>
+                                <span>Dựng Video MP4 ({itemImages.length} ảnh đã chọn)</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 3: HISTORY ARCHIVE & STT */}
+      {/* TAB 2: HISTORY ARCHIVE & STT */}
       {activeTab === 'history' && (
         <div className="glass-card p-6 space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">history</span>
-                Lịch Sử Render TikTok (Whisper STT & AI Rewrite Archive)
+                Lịch Sử Render TikTok (Video, Audio & Kịch Bản STT)
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Lưu trữ 100% lời thoại gốc bóc băng Whisper STT, Kịch bản AI Rewrite và file Giọng Đọc AI.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Lưu trữ 100% Video MP4 đã dựng, Giọng Đọc AI, Whisper STT và Kịch Bản AI Rewrite.</p>
             </div>
             <button
               onClick={fetchHistory}
@@ -667,14 +437,18 @@ export default function TiktokClone() {
             <div className="py-12 text-center text-slate-400">
               <span className="material-symbols-outlined text-4xl mb-2">folder_off</span>
               <p className="font-bold text-sm text-slate-700">Chưa có lịch sử TikTok Clone nào</p>
-              <p className="text-xs text-slate-500 mt-1">Dán link TikTok ở tab "Xử Lý 1 Link" hoặc "Tạo Hàng Loạt" để lưu lịch sử.</p>
+              <p className="text-xs text-slate-500 mt-1">Dán link TikTok ở tab "Tạo Hàng Loạt" để tạo video và lưu lịch sử.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {historyList.map(item => {
                 const isExpanded = expandedHistoryId === item.id;
+                const key = item.id;
+                const isRenderingThis = renderingItemMap[key];
+                const itemImages = itemImagesMap[key] || [];
+
                 return (
-                  <div key={item.id} className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-4 transition-all shadow-sm">
+                  <div key={item.id} className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-4 transition-all shadow-sm space-y-3">
                     {/* Header Item */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -708,12 +482,85 @@ export default function TiktokClone() {
                           className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-full font-bold text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-sm">{isExpanded ? 'expand_less' : 'expand_more'}</span>
-                          {isExpanded ? 'Thu Gọn' : 'Xem Kịch Bản'}
+                          {isExpanded ? 'Thu Gọn' : 'Xem Kịch Bản & Video'}
                         </button>
                       </div>
                     </div>
 
-                    {/* Expanded History Details */}
+                    {/* Final Rendered Video Player if exists */}
+                    {item.video_url && (
+                      <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="h-36 w-auto rounded-xl shadow-md border border-slate-200" />
+                          <div>
+                            <p className="text-xs font-extrabold text-slate-800">🎬 Video MP4 Chính Đã Render</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">Đã hoàn tất ghép Slideshow + Giọng đọc AI + Subtitles</p>
+                          </div>
+                        </div>
+                        <a
+                          href={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-full hover:opacity-90 transition-opacity flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+                        >
+                          <span className="material-symbols-outlined text-sm">download</span>
+                          Tải Video MP4
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Inline Image Uploader & Video Render for History Item if video_url missing */}
+                    {!item.video_url && item.audio_url && (
+                      <div className="p-3 bg-white rounded-xl border border-slate-200/60 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-purple-600 text-sm">movie_filter</span>
+                            Dựng Video MP4 cho bản ghi này (Chọn Ảnh):
+                          </span>
+                          <label className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold rounded-full cursor-pointer transition-colors">
+                            + Chọn Ảnh
+                            <input type="file" multiple accept="image/*" onChange={(e) => handleItemImageChange(key, e.target.files)} className="hidden" />
+                          </label>
+                        </div>
+
+                        {itemImages.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {itemImages.map((img, i) => (
+                              <div key={i} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200">
+                                <img src={URL.createObjectURL(img)} alt="thumb" className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => removeItemImage(key, i)}
+                                  className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-0"
+                                >
+                                  <span className="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => handleRenderVideoForItem(key, item)}
+                          disabled={isRenderingThis || itemImages.length === 0}
+                          className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-full shadow-sm transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                        >
+                          {isRenderingThis ? (
+                            <>
+                              <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
+                              <span>Đang Render Video MP4...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-sm">movie</span>
+                              <span>Dựng Video MP4 ({itemImages.length} ảnh đã chọn)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Expanded Details */}
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         {/* Column 1: Whisper STT Original */}
