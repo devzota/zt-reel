@@ -365,6 +365,193 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
   );
 }
 
+function FanpageMobileCard({ page, isExpired, testingPageId, handleTestPost }: any) {
+  const navigate = useNavigate();
+  const { ztteam_getPageReport, ztteam_deletePage } = useZTTeamFacebookStore();
+  const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
+  const [insights, setInsights] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isExpired) {
+      ztteam_getPageReport(page.id).then(data => setInsights(data));
+    }
+  }, [page.id, isExpired]);
+
+  let totalViews28d = 0;
+  if (insights && Array.isArray(insights)) {
+    const viewMetric = insights.find((m: any) => m.name === 'page_media_view');
+    if (viewMetric && viewMetric.values) {
+      totalViews28d = viewMetric.values.reduce((s: number, v: any) => s + (v.value || 0), 0);
+    }
+  }
+
+  const ztteam_formatDate = (dateStr: string | null | undefined, allowPast = false) => {
+    if (!dateStr) return 'Đang chờ...';
+    const d = new Date(dateStr);
+    if (!allowPast && d.getTime() < Date.now()) return 'Đang chờ...';
+    return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  };
+
+  const handleDeletePage = async () => {
+    const confirm = await ztteam_showConfirm(
+      'Xóa Fanpage',
+      `Bạn có chắc muốn xóa Fanpage "${page.name}"? Tất cả dữ liệu sẽ bị xóa vĩnh viễn.`
+    );
+    if (confirm) {
+      try {
+        await ztteam_deletePage(page.id);
+        ztteam_showToast(`Đã xóa Fanpage ${page.name} thành công`, 'success');
+      } catch (error: any) {
+        ztteam_showToast(error.message, 'error');
+      }
+    }
+  };
+
+  return (
+    <div className="glass-card p-4 rounded-2xl mb-4 border border-slate-200/60 shadow-sm flex flex-col gap-3">
+      {/* Top Bar: Avatar, Name, Owner, Status */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {page.avatar ? (
+            <img 
+              src={page.avatar} 
+              alt={page.name} 
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.dataset.fallback) {
+                  target.dataset.fallback = 'true';
+                  target.src = `https://graph.facebook.com/${page.fb_page_id || page.id}/picture?type=large`;
+                }
+              }}
+              className="w-12 h-12 rounded-2xl object-cover bg-slate-100 border border-slate-200/60 shadow-sm shrink-0" 
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shadow-sm shrink-0">
+              <span className="material-symbols-outlined text-xl">pages</span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 text-base truncate">{page.name}</p>
+            <p className="text-xs text-gray-500 truncate">Nick: <b>{page.ownerName || 'Chưa rõ'}</b></p>
+          </div>
+        </div>
+
+        {isExpired ? (
+          <span className="px-2.5 py-1 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-xs font-bold shrink-0 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">error</span>
+            Expired
+          </span>
+        ) : (
+          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-xs font-bold shrink-0 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Active
+          </span>
+        )}
+      </div>
+
+      {/* Badges: Đăng, Tạo, Template */}
+      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+        {page.autoPublishEnabled !== false ? (
+          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[11px] font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px]">play_circle</span>
+            ĐĂNG: BẬT
+          </span>
+        ) : (
+          <span className="px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[11px] font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px]">pause_circle</span>
+            ĐĂNG: TẮT
+          </span>
+        )}
+
+        {page.autoCreateEnabled ? (
+          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[11px] font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px]">videocam</span>
+            TẠO: BẬT
+          </span>
+        ) : (
+          <span className="px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[11px] font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px]">videocam_off</span>
+            TẠO: TẮT
+          </span>
+        )}
+
+        <span className="px-2.5 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-bold flex items-center gap-1">
+          <span className="material-symbols-outlined text-[13px]">palette</span>
+          {page.defaultReelTemplateName || 'Mặc định'}
+        </span>
+      </div>
+
+      {/* Next Scheduled & Render Times Grid */}
+      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">Lịch Đăng Bài</span>
+          <span className="font-bold text-emerald-600 flex items-center gap-1">
+            <span className="material-symbols-outlined text-xs">schedule</span>
+            {ztteam_formatDate(page.nextPublishTime)}
+          </span>
+        </div>
+        <div>
+          <span className="text-[10px] text-gray-400 font-extrabold uppercase block mb-1">Lịch Tạo Video</span>
+          <span className="font-bold text-blue-600 flex items-center gap-1">
+            <span className="material-symbols-outlined text-xs">update</span>
+            {ztteam_formatDate(page.nextRenderTime)}
+          </span>
+        </div>
+      </div>
+
+      {/* Touch Action Bar */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate(`/facebook/pages/${page.id}/settings`)}
+            className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full font-bold text-xs flex items-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">settings</span>
+            Cấu hình
+          </button>
+          <button 
+            onClick={() => navigate(`/facebook/pages/${page.id}/report`)}
+            className="px-3.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-full font-bold text-xs flex items-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">query_stats</span>
+            Báo cáo
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => handleTestPost(page.id)}
+            disabled={testingPageId === page.id || isExpired}
+            className="w-9 h-9 flex items-center justify-center text-primary bg-blue-50 hover:bg-blue-100 rounded-full transition-colors disabled:opacity-50" 
+            title="Test đăng"
+          >
+            <span className={`material-symbols-outlined text-base ${testingPageId === page.id ? 'animate-spin' : ''}`}>
+              {testingPageId === page.id ? 'sync' : 'send'}
+            </span>
+          </button>
+          <a 
+            href={`https://facebook.com/${page.fb_page_id || page.id}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-9 h-9 flex items-center justify-center text-gray-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors" 
+            title="Xem page"
+          >
+            <span className="material-symbols-outlined text-base">open_in_new</span>
+          </a>
+          <button 
+            onClick={handleDeletePage}
+            className="w-9 h-9 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors" 
+            title="Xóa Page"
+          >
+            <span className="material-symbols-outlined text-base">delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FacebookPages() {
   const {
     isConnected,
@@ -543,8 +730,32 @@ export default function FacebookPages() {
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
+        {/* Mobile View: Responsive Glass Cards */}
+        <div className="block md:hidden p-4">
+          {filteredPages.length === 0 ? (
+            <div className="py-12 text-center">
+              <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
+              <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào</p>
+              <p className="text-sm text-gray-500 mt-1">Thử thay đổi bộ lọc hoặc kết nối thêm Fanpage.</p>
+            </div>
+          ) : (
+            filteredPages.map(page => {
+              const isExpired = page.status === 'expired';
+              return (
+                <FanpageMobileCard 
+                  key={page.id} 
+                  page={page} 
+                  isExpired={isExpired} 
+                  testingPageId={testingPageId} 
+                  handleTestPost={handleTestPost} 
+                />
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50">

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { execSync, exec } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+
+const execAsync = promisify(exec);
 
 /**
  * ZTTeamFFmpegService — Wrapper around FFmpeg CLI for video rendering.
@@ -10,6 +13,16 @@ import * as path from 'path';
 @Injectable()
 export class ZTTeamFFmpegService {
   private readonly logger = new Logger('ZTTeamFFmpegService');
+
+  /**
+   * Helper method to execute FFmpeg asynchronously with low CPU priority
+   * to prevent blocking the Node.js event loop and ensure Web API stays fast.
+   */
+  private async ztteam_runFfmpeg(cmd: string, timeoutMs: number = 180000): Promise<void> {
+    const isLinux = process.platform === 'linux';
+    const finalCmd = isLinux ? `nice -n 15 ${cmd}` : cmd;
+    await execAsync(finalCmd, { maxBuffer: 10 * 1024 * 1024, timeout: timeoutMs });
+  }
 
   /**
    * Prepare an image for 9:16 vertical video (1080x1920).
@@ -33,7 +46,7 @@ export class ZTTeamFFmpegService {
     const cmd = `ffmpeg -y -i "${imagePath}" -vf "split[original][copy];[copy]scale=${vw}:${vh}:force_original_aspect_ratio=increase,crop=${vw}:${vh},boxblur=20:20[bg];[original]scale=${vw}:${vh}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -frames:v 1 "${outputPath}"`;
 
     try {
-      execSync(cmd, { stdio: 'pipe', timeout: 30000 });
+      await this.ztteam_runFfmpeg(cmd, 30000);
       this.logger.log(`Image prepared: ${outputPath}`);
     } catch (error: any) {
       this.logger.error(`Image preparation failed: ${error.message}`);
@@ -116,7 +129,7 @@ export class ZTTeamFFmpegService {
     const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" -c:v libx264 -preset fast -t ${totalDuration} "${outputPath}"`;
 
     try {
-      execSync(cmd, { stdio: 'pipe', timeout: 120000 });
+      await this.ztteam_runFfmpeg(cmd, 120000);
       this.logger.log(`Slideshow created: ${outputPath}`);
     } catch (error: any) {
       this.logger.error(`Slideshow creation failed: ${error.message}`);
@@ -182,7 +195,7 @@ export class ZTTeamFFmpegService {
     const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" ${audioMap} -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -shortest -t ${duration} "${outputPath}"`;
 
     try {
-      execSync(cmd, { stdio: 'pipe', timeout: 180000 });
+      await this.ztteam_runFfmpeg(cmd, 180000);
       this.logger.log(`Final video rendered: ${outputPath}`);
     } catch (error: any) {
       this.logger.error(`Final merge failed: ${error.message}`);
@@ -196,7 +209,7 @@ export class ZTTeamFFmpegService {
   async ztteam_generateThumbnail(videoPath: string, outputPath: string): Promise<void> {
     const cmd = `ffmpeg -y -i "${videoPath}" -ss 1 -frames:v 1 -vf "scale=540:960" "${outputPath}"`;
     try {
-      execSync(cmd, { stdio: 'pipe', timeout: 15000 });
+      await this.ztteam_runFfmpeg(cmd, 15000);
     } catch (error: any) {
       this.logger.warn(`Thumbnail generation failed: ${error.message}`);
     }
