@@ -381,10 +381,21 @@ export class TiktokCloneController {
         const outputAudioPath = await this.ttsService.ztteam_textToSpeech(rewrittenScript.sub_voice, voiceId, workDir, voiceSpeed);
         const relativeAudioUrl = '/storage/tmp/' + path.basename(outputAudioPath);
 
-        /** Lưu vào Lịch Sử Reels (source_type: TIKTOK_CLONE - mặc định UNASSIGNED không gán Fanpage nào) */
+        /** Lấy pageId hợp lệ để thỏa mãn Foreign Key DB, nhưng vẫn giữ source_type: TIKTOK_CLONE để cô lập 100% */
+        let targetPageId = body.page_id;
+        if (!targetPageId) {
+          const firstPage = await this.prisma.ztteam_pages.findFirst();
+          if (firstPage) targetPageId = firstPage.id;
+        }
+
+        if (!targetPageId) {
+          results.push({ url, success: false, error: 'Chưa có Fanpage nào trên hệ thống để khởi tạo dữ liệu' });
+          continue;
+        }
+
         const savedReel = await this.prisma.ztteam_reels.create({
           data: {
-            page_id: body.page_id || 'UNASSIGNED',
+            page_id: targetPageId,
             wp_post_id: url,
             wp_post_title: tikwmRes.data.data.title || 'TikTok Clone Video',
             wp_post_url: url,

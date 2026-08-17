@@ -154,7 +154,7 @@ export class YoutubeCrawlerService {
     try {
       const tmpFile = path.join(process.cwd(), `yt_info_${Date.now()}.json`);
       try {
-        const ytdlpArgs = `--extractor-args "youtube:player_client=android_vr,web_embedded" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+        const ytdlpArgs = `--extractor-args "youtube:player_client=tv_embedded,android_vr" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
         await execAsync(`yt-dlp ${ytdlpArgs} --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
         if (fs.existsSync(tmpFile)) {
           const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
@@ -167,13 +167,23 @@ export class YoutubeCrawlerService {
         /** Vẫn tạo reel với URL làm tiêu đề tạm để người dùng test được */
       }
 
+      let targetPageId = pageId;
+      if (!targetPageId) {
+        const firstPage = await this.prisma.ztteam_pages.findFirst();
+        if (firstPage) targetPageId = firstPage.id;
+      }
+
+      if (!targetPageId) {
+        return { success: false, message: 'Chưa có Fanpage nào trên hệ thống để khởi tạo dữ liệu' };
+      }
+
       const reel = await this.prisma.ztteam_reels.create({
         data: {
-          page_id: pageId || 'UNASSIGNED',
+          page_id: targetPageId,
           wp_post_id: url,
           wp_post_title: originalTitle,
           wp_post_url: url,
-          source_type: 'YOUTUBE',
+          source_type: pageId ? 'YOUTUBE' : 'YOUTUBE_UNASSIGNED',
           template_id: templateId,
           status: 'QUEUED',
           ai_script: originalDescription,

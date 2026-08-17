@@ -270,10 +270,10 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const { promisify } = require('util');
       const exec = promisify(require('child_process').exec);
 
-      const ytdlpArgs = `--extractor-args "youtube:player_client=android_vr,web_embedded" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+      const ytdlpArgs = `--extractor-args "youtube:player_client=tv_embedded,android_vr" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
       
       /** Tải video */
-      await exec(`yt-dlp ${ytdlpArgs} -f "best[ext=mp4]/best/18" -o "${rawVideoPath}" "${ytUrl}"`);
+      await exec(`yt-dlp ${ytdlpArgs} -f "best[ext=mp4]/best" -o "${rawVideoPath}" "${ytUrl}"`);
       /** Tải thumbnail */
       await exec(`yt-dlp ${ytdlpArgs} --write-thumbnail --skip-download -o "${path.join(workDir, 'raw_thumb')}" "${ytUrl}"`).catch(() => { });
 
