@@ -1025,6 +1025,46 @@ export class ZTTeamFacebookService {
   }
 
   async ztteam_checkAccountHealth(userId: string, accountId?: string) {
+    /** 1. Tự động dọn dẹp các bản ghi Nick FB trùng lặp bị rỗng (0 Fanpage) */
+    try {
+      const allAccounts = await this.prisma.ztteam_fb_accounts.findMany({
+        where: { owner_user_id: userId },
+        include: { pages: true }
+      });
+      
+      const accByName = new Map<string, any[]>();
+      for (const a of allAccounts) {
+        const key = a.fb_user_id || a.name;
+        if (!accByName.has(key)) accByName.set(key, []);
+        accByName.get(key)!.push(a);
+      }
+
+      for (const [key, group] of accByName.entries()) {
+        if (group.length > 1) {
+          /** Sắp xếp tài khoản có nhiều Fanpage nhất lên đầu */
+          group.sort((a, b) => b.pages.length - a.pages.length);
+          const primaryAcc = group[0];
+          const duplicates = group.slice(1);
+
+          for (const dupe of duplicates) {
+            if (dupe.pages.length === 0) {
+              /** Xóa an toàn tài khoản rỗng trùng lặp */
+              await this.prisma.ztteam_fb_accounts.delete({ where: { id: dupe.id } }).catch(() => null);
+            } else {
+              /** Chuyển Fanpage sang tài khoản chính rồi xóa tài khoản phụ */
+              await this.prisma.ztteam_pages.updateMany({
+                where: { fb_account_id: dupe.id },
+                data: { fb_account_id: primaryAcc.id }
+              }).catch(() => null);
+              await this.prisma.ztteam_fb_accounts.delete({ where: { id: dupe.id } }).catch(() => null);
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      this.logger.warn(`Deduplicate fb accounts failed: ${e.message}`);
+    }
+
     const whereAccount: any = { owner_user_id: userId };
     if (accountId) whereAccount.id = accountId;
 
@@ -1034,6 +1074,7 @@ export class ZTTeamFacebookService {
     });
 
     const results: any[] = [];
+    const sentAccountAlerts = new Set<string>();
 
     for (const acc of accounts) {
       let isAccValid = true;
@@ -1063,10 +1104,15 @@ export class ZTTeamFacebookService {
           data: { token_status: 'expired' }
         });
 
-        const affectedPages = acc.pages.map(p => p.name).join(', ');
-        const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages || 'Chưa có'}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
-        
-        await this.telegramService.ztteam_sendMessage(warnMsg);
+        const alertKey = `${acc.fb_user_id || acc.name}`;
+        if (!sentAccountAlerts.has(alertKey)) {
+          sentAccountAlerts.add(alertKey);
+
+          const affectedPages = acc.pages.map(p => p.name).join(', ');
+          const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages || 'Chưa có'}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
+          
+          await this.telegramService.ztteam_sendMessage(warnMsg);
+        }
 
         results.push({
           accountId: acc.id,
