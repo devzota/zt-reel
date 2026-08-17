@@ -35,8 +35,8 @@ export class TelegramService {
   }
 
   private async ztteam_executeSend(token: string, chatId: string, text: string): Promise<boolean> {
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
     try {
-      const url = `https://api.telegram.org/bot${token}/sendMessage`;
       await axios.post(url, {
         chat_id: chatId,
         text,
@@ -44,8 +44,18 @@ export class TelegramService {
       });
       return true;
     } catch (error: any) {
-      this.logger.error(`Telegram API Error: ${error.response?.data?.description || error.message}`);
-      throw new Error(error.response?.data?.description || 'Lỗi kết nối đến Telegram API');
+      this.logger.warn(`Telegram Markdown send failed (${error.response?.data?.description || error.message}), retrying as plain text...`);
+      try {
+        const cleanText = text.replace(/\*/g, '').replace(/_/g, '');
+        await axios.post(url, {
+          chat_id: chatId,
+          text: cleanText
+        });
+        return true;
+      } catch (fallbackError: any) {
+        this.logger.error(`Telegram API Error: ${fallbackError.response?.data?.description || fallbackError.message}`);
+        throw new Error(fallbackError.response?.data?.description || 'Lỗi kết nối đến Telegram API');
+      }
     }
   }
 }

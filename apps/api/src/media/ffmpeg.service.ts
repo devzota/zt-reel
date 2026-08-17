@@ -104,12 +104,15 @@ export class ZTTeamFFmpegService {
       
       for (let i = 1; i < actualN; i++) {
         const offset = (imageDur - transitionDuration) * i;
-        const outName = i === actualN - 1 ? 'vout' : `v_fade_${i}`;
+        const isLast = i === actualN - 1;
+        const outName = isLast ? 'vout' : `v_fade_${i}`;
         const randomTransition = xfadeTransitions[Math.floor(Math.random() * xfadeTransitions.length)];
-        filterComplex += `[${lastOut}][v${i}]xfade=transition=${randomTransition}:duration=${transitionDuration}:offset=${offset}[${outName}];`;
+        filterComplex += `[${lastOut}][v${i}]xfade=transition=${randomTransition}:duration=${transitionDuration}:offset=${offset}[${outName}]${isLast ? '' : ';'}`;
         lastOut = outName;
       }
     }
+
+    filterComplex = filterComplex.replace(/;+$/, '');
 
     const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" -c:v libx264 -preset fast -t ${totalDuration} "${outputPath}"`;
 
