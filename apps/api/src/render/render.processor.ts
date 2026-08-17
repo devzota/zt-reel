@@ -273,7 +273,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const ytdlpArgs = `--extractor-args "youtube:player_client=ios,android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
       
       /** Tải video */
-      await exec(`yt-dlp ${ytdlpArgs} -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -o "${rawVideoPath}" "${ytUrl}"`);
+      await exec(`yt-dlp ${ytdlpArgs} -f "best[ext=mp4]/best/18" -o "${rawVideoPath}" "${ytUrl}"`);
       /** Tải thumbnail */
       await exec(`yt-dlp ${ytdlpArgs} --write-thumbnail --skip-download -o "${path.join(workDir, 'raw_thumb')}" "${ytUrl}"`).catch(() => { });
 
