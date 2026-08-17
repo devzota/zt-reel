@@ -348,17 +348,23 @@ export default function TiktokClone() {
                         )}
 
                         {item.video_url && (
-                          <div className="space-y-2">
-                            <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="w-full h-44 object-cover rounded-xl shadow-sm border border-slate-200" />
+                          <div className="space-y-2.5">
+                            <div className="relative aspect-[9/16] w-full max-w-[260px] mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-md">
+                              <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="w-full h-full object-cover" />
+                              <div className="absolute top-2.5 right-2.5 bg-emerald-500/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-1 pointer-events-none">
+                                <span className="material-symbols-outlined text-xs">check_circle</span>
+                                9:16 MP4
+                              </div>
+                            </div>
                             <a
                               href={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`}
                               target="_blank"
                               rel="noreferrer"
                               download
-                              className="w-full py-2 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                              className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <span className="material-symbols-outlined text-sm">download</span>
-                              Tải Video MP4
+                              Tải Video MP4 (9:16)
                             </a>
                           </div>
                         )}
@@ -472,17 +478,17 @@ export default function TiktokClone() {
                     <div className="space-y-3">
                       {/* Video Player or Cover Badge */}
                       {item.video_url ? (
-                        <div className="relative rounded-xl overflow-hidden bg-black group border border-slate-200">
-                          <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="w-full h-48 object-cover" />
-                          <div className="absolute top-2 right-2 bg-emerald-500/90 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-1">
+                        <div className="relative aspect-[9/16] w-full max-w-[260px] mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-md group">
+                          <video src={`${api.defaults.baseURL?.replace('/api', '')}${item.video_url}`} controls className="w-full h-full object-cover" />
+                          <div className="absolute top-2.5 right-2.5 bg-emerald-500/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-1 pointer-events-none">
                             <span className="material-symbols-outlined text-xs">check_circle</span>
-                            MP4 Sẵn Sàng
+                            9:16 MP4
                           </div>
                         </div>
                       ) : item.thumbnail_url ? (
-                        <div className="relative rounded-xl overflow-hidden h-36 border border-slate-200">
+                        <div className="relative rounded-xl overflow-hidden h-40 border border-slate-200">
                           <img src={item.thumbnail_url} alt="cover" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-2.5">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
                             <p className="text-xs font-bold text-white line-clamp-1">{item.wp_post_title || 'TikTok Video'}</p>
                           </div>
                         </div>
