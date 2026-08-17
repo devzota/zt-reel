@@ -155,6 +155,36 @@ export default function TiktokClone() {
     }
   };
 
+  const handleDeleteItem = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn XÓA SẠCH bản ghi TikTok này cùng toàn bộ file Video/Audio liên quan?')) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/tiktok-clone/${id}`);
+      if (res.data?.success) {
+        ztteam_showToast('Đã xóa sạch bản ghi!', 'success');
+        fetchHistory();
+      }
+    } catch (e: any) {
+      ztteam_showToast(e.response?.data?.message || 'Có lỗi khi xóa bản ghi', 'error');
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!window.confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA SẠCH TOÀN BỘ lịch sử TikTok Clone và tất cả file video/audio trên server?')) {
+      return;
+    }
+    try {
+      const res = await api.delete('/tiktok-clone/clear-all');
+      if (res.data?.success) {
+        ztteam_showToast('Đã xóa sạch toàn bộ lịch sử TikTok Clone!', 'success');
+        fetchHistory();
+      }
+    } catch (e: any) {
+      ztteam_showToast(e.response?.data?.message || 'Có lỗi khi xóa toàn bộ lịch sử', 'error');
+    }
+  };
+
   const filteredHistory = historyList.filter(item => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -444,14 +474,26 @@ export default function TiktokClone() {
               />
             </div>
 
-            <button
-              onClick={fetchHistory}
-              disabled={isLoadingHistory}
-              className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-full font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer self-end md:self-auto"
-            >
-              <span className={`material-symbols-outlined text-sm ${isLoadingHistory ? 'animate-spin' : ''}`}>refresh</span>
-              Làm mới lịch sử
-            </button>
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <button
+                onClick={fetchHistory}
+                disabled={isLoadingHistory}
+                className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-full font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <span className={`material-symbols-outlined text-sm ${isLoadingHistory ? 'animate-spin' : ''}`}>refresh</span>
+                Làm mới
+              </button>
+              {historyList.length > 0 && (
+                <button
+                  onClick={handleClearAllHistory}
+                  className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-full font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Xóa sạch toàn bộ lịch sử TikTok Clone"
+                >
+                  <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                  Xóa tất cả
+                </button>
+              )}
+            </div>
           </div>
 
           {isLoadingHistory ? (
@@ -498,17 +540,26 @@ export default function TiktokClone() {
                         </div>
                       )}
 
-                      {/* Header Title & Date */}
-                      <div>
-                        <p className="font-extrabold text-xs text-slate-900 line-clamp-2 leading-snug">{item.wp_post_title || item.wp_post_id}</p>
-                        <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                          <span>{new Date(item.created_at).toLocaleDateString('vi-VN')}</span>
-                          {item.wp_post_url && (
-                            <a href={item.wp_post_url} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold flex items-center gap-0.5">
-                              Link TikTok <span className="material-symbols-outlined text-xs">open_in_new</span>
-                            </a>
-                          )}
+                      {/* Header Title & Date & Delete Button */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-extrabold text-xs text-slate-900 line-clamp-2 leading-snug">{item.wp_post_title || item.wp_post_id}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                            <span>{new Date(item.created_at).toLocaleDateString('vi-VN')}</span>
+                            {item.wp_post_url && (
+                              <a href={item.wp_post_url} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold flex items-center gap-0.5">
+                                Link TikTok <span className="material-symbols-outlined text-xs">open_in_new</span>
+                              </a>
+                            )}
+                          </div>
                         </div>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors cursor-pointer p-0"
+                          title="Xóa sạch bản ghi này và các file liên quan"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
                       </div>
 
                       {/* Audio Voice Player */}

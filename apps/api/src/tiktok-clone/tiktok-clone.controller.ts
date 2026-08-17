@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Logger, HttpException, HttpStatus, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UseGuards, Request, Logger, HttpException, HttpStatus, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ZTTeamAIService } from '../ai/ai.service';
 import { ZTTeamTTSService } from '../audio/tts.service';
 import { ZTTeamFFmpegService } from '../media/ffmpeg.service';
+import { ztteam_getReelsPath } from '../common/ztteam_storage.util';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -436,5 +437,91 @@ export class TiktokCloneController {
       message: `Đã xử lý xong ${results.filter(r => r.success).length}/${cleanUrls.length} video TikTok`,
       data: results
     };
+  }
+
+  @Delete('clear-all')
+  async clearAllHistory() {
+    const reels = await this.prisma.ztteam_reels.findMany({
+      where: { source_type: 'TIKTOK_CLONE' }
+    });
+
+    const { ztteam_getStorageRoot } = require('../common/ztteam_storage.util');
+
+    for (const reel of reels) {
+      /** Xóa folder reels vật lý */
+      try {
+        const reelDir = ztteam_getReelsPath(reel.id);
+        if (fs.existsSync(reelDir)) {
+          fs.rmSync(reelDir, { recursive: true, force: true });
+        }
+      } catch (e) {}
+
+      /** Xóa file audio MP3 voice */
+      if (reel.audio_url) {
+        try {
+          const audioPath = path.join(ztteam_getStorageRoot(), 'tmp', path.basename(reel.audio_url));
+          if (fs.existsSync(audioPath)) {
+            fs.unlinkSync(audioPath);
+          }
+        } catch (e) {}
+      }
+
+      /** Xóa lịch sử cào */
+      try {
+        await this.prisma.ztteam_reel_history.deleteMany({
+          where: { wp_post_id: reel.wp_post_id }
+        });
+      } catch (e) {}
+    }
+
+    /** Xóa sạch tất cả bản ghi TikTok Clone khỏi DB */
+    await this.prisma.ztteam_reels.deleteMany({
+      where: { source_type: 'TIKTOK_CLONE' }
+    });
+
+    return { success: true, message: 'Đã xóa sạch tất cả lịch sử TikTok Clone và toàn bộ file liên quan' };
+  }
+
+  @Delete(':id')
+  async deleteTiktokItem(@Param('id') id: string) {
+    const reel = await this.prisma.ztteam_reels.findUnique({ where: { id } });
+    if (!reel) {
+      throw new HttpException('Bản ghi không tồn tại', HttpStatus.NOT_FOUND);
+    }
+
+    /** 1. Xóa file vật lý Video / Folder Reels */
+    try {
+      const reelDir = ztteam_getReelsPath(id);
+      if (fs.existsSync(reelDir)) {
+        fs.rmSync(reelDir, { recursive: true, force: true });
+      }
+    } catch (e: any) {
+      this.logger.error(`Lỗi xóa folder reel ${id}: ${e.message}`);
+    }
+
+    /** 2. Xóa file Audio MP3 voice nếu có */
+    if (reel.audio_url) {
+      try {
+        const { ztteam_getStorageRoot } = require('../common/ztteam_storage.util');
+        const audioPath = path.join(ztteam_getStorageRoot(), 'tmp', path.basename(reel.audio_url));
+        if (fs.existsSync(audioPath)) {
+          fs.unlinkSync(audioPath);
+        }
+      } catch (e: any) {
+        this.logger.error(`Lỗi xóa audio ${reel.audio_url}: ${e.message}`);
+      }
+    }
+
+    /** 3. Xóa lịch sử cào bài tương ứng */
+    try {
+      await this.prisma.ztteam_reel_history.deleteMany({
+        where: { wp_post_id: reel.wp_post_id }
+      });
+    } catch (e) {}
+
+    /** 4. Xóa hoàn toàn bản ghi khỏi Database */
+    await this.prisma.ztteam_reels.delete({ where: { id } });
+
+    return { success: true, message: 'Đã xóa sạch bản ghi và toàn bộ file liên quan' };
   }
 }
