@@ -270,7 +270,7 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
       const { promisify } = require('util');
       const exec = promisify(require('child_process').exec);
 
-      const ytdlpArgs = `--extractor-args "youtube:player_client=android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+      const ytdlpArgs = `--extractor-args "youtube:player_client=ios,android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
       
       /** Tải video */
       await exec(`yt-dlp ${ytdlpArgs} -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -o "${rawVideoPath}" "${ytUrl}"`);
