@@ -46,7 +46,7 @@ export class TelegramService {
     } catch (error: any) {
       this.logger.warn(`Telegram Markdown send failed (${error.response?.data?.description || error.message}), retrying as plain text...`);
       try {
-        const cleanText = text.replace(/\*/g, '').replace(/_/g, '');
+        const cleanText = text.replace(/\*/g, '');
         await axios.post(url, {
           chat_id: chatId,
           text: cleanText
