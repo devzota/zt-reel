@@ -609,19 +609,23 @@ export default function FacebookPages() {
   const {
     isConnected,
     pages,
+    accounts = [],
     isLoading,
     error,
     ztteam_checkLoginStatus,
     ztteam_loginWithFacebook,
     ztteam_fetchPages,
+    ztteam_fetchAccounts,
+    ztteam_deleteAccount,
     ztteam_testPost
   } = useZTTeamFacebookStore();
-  const { ztteam_showToast } = useUIStore();
+  const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
   const navigate = useNavigate();
 
   const [testingPageId, setTestingPageId] = useState<string | null>(null);
   const [pageTab, setPageTab] = useState<'active' | 'deactivated'>('active');
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
   
   /** Lọc dữ liệu */
   const [filterOwner, setFilterOwner] = useState('');
@@ -636,6 +640,8 @@ export default function FacebookPages() {
     if (filterTag && (!p.tags || !p.tags.includes(filterTag))) match = false;
     return match;
   });
+
+
 
   const activePages = filteredPages.filter(p => p.isActive !== false);
   const deactivatedPages = filteredPages.filter(p => p.isActive === false);
@@ -652,6 +658,10 @@ export default function FacebookPages() {
       window.addEventListener('fbSDKLoaded', handleSDKLoad);
       return () => window.removeEventListener('fbSDKLoaded', handleSDKLoad);
     }
+  }, []);
+
+  useEffect(() => {
+    ztteam_fetchAccounts();
   }, []);
 
   const handleTestPost = async (pageId: string) => {
@@ -674,6 +684,7 @@ export default function FacebookPages() {
       if (res.data?.success) {
         ztteam_showToast('Đã kiểm tra xong sức khỏe Token Nick FB & Fanpage!', 'success');
         ztteam_fetchPages();
+        ztteam_fetchAccounts();
       }
     } catch (e: any) {
       ztteam_showToast('Lỗi kiểm tra Token Nick FB', 'error');
@@ -694,6 +705,21 @@ export default function FacebookPages() {
     }
   };
 
+  const handleDeleteAccount = async (accountId: string, accountName: string) => {
+    const confirm = await ztteam_showConfirm(
+      'Xóa Nick Facebook',
+      `Bạn có chắc chắn muốn xóa Nick Facebook "${accountName}" khỏi hệ thống?`
+    );
+    if (!confirm) return;
+
+    try {
+      await ztteam_deleteAccount(accountId);
+      ztteam_showToast(`Đã xóa Nick Facebook ${accountName} thành công`, 'success');
+    } catch (e: any) {
+      ztteam_showToast(e.message || 'Lỗi khi xóa Nick Facebook', 'error');
+    }
+  };
+
   const expiredPagesCount = pages.filter(p => p.status === 'expired').length;
   const totalFollowers = activePages.reduce((acc, p) => acc + (p.followersCount || 0), 0);
   const formattedFollowers = totalFollowers > 1000000 ? (totalFollowers / 1000000).toFixed(1) + 'M' : 
@@ -709,7 +735,18 @@ export default function FacebookPages() {
         </div>
         
         {/* Highlighted CTA */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              ztteam_fetchAccounts();
+              setIsAccountsModalOpen(true);
+            }}
+            className="px-5 py-3 bg-blue-50 hover:bg-blue-100 text-primary border border-blue-200/80 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            title="Quản lý danh sách Nick Facebook đã kết nối"
+          >
+            <span className="material-symbols-outlined text-lg">account_circle</span>
+            Danh Sách Nick FB ({accounts.length})
+          </button>
           <button
             onClick={handleCheckHealth}
             disabled={isCheckingHealth}
@@ -956,6 +993,95 @@ export default function FacebookPages() {
               <button onClick={ztteam_loginWithFacebook} className="mt-4 text-red-600 font-bold text-sm flex items-center gap-1 hover:underline">
                 Gia hạn tất cả ngay
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ACCOUNTS MANAGEMENT MODAL */}
+      {isAccountsModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-6 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl">account_circle</span>
+                </div>
+                <div>
+                  <h4 className="text-lg font-black text-slate-900">Quản Lý Danh Sách Nick FB</h4>
+                  <p className="text-xs text-slate-500">Xem và hủy kết nối các tài khoản Facebook cá nhân đã liên kết</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAccountsModalOpen(false)}
+                className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center p-0 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-3 flex-1 pr-1">
+              {accounts.length === 0 ? (
+                <div className="py-10 text-center text-slate-400">
+                  <span className="material-symbols-outlined text-4xl mb-2">person_off</span>
+                  <p className="font-bold text-sm text-slate-700">Chưa có tài khoản Facebook nào kết nối</p>
+                </div>
+              ) : (
+                accounts.map(acc => {
+                  const isExpired = acc.status === 'expired';
+                  return (
+                    <div key={acc.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-3 hover:bg-slate-100/80 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-11 h-11 rounded-2xl bg-blue-100 text-primary flex items-center justify-center shrink-0 font-extrabold text-base border border-blue-200">
+                          {acc.name ? acc.name[0].toUpperCase() : 'FB'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-extrabold text-sm text-slate-900 truncate">{acc.name || 'Nick Facebook'}</p>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <span className="font-semibold text-slate-700">
+                              {acc.pagesCount > 0 ? `${acc.pagesCount} Fanpage` : '0 Fanpage (Rỗng)'}
+                            </span>
+                            <span>•</span>
+                            <span>ID: {acc.fbUserId || acc.id.substring(0, 8)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        {isExpired ? (
+                          <span className="px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-full text-xs font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">error</span>
+                            Token Lỗi
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Connected
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDeleteAccount(acc.id, acc.name)}
+                          className="px-3.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Xóa / Hủy kết nối Nick FB này"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Xóa Nick
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Tổng cộng: <b>{accounts.length} Nick FB</b></span>
+              <button
+                onClick={() => setIsAccountsModalOpen(false)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-full cursor-pointer"
+              >
+                Đóng
               </button>
             </div>
           </div>

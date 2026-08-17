@@ -34,16 +34,19 @@ interface ZTTeamFacebookState {
   isConnected: boolean;
   fbAccountId: string | null;
   pages: ZTTeamFanpage[];
+  accounts: any[];
   isLoading: boolean;
   error: string | null;
 
   ztteam_checkLoginStatus: () => Promise<void>;
   ztteam_fetchPagesFromDB: () => Promise<void>;
+  ztteam_fetchAccounts: () => Promise<void>;
   ztteam_loginWithFacebook: () => Promise<void>;
   ztteam_fetchPages: () => Promise<void>;
   ztteam_testPost: (pageId: string, message: string) => Promise<void>;
   ztteam_updatePageConfig: (pageId: string, config: any) => Promise<void>;
   ztteam_deletePage: (pageId: string) => Promise<void>;
+  ztteam_deleteAccount: (accountId: string) => Promise<void>;
   ztteam_getPageReport: (pageId: string) => Promise<any>;
   ztteam_getTopPosts: (pageId: string) => Promise<any>;
 }
@@ -58,6 +61,7 @@ export const useZTTeamFacebookStore = create<ZTTeamFacebookState>((set, get) => 
   isConnected: false,
   fbAccountId: null,
   pages: [],
+  accounts: [],
   isLoading: false,
   error: null,
 
@@ -131,13 +135,12 @@ export const useZTTeamFacebookStore = create<ZTTeamFacebookState>((set, get) => 
 
   ztteam_fetchPages: async () => {
     const { fbAccountId } = get();
-    if (!fbAccountId) return;
-
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post(`/facebook/pages/${fbAccountId}/fetch`);
-      const pages = response.data;
-      set({ pages, isLoading: false });
+      if (fbAccountId) {
+        await api.post(`/facebook/pages/${fbAccountId}/fetch`);
+      }
+      await get().ztteam_fetchPagesFromDB();
     } catch (error: any) {
       set({ error: error.response?.data?.message || 'Failed to fetch pages', isLoading: false });
     }
@@ -153,7 +156,7 @@ export const useZTTeamFacebookStore = create<ZTTeamFacebookState>((set, get) => 
 
   ztteam_updatePageConfig: async (pageId: string, config: any) => {
     try {
-      await api.put(`/facebook/pages/${pageId}/config`, config);
+      await api.put(`/facebook/pages/${pageId}/settings`, config);
       set((state) => ({
         pages: state.pages.map(p => p.id === pageId ? { ...p, ...config } : p)
       }));
@@ -168,6 +171,25 @@ export const useZTTeamFacebookStore = create<ZTTeamFacebookState>((set, get) => 
       await get().ztteam_fetchPagesFromDB();
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Lỗi khi xóa Fanpage');
+    }
+  },
+
+  ztteam_deleteAccount: async (accountId: string) => {
+    try {
+      await api.delete(`/facebook/accounts/${accountId}`);
+      await get().ztteam_fetchAccounts();
+      await get().ztteam_fetchPagesFromDB();
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi xóa tài khoản Facebook');
+    }
+  },
+
+  ztteam_fetchAccounts: async () => {
+    try {
+      const response = await api.get('/facebook/accounts');
+      set({ accounts: response.data || [] });
+    } catch (error: any) {
+      console.error('Error fetching fb accounts', error);
     }
   },
 

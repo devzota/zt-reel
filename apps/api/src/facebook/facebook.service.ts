@@ -1094,6 +1094,12 @@ export class ZTTeamFacebookService {
 
       /** If User Token is invalid */
       if (!isAccValid) {
+        /** Nếu Nick FB có 0 Fanpage ➔ Tự động xóa sạch tài khoản rỗng bị đứt kết nối khỏi DB */
+        if (acc.pages.length === 0) {
+          await this.prisma.ztteam_fb_accounts.delete({ where: { id: acc.id } }).catch(() => null);
+          continue;
+        }
+
         await this.prisma.ztteam_fb_accounts.update({
           where: { id: acc.id },
           data: { status: 'expired' }
@@ -1109,7 +1115,7 @@ export class ZTTeamFacebookService {
           sentAccountAlerts.add(alertKey);
 
           const affectedPages = acc.pages.map(p => p.name).join(', ');
-          const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages || 'Chưa có'}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
+          const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
           
           await this.telegramService.ztteam_sendMessage(warnMsg);
         }
@@ -1179,6 +1185,42 @@ export class ZTTeamFacebookService {
       success: true,
       message: 'Đã kiểm tra xong sức khỏe Token tài khoản Facebook và Fanpage',
       data: results
+    };
+  }
+
+  async ztteam_getConnectedAccounts(userId: string) {
+    const accounts = await this.prisma.ztteam_fb_accounts.findMany({
+      where: { owner_user_id: userId },
+      include: { pages: true },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return accounts.map(acc => ({
+      id: acc.id,
+      fbUserId: acc.fb_user_id,
+      name: acc.name,
+      status: acc.status,
+      pagesCount: acc.pages.length,
+      pages: acc.pages.map(p => ({ id: p.fb_page_id, name: p.name })),
+      createdAt: acc.created_at,
+      updatedAt: acc.updated_at
+    }));
+  }
+
+  async ztteam_deleteAccount(accountId: string, userId: string) {
+    const acc = await this.prisma.ztteam_fb_accounts.findFirst({
+      where: { id: accountId, owner_user_id: userId }
+    });
+
+    if (!acc) {
+      throw new BadRequestException('Tài khoản Facebook không tồn tại hoặc bạn không có quyền xóa');
+    }
+
+    await this.prisma.ztteam_fb_accounts.delete({ where: { id: accountId } });
+
+    return {
+      success: true,
+      message: `Đã xóa tài khoản Facebook ${acc.name} thành công!`
     };
   }
 }

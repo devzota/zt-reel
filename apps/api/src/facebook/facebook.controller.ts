@@ -57,6 +57,16 @@ export class ZTTeamFacebookController {
     return this.facebookService.ztteam_togglePageActive(pageId, req.user.sub, body.isActive);
   }
 
+  @Get('accounts')
+  ztteam_getAccounts(@Request() req: any) {
+    return this.facebookService.ztteam_getConnectedAccounts(req.user.sub);
+  }
+
+  @Delete('accounts/:accountId')
+  ztteam_deleteAccount(@Param('accountId') accountId: string, @Request() req: any) {
+    return this.facebookService.ztteam_deleteAccount(accountId, req.user.sub);
+  }
+
   @Post('accounts/check-health')
   ztteam_checkAllAccountsHealth(@Request() req: any) {
     return this.facebookService.ztteam_checkAccountHealth(req.user.sub);
