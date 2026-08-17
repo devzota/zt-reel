@@ -13,7 +13,8 @@ export default function SystemSettingsPage() {
     max_concurrent_jobs: '2',
     video_retention_days: '7',
     telegram_bot_token: '',
-    telegram_chat_id: ''
+    telegram_chat_id: '',
+    youtube_cookies: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -204,6 +205,40 @@ export default function SystemSettingsPage() {
               placeholder="Ví dụ: 123456789 hoặc -100123456789"
             />
           </div>
+        </div>
+      </div>
+
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-gray-900 border-b border-slate-100 pb-2 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-amber-500">cookie</span>
+          Cấu hình YouTube Cookies (Bypass Bot VPS 100%)
+        </h3>
+        <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+          YouTube bắt xác minh Bot (Sign in to confirm you are not a bot) khi gọi API từ IP VPS. Dán nội dung <code className="bg-amber-100 text-amber-900 px-1 py-0.5 rounded font-mono text-[11px]">cookies.txt</code> vào ô dưới đây để hệ thống tự động xác thực danh tính và tải video mượt 100%.
+        </p>
+
+        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/60 mb-4 text-xs space-y-1 text-amber-900">
+          <p className="font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">lightbulb</span>
+            Hướng dẫn lấy cookies.txt cực nhanh trong 3 bước:
+          </p>
+          <ol className="list-decimal pl-5 space-y-0.5">
+            <li>Cài tiện ích mở rộng Chrome/Edge: <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" rel="noreferrer" className="font-bold underline text-blue-600">Get cookies.txt LOCALLY</a>.</li>
+            <li>Truy cập <a href="https://www.youtube.com" target="_blank" rel="noreferrer" className="font-bold underline text-blue-600">youtube.com</a> ➔ Click vào biểu tượng Tiện ích vừa cài ➔ Chọn Copy/Export Cookies.</li>
+            <li>Dán toàn bộ văn bản vừa copy vào ô dưới đây và bấm <strong>Lưu cài đặt</strong>.</li>
+          </ol>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">Nội dung văn bản Cookies (Netscape format / cookies.txt)</label>
+          <textarea
+            name="youtube_cookies"
+            rows={5}
+            value={settings.youtube_cookies || ''}
+            onChange={handleChange as any}
+            className="w-full bg-slate-50 border-2 border-transparent focus:border-amber-500 rounded-xl p-3 text-xs font-mono focus:ring-0 outline-none text-slate-800"
+            placeholder={"# Netscape HTTP Cookie File\n.youtube.com TRUE / FALSE 1786968000 VISITOR_INFO1_LIVE xxx\n.youtube.com TRUE / FALSE 1786968000 LOGIN_INFO xxx"}
+          />
         </div>
       </div>
 

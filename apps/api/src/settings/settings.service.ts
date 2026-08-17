@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ztteam_getStorageRoot } from '../common/ztteam_storage.util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ZTTeamSettingsService {
@@ -25,6 +28,17 @@ export class ZTTeamSettingsService {
         create: { key, value: data[key] },
       });
     }
+
+    if (data['youtube_cookies'] !== undefined) {
+      try {
+        const cookiesPath = path.join(ztteam_getStorageRoot(), 'cookies.txt');
+        fs.writeFileSync(cookiesPath, data['youtube_cookies'] || '', 'utf-8');
+        this.logger.log(`Updated youtube cookies.txt file at ${cookiesPath}`);
+      } catch (e: any) {
+        this.logger.error(`Error saving youtube_cookies file: ${e.message}`);
+      }
+    }
+
     return { success: true };
   }
 }
