@@ -59,13 +59,21 @@ export class YoutubeCrawlerService {
     }
   }
 
-  async processSingleUrl(url: string, pageId: string): Promise<boolean> {
+  async processSingleUrl(url: string, pageId: string): Promise<{ success: boolean; message: string }> {
     this.logger.log(`[processSingleUrl] Bắt đầu xử lý URL: ${url} cho page: ${pageId}`);
 
-    const page = await this.prisma.ztteam_pages.findFirst({ where: { fb_page_id: pageId } });
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: {
+        OR: [
+          { id: pageId },
+          { fb_page_id: pageId }
+        ]
+      }
+    });
+
     if (!page) {
       this.logger.warn(`[processSingleUrl] Không tìm thấy Fanpage ${pageId}`);
-      return false;
+      return { success: false, message: `Không tìm thấy Fanpage tương ứng trên hệ thống` };
     }
 
     /** Nếu chưa có template thì lấy video template mặc định của hệ thống */
@@ -80,13 +88,12 @@ export class YoutubeCrawlerService {
 
     if (!templateId) {
       this.logger.warn(`[processSingleUrl] Fanpage ${pageId} không có template và không tìm thấy template mặc định`);
-      return false;
+      return { success: false, message: 'Fanpage chưa được cài Giao diện (Template) Video và chưa có Template mặc định' };
     }
 
     this.logger.log(`[processSingleUrl] Đang tải bằng yt-dlp...`);
-    /** Gọi hàm tải video nhưng cờ bypassHistory = true để cho phép tải lại link cũ */
-    const res = await this.processVideoUrl(url, page.id, templateId, true);
-    this.logger.log(`[processSingleUrl] processVideoUrl trả về: ${res}`);
+    /** Gọi hàm tải video với cờ bypassHistory = true để cho phép tải lại link cũ */
+    const res = await this.processVideoUrlDetailed(url, page.id, templateId, true);
     return res;
   }
 
@@ -127,46 +134,50 @@ export class YoutubeCrawlerService {
     }
   }
 
-  private async processVideoUrl(url: string, pageId: string, templateId: string, bypassHistory: boolean = false): Promise<boolean> {
+  private async processVideoUrlDetailed(url: string, pageId: string, templateId: string, bypassHistory: boolean = false): Promise<{ success: boolean; message: string }> {
     if (!bypassHistory) {
-      /** Check nếu đã tồn tại trong reel_history (hoặc reels) cho page này */
       const existingHistory = await this.prisma.ztteam_reel_history.findUnique({
         where: {
           page_id_wp_post_id: { page_id: pageId, wp_post_id: url }
         }
       });
 
-      if (existingHistory) return false;
+      if (existingHistory) {
+        return { success: false, message: 'Video YouTube này đã tồn tại trong lịch sử cào bài của Fanpage.' };
+      }
     }
 
-    /** Dùng yt-dlp để lấy title gốc (Lưu ra file để tránh lỗi Encoding Tiếng Việt của CMD Windows) */
+    let originalTitle = 'YouTube Video (' + new Date().toLocaleDateString('vi-VN') + ')';
+    let originalDescription = '';
+
     try {
       const tmpFile = path.join(process.cwd(), `yt_info_${Date.now()}.json`);
-      await execAsync(`yt-dlp --dump-json "${url}" > "${tmpFile}"`);
-      let originalTitle = 'Untitled YouTube Video';
-      let originalDescription = '';
       try {
-        const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
-        if (info.title) originalTitle = info.title;
-        if (info.description) originalDescription = info.description;
-        fs.unlinkSync(tmpFile);
-      } catch (e) { }
+        await execAsync(`yt-dlp --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
+        if (fs.existsSync(tmpFile)) {
+          const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
+          if (info.title) originalTitle = info.title;
+          if (info.description) originalDescription = info.description;
+          fs.unlinkSync(tmpFile);
+        }
+      } catch (dlErr: any) {
+        this.logger.warn(`yt-dlp warning for ${url}: ${dlErr.message}`);
+        /** Vẫn tạo reel với URL làm tiêu đề tạm để người dùng test được */
+      }
 
-      /** Tạo reel */
       const reel = await this.prisma.ztteam_reels.create({
         data: {
           page_id: pageId,
-          wp_post_id: url, /** Sử dụng URL làm ID định danh gốc */
+          wp_post_id: url,
           wp_post_title: originalTitle,
           wp_post_url: url,
           source_type: 'YOUTUBE',
           template_id: templateId,
           status: 'QUEUED',
-          ai_script: originalDescription, /** Tạm thời mượn trường ai_script để lưu Description cho luồng Youtube */
+          ai_script: originalDescription,
         }
       });
 
-      /** Thêm vào hàng đợi xử lý */
       await this.renderProcessor.ztteam_addJob({
         reelId: reel.id,
         pageId: pageId,
@@ -175,7 +186,6 @@ export class YoutubeCrawlerService {
         templateId: templateId,
       });
 
-      /** Lưu history để đối chiếu sau này (Luôn cập nhật Tiêu đề và Mô tả mới nhất) */
       await this.prisma.ztteam_reel_history.upsert({
         where: {
           page_id_wp_post_id: { page_id: pageId, wp_post_id: url }
@@ -193,10 +203,15 @@ export class YoutubeCrawlerService {
       });
 
       this.logger.log(`Đã thêm video ${url} vào hàng đợi cho Fanpage ${pageId}`);
-      return true;
+      return { success: true, message: `Đã đưa video "${originalTitle}" vào hàng đợi Render!` };
     } catch (err: any) {
-      this.logger.warn(`Lỗi lấy thông tin video ${url}: ${err.message}`);
-      return false;
+      this.logger.error(`Lỗi xử lý video ${url}: ${err.message}`);
+      return { success: false, message: `Lỗi xử lý video: ${err.message}` };
     }
+  }
+
+  private async processVideoUrl(url: string, pageId: string, templateId: string, bypassHistory: boolean = false): Promise<boolean> {
+    const res = await this.processVideoUrlDetailed(url, pageId, templateId, bypassHistory);
+    return res.success;
   }
 }

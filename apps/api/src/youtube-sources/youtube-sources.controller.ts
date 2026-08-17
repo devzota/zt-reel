@@ -25,16 +25,10 @@ export class YoutubeSourcesController {
   @Post('test-render-url')
   async testRenderUrl(@Body() body: { pageId: string, url: string }) {
     if (!body.pageId || !body.url) {
-      return { success: false, message: 'Thiếu pageId hoặc url' };
+      return { success: false, message: 'Thiếu thông tin Fanpage hoặc URL video YouTube' };
     }
     
-    const result = await this.youtubeCrawlerService.processSingleUrl(body.url, body.pageId);
-    
-    if (result) {
-      return { success: true, message: 'Đã đưa video vào hàng đợi Render!' };
-    } else {
-      return { success: false, message: 'Lỗi tải video hoặc video đã tồn tại trong lịch sử' };
-    }
+    return await this.youtubeCrawlerService.processSingleUrl(body.url, body.pageId);
   }
 
   @Get()

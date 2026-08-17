@@ -44,10 +44,9 @@ export default function Layout() {
         { to: '/tiktok-clone', icon: 'content_copy', label: 'TikTok Clone' },
         { to: '/reel-factory', icon: 'movie_filter', label: 'AI Reel Factory' },
         { to: '/image-factory', icon: 'image', label: 'AI Image Factory' },
-        { to: '/youtube-test', icon: 'smart_display', label: 'Kiểm thử YouTube' },
         { to: '/statistics', icon: 'analytics', label: 'Statistics' },
     ];
-    
+
     if (user?.role === 'ADMIN') {
         navItems.push(
             { to: '/users', icon: 'manage_accounts', label: 'User Management' },
@@ -61,7 +60,7 @@ export default function Layout() {
 
             {/* Mobile Backdrop Overlay */}
             {isMobileMenuOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300"
                     onClick={() => setIsMobileMenuOpen(false)}
                     aria-hidden="true"
@@ -69,13 +68,12 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed left-0 top-0 h-full w-[280px] bg-white flex flex-col shadow-xl lg:shadow-sm px-4 py-3 z-50 transition-transform duration-300 ease-in-out ${
-                isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-            }`}>
+            <aside className={`fixed left-0 top-0 h-full w-[280px] bg-white flex flex-col shadow-xl lg:shadow-sm px-4 py-3 z-50 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                }`}>
                 <div className="mb-6 mt-1 px-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
-                            <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/24000/svg"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/24000/svg"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                         </div>
                         <div>
                             <h1 className="text-[17px] font-black text-slate-800 tracking-tight leading-tight">FB Auto Reels</h1>
@@ -83,7 +81,7 @@ export default function Layout() {
                         </div>
                     </div>
                     {/* Close button on mobile */}
-                    <button 
+                    <button
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="lg:hidden w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors p-0"
                         title="Đóng menu"
@@ -94,7 +92,7 @@ export default function Layout() {
                 <nav className="flex-grow space-y-1 overflow-y-auto">
                     {navItems.map(item => {
                         const active = ztteam_isActive(location.pathname, item.to);
-                        
+
                         if (item.hasSubmenu) {
                             return (
                                 <div key={item.to} className="space-y-1">
@@ -174,21 +172,9 @@ export default function Layout() {
 
                 <div className="mt-auto space-y-4 pt-6">
                     <div className="space-y-1">
-                        <Link 
-                            className="flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-primary transition-colors rounded-lg"
-                            to="/"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                            <span className="material-symbols-outlined" data-icon="help">help</span>
-                            <span className="text-sm">Help Center</span>
-                        </Link>
-                        <button className="flex w-full items-center gap-3 px-4 py-2 text-gray-500 hover:text-primary transition-colors cursor-pointer rounded-lg text-left" onClick={ztteam_toggleDarkMode}>
-                            <span className="material-symbols-outlined">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
-                            <span className="text-sm">{isDarkMode ? 'Chế độ Sáng' : 'Chế độ Tối'}</span>
-                        </button>
-                        <a className="flex w-full items-center gap-3 px-4 py-2 text-red-500 hover:text-red-600 transition-colors cursor-pointer rounded-lg text-left" onClick={handleLogout}>
+                        <a className="flex w-full items-center gap-3 px-4 py-2 text-red-500 hover:text-red-600 transition-colors cursor-pointer rounded-lg text-left font-bold" onClick={handleLogout}>
                             <span className="material-symbols-outlined" data-icon="logout">logout</span>
-                            <span className="text-sm">Logout</span>
+                            <span className="text-sm">Đăng xuất</span>
                         </a>
                     </div>
                 </div>
@@ -209,7 +195,7 @@ export default function Layout() {
                     {/* Mobile Brand Name */}
                     <div className="lg:hidden flex items-center gap-2 shrink-0">
                         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm">
-                            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                         </div>
                         <span className="font-bold text-sm text-slate-800 hidden sm:inline">FB Auto Reels</span>
                     </div>

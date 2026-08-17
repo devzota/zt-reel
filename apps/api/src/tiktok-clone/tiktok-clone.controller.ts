@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Logger, HttpException, HttpStatus, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Logger, HttpException, HttpStatus, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { ZTTeamAuthGuard } from '../auth/auth.guard';
 import { ZTTeamAIService } from '../ai/ai.service';
 import { ZTTeamTTSService } from '../audio/tts.service';
@@ -9,6 +9,8 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
+import { PrismaService } from '../prisma/prisma.service';
+
 @UseGuards(ZTTeamAuthGuard)
 @Controller('tiktok-clone')
 export class TiktokCloneController {
@@ -18,6 +20,7 @@ export class TiktokCloneController {
     private readonly aiService: ZTTeamAIService,
     private readonly ttsService: ZTTeamTTSService,
     private readonly ffmpegService: ZTTeamFFmpegService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('process')
@@ -320,5 +323,129 @@ export class TiktokCloneController {
       this.logger.error(`Error rendering video: ${error.message}`);
       throw new HttpException(error.message || 'Lỗi không xác định khi render', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Get('history')
+  async getHistory() {
+    const history = await this.prisma.ztteam_reels.findMany({
+      where: { source_type: 'TIKTOK_CLONE' },
+      orderBy: { created_at: 'desc' },
+      take: 50
+    });
+    return { success: true, data: history };
+  }
+
+  @Post('batch-process')
+  async batchProcess(@Request() req: any, @Body() body: { urls: string[]; prompt?: string; voice_id?: string; voice_speed?: number; page_id?: string }) {
+    if (!body.urls || !Array.isArray(body.urls) || body.urls.length === 0) {
+      throw new HttpException('Danh sách link TikTok không được để trống', HttpStatus.BAD_REQUEST);
+    }
+
+    const cleanUrls = body.urls.map(u => u.trim()).filter(u => u.length > 0);
+    if (cleanUrls.length === 0) {
+      throw new HttpException('Không tìm thấy link TikTok hợp lệ', HttpStatus.BAD_REQUEST);
+    }
+
+    this.logger.log(`Bắt đầu Batch Process cho ${cleanUrls.length} link TikTok`);
+    
+    /** Process each URL in background mode */
+    const results: any[] = [];
+    
+    for (const url of cleanUrls) {
+      const tempAudioPath = path.join(os.tmpdir(), `tiktok_audio_${crypto.randomUUID()}.mp3`);
+      try {
+        const tikwmRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`);
+        if (tikwmRes.data?.code === -1 || !tikwmRes.data?.data) {
+          results.push({ url, success: false, error: 'Không thể lấy thông tin video TikTok' });
+          continue;
+        }
+
+        const musicUrl = tikwmRes.data.data.music || tikwmRes.data.data.play;
+        if (!musicUrl) {
+          results.push({ url, success: false, error: 'Không tìm thấy âm thanh' });
+          continue;
+        }
+
+        const audioResponse = await axios.get(musicUrl, { responseType: 'stream' });
+        await new Promise((resolve, reject) => {
+          const writer = fs.createWriteStream(tempAudioPath);
+          audioResponse.data.pipe(writer);
+          writer.on('finish', () => resolve(true));
+          writer.on('error', reject);
+        });
+
+        const originalText = await this.aiService.ztteam_transcribeAudio(tempAudioPath);
+        if (!originalText || originalText.trim().length === 0) {
+          results.push({ url, success: false, error: 'Không nghe được giọng nói trong video' });
+          continue;
+        }
+
+        const rewrittenScript = await this.aiService.ztteam_rewriteTikTokScript(originalText, body.prompt);
+        const voiceId = body.voice_id || 'onyx';
+        const voiceSpeed = body.voice_speed || 1.1;
+        
+        const { ztteam_getStorageRoot } = require('../common/ztteam_storage.util');
+        const workDir = path.join(ztteam_getStorageRoot(), 'tmp');
+        if (!fs.existsSync(workDir)) {
+          fs.mkdirSync(workDir, { recursive: true });
+        }
+        
+        const outputAudioPath = await this.ttsService.ztteam_textToSpeech(rewrittenScript.sub_voice, voiceId, workDir, voiceSpeed);
+        const relativeAudioUrl = '/storage/tmp/' + path.basename(outputAudioPath);
+
+        /** Lấy pageId nếu có hoặc lấy page đầu tiên */
+        let targetPageId = body.page_id;
+        if (!targetPageId) {
+          const firstPage = await this.prisma.ztteam_pages.findFirst();
+          if (firstPage) targetPageId = firstPage.id;
+        }
+
+        /** Lưu vào Lịch Sử Reels (source_type: TIKTOK_CLONE) */
+        let savedReel = null;
+        if (targetPageId) {
+          savedReel = await this.prisma.ztteam_reels.create({
+            data: {
+              page_id: targetPageId,
+              wp_post_id: url,
+              wp_post_title: tikwmRes.data.data.title || 'TikTok Clone Video',
+              wp_post_url: url,
+              source_type: 'TIKTOK_CLONE',
+              template_id: 'default',
+              status: 'COMPLETED',
+              ai_hook: rewrittenScript.hook,
+              ai_script: originalText,
+              ai_caption: rewrittenScript.sub_voice,
+              audio_url: relativeAudioUrl,
+              thumbnail_url: tikwmRes.data.data.cover
+            }
+          });
+        }
+
+        results.push({
+          url,
+          success: true,
+          reel_id: savedReel?.id,
+          title: tikwmRes.data.data.title,
+          cover: tikwmRes.data.data.cover,
+          original_text: originalText,
+          new_script: rewrittenScript,
+          audio_url: relativeAudioUrl
+        });
+
+      } catch (err: any) {
+        this.logger.error(`Error batch processing ${url}: ${err.message}`);
+        results.push({ url, success: false, error: err.message });
+      } finally {
+        if (fs.existsSync(tempAudioPath)) {
+          try { fs.unlinkSync(tempAudioPath); } catch (e) {}
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Đã xử lý xong ${results.filter(r => r.success).length}/${cleanUrls.length} video TikTok`,
+      data: results
+    };
   }
 }
