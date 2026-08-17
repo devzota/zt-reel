@@ -272,12 +272,14 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
 
       const { ztteam_getStorageRoot } = require('../common/ztteam_storage.util');
       const cookiesFile = path.join(ztteam_getStorageRoot(), 'cookies.txt');
-      const cookieFlag = (fs.existsSync(cookiesFile) && fs.statSync(cookiesFile).size > 10) ? `--cookies "${cookiesFile}"` : '';
+      const hasCookies = fs.existsSync(cookiesFile) && fs.statSync(cookiesFile).size > 10;
+      const cookieFlag = hasCookies ? `--cookies "${cookiesFile}"` : '';
+      const clientArgs = hasCookies ? '' : `--extractor-args "youtube:player_client=tv_embedded,android_vr"`;
 
-      const ytdlpArgs = `${cookieFlag} --extractor-args "youtube:player_client=tv_embedded,android_vr" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+      const ytdlpArgs = `${cookieFlag} ${clientArgs} --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
       
-      /** Tải video */
-      await exec(`yt-dlp ${ytdlpArgs} -f "best[ext=mp4]/best" -o "${rawVideoPath}" "${ytUrl}"`);
+      /** Tải video (ưu tiên mp4/m4a, linh hoạt fallback để không bao giờ bị Requested format is not available) */
+      await exec(`yt-dlp ${ytdlpArgs} -f "bv*+ba/b/18/best" -o "${rawVideoPath}" "${ytUrl}"`);
       /** Tải thumbnail */
       await exec(`yt-dlp ${ytdlpArgs} --write-thumbnail --skip-download -o "${path.join(workDir, 'raw_thumb')}" "${ytUrl}"`).catch(() => { });
 

@@ -156,9 +156,11 @@ export class YoutubeCrawlerService {
       try {
         const { ztteam_getStorageRoot } = require('../common/ztteam_storage.util');
         const cookiesFile = path.join(ztteam_getStorageRoot(), 'cookies.txt');
-        const cookieFlag = (fs.existsSync(cookiesFile) && fs.statSync(cookiesFile).size > 10) ? `--cookies "${cookiesFile}"` : '';
+        const hasCookies = fs.existsSync(cookiesFile) && fs.statSync(cookiesFile).size > 10;
+        const cookieFlag = hasCookies ? `--cookies "${cookiesFile}"` : '';
+        const clientArgs = hasCookies ? '' : `--extractor-args "youtube:player_client=tv_embedded,android_vr"`;
 
-        const ytdlpArgs = `${cookieFlag} --extractor-args "youtube:player_client=tv_embedded,android_vr" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+        const ytdlpArgs = `${cookieFlag} ${clientArgs} --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
         await execAsync(`yt-dlp ${ytdlpArgs} --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
         if (fs.existsSync(tmpFile)) {
           const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
