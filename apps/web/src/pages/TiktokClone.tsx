@@ -39,7 +39,7 @@ export default function TiktokClone() {
   const [renderingItemMap, setRenderingItemMap] = useState<{ [key: string]: boolean }>({});
   const [itemImagesMap, setItemImagesMap] = useState<{ [key: string]: File[] }>({});
 
-  const { ztteam_showToast } = useUIStore();
+  const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -156,9 +156,12 @@ export default function TiktokClone() {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn XÓA SẠCH bản ghi TikTok này cùng toàn bộ file Video/Audio liên quan?')) {
-      return;
-    }
+    const confirmed = await ztteam_showConfirm(
+      'Xác nhận xóa sạch',
+      'Bạn có chắc chắn muốn xóa bản ghi TikTok này cùng toàn bộ file Video/Audio liên quan không?'
+    );
+    if (!confirmed) return;
+
     try {
       const res = await api.delete(`/tiktok-clone/${id}`);
       if (res.data?.success) {
@@ -171,9 +174,12 @@ export default function TiktokClone() {
   };
 
   const handleClearAllHistory = async () => {
-    if (!window.confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA SẠCH TOÀN BỘ lịch sử TikTok Clone và tất cả file video/audio trên server?')) {
-      return;
-    }
+    const confirmed = await ztteam_showConfirm(
+      'Xác nhận xóa toàn bộ',
+      'CẢNH BÁO: Bạn có chắc chắn muốn XÓA SẠCH TOÀN BỘ lịch sử TikTok Clone và tất cả file video/audio trên server?'
+    );
+    if (!confirmed) return;
+
     try {
       const res = await api.delete('/tiktok-clone/clear-all');
       if (res.data?.success) {
