@@ -154,7 +154,7 @@ export class YoutubeCrawlerService {
     try {
       const tmpFile = path.join(process.cwd(), `yt_info_${Date.now()}.json`);
       try {
-        const ytdlpArgs = `--extractor-args "youtube:player_client=ios,android,web" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
+        const ytdlpArgs = `--extractor-args "youtube:player_client=android_vr,web_embedded" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --no-warnings`;
         await execAsync(`yt-dlp ${ytdlpArgs} --dump-json "${url}" > "${tmpFile}"`, { timeout: 30000 });
         if (fs.existsSync(tmpFile)) {
           const info = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
@@ -169,7 +169,7 @@ export class YoutubeCrawlerService {
 
       const reel = await this.prisma.ztteam_reels.create({
         data: {
-          page_id: pageId,
+          page_id: pageId || 'UNASSIGNED',
           wp_post_id: url,
           wp_post_title: originalTitle,
           wp_post_url: url,

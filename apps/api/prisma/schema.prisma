@@ -197,7 +197,7 @@ model ztteam_reels {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
-  page            ztteam_pages @relation(fields: [page_id], references: [id], onDelete: Cascade)
+  page            ztteam_pages? @relation(fields: [page_id], references: [id], onDelete: Cascade)
 }
 
 model ztteam_settings {

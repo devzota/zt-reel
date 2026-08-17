@@ -133,7 +133,9 @@ export class ZTTeamRenderController {
     const take = parseInt(limit || '20', 10);
     const skip = ((parseInt(page || '1', 10) - 1)) * take;
 
-    const where: any = {};
+    const where: any = {
+      source_type: { not: 'TIKTOK_CLONE' }
+    };
     if (pageId) where.page_id = pageId;
     if (fbPageId) where.page = { ...where.page, fb_page_id: fbPageId };
     if (status) where.status = status;
@@ -440,6 +442,10 @@ export class ZTTeamRenderController {
           const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
           description = `${prefix} ${trackingLinkManual}\n\n${description}`;
         }
+      }
+
+      if (!reel.page) {
+        throw new Error('Video Reel chưa được gán cho Fanpage nào');
       }
 
       const response = await this.facebookService.ztteam_publishReel(

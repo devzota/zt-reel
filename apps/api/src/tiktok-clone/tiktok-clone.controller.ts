@@ -381,33 +381,23 @@ export class TiktokCloneController {
         const outputAudioPath = await this.ttsService.ztteam_textToSpeech(rewrittenScript.sub_voice, voiceId, workDir, voiceSpeed);
         const relativeAudioUrl = '/storage/tmp/' + path.basename(outputAudioPath);
 
-        /** Lấy pageId nếu có hoặc lấy page đầu tiên */
-        let targetPageId = body.page_id;
-        if (!targetPageId) {
-          const firstPage = await this.prisma.ztteam_pages.findFirst();
-          if (firstPage) targetPageId = firstPage.id;
-        }
-
-        /** Lưu vào Lịch Sử Reels (source_type: TIKTOK_CLONE) */
-        let savedReel = null;
-        if (targetPageId) {
-          savedReel = await this.prisma.ztteam_reels.create({
-            data: {
-              page_id: targetPageId,
-              wp_post_id: url,
-              wp_post_title: tikwmRes.data.data.title || 'TikTok Clone Video',
-              wp_post_url: url,
-              source_type: 'TIKTOK_CLONE',
-              template_id: 'default',
-              status: 'COMPLETED',
-              ai_hook: rewrittenScript.hook,
-              ai_script: originalText,
-              ai_caption: rewrittenScript.sub_voice,
-              audio_url: relativeAudioUrl,
-              thumbnail_url: tikwmRes.data.data.cover
-            }
-          });
-        }
+        /** Lưu vào Lịch Sử Reels (source_type: TIKTOK_CLONE - mặc định UNASSIGNED không gán Fanpage nào) */
+        const savedReel = await this.prisma.ztteam_reels.create({
+          data: {
+            page_id: body.page_id || 'UNASSIGNED',
+            wp_post_id: url,
+            wp_post_title: tikwmRes.data.data.title || 'TikTok Clone Video',
+            wp_post_url: url,
+            source_type: 'TIKTOK_CLONE',
+            template_id: 'default',
+            status: 'COMPLETED',
+            ai_hook: rewrittenScript.hook,
+            ai_script: originalText,
+            ai_caption: rewrittenScript.sub_voice,
+            audio_url: relativeAudioUrl,
+            thumbnail_url: tikwmRes.data.data.cover
+          }
+        });
 
         results.push({
           url,

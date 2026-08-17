@@ -37,6 +37,7 @@ export class ZTTeamPublisherCron {
         where: {
           status: 'COMPLETED',
           is_posted: false,
+          source_type: { not: 'TIKTOK_CLONE' }
         },
         include: { page: { include: { fb_account: true } } },
         orderBy: { created_at: 'asc' },
