@@ -186,7 +186,7 @@ export class TiktokCloneController {
       }
 
       /** 3. Resolve audio path (from /storage/tmp/voice.mp3 to absolute path) */
-      const audioFileName = path.basename(body.audio_url.split('?')[0]); // handle ?t=timestamp
+      const audioFileName = path.basename(body.audio_url.split('?')[0]); /** handle ?t=timestamp */
       const audioPath = path.join(workDir, audioFileName);
       if (!fs.existsSync(audioPath)) {
         throw new Error('Không tìm thấy file audio trên server. Vui lòng tạo lại giọng đọc.');
@@ -196,10 +196,9 @@ export class TiktokCloneController {
 
       /** 4. Generate Subtitles ASS */
       const subtitles = this.aiService.ztteam_generateSubtitles(body.sub_voice, audioDuration);
-      /** Add Hook to subtitles at start (0 to 3 seconds) at top of screen */
-      // Đã loại bỏ Hook khỏi Karaoke Subtitles theo yêu cầu của user
+      /** Add Hook to subtitles at start (0 to 3 seconds) at top of screen (Đã loại bỏ Hook khỏi Karaoke Subtitles theo yêu cầu của user) */
       
-      const assContent = this.aiService.ztteam_generateASSContent(subtitles, 0, 1080, undefined, 1100); // 1100 is y-pos for sub (on top of the image)
+      const assContent = this.aiService.ztteam_generateASSContent(subtitles, 0, 1080, undefined, 1100); /** 1100 is y-pos for sub (on top of the image) */
       const subtitlePath = path.join(renderDir, 'subtitles.ass');
       fs.writeFileSync(subtitlePath, assContent, 'utf-8');
 
@@ -214,7 +213,7 @@ export class TiktokCloneController {
       const bgColor = '0x0368ff';
       const fontPath = path.relative(process.cwd(), path.join(process.cwd(), 'assets', 'Montserrat-Black.ttf')).replace(/\\/g, '/');
 
-      // 6. Generate Title (Hook) image with text using FFmpeg drawtext on a gradient background
+      /** 6. Generate Title (Hook) image with text using FFmpeg drawtext on a gradient background */
       let drawtextArg = '';
       if (body.hook && body.hook.length > 0) {
         const words = body.hook.split(' ');

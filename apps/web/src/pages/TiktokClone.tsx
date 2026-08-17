@@ -25,7 +25,7 @@ export default function TiktokClone() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [result, setResult] = useState<any>(null);
   
-  // Render State
+  /** Render State */
   const [images, setImages] = useState<File[]>([]);
   const [isRendering, setIsRendering] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);

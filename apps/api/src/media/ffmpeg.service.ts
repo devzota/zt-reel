@@ -63,12 +63,11 @@ export class ZTTeamFFmpegService {
 
     const fps = 30;
     
-    // For xfade, we need overlaps. 
-    // Let's define a crossfade duration (e.g. 1 second).
+    /** For xfade, we need overlaps. Let's define a crossfade duration (e.g. 1 second). */
     const transitionDuration = 1;
-    const baseImageDur = 5; // Each image shows for roughly 5 seconds max
+    const baseImageDur = 5; /** Each image shows for roughly 5 seconds max */
     
-    // Calculate how many segments we need to fill totalDuration
+    /** Calculate how many segments we need to fill totalDuration */
     let numImages = images.length;
     let actualN = Math.max(numImages, Math.ceil((totalDuration - transitionDuration) / (baseImageDur - transitionDuration)));
     if (actualN < 1) actualN = 1;
@@ -83,7 +82,7 @@ export class ZTTeamFFmpegService {
     for (let i = 0; i < actualN; i++) {
       const imgPath = images[i % images.length];
       inputs += `-loop 1 -t ${imageDur} -i "${imgPath}" `;
-      // Just ensure it's in yuv420p format (no zoompan to avoid jitter)
+      /** Just ensure it's in yuv420p format (no zoompan to avoid jitter) */
       filterComplex += `[${i}:v]format=yuv420p[v${i}];`;
     }
 
@@ -166,8 +165,7 @@ export class ZTTeamFFmpegService {
       inputs = `-loop 1 -t ${duration} -i "${options.bgImagePath}" -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
       filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[1:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(Y,800),255,if(gt(Y,1280),0,255*pow((1280-Y)/480,2)))'[slide_faded];[bg][slide_faded]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
     } else {
-      // Dynamic blurred background from the slideshow itself
-      // We add a dummy color input (0:v) to keep the input indices (3:a for voice) consistent with the bgImagePath branch
+      /** Dynamic blurred background from the slideshow itself. We add a dummy color input (0:v) to keep indices consistent. */
       inputs = `-f lavfi -i color=c=black:s=10x10 -stream_loop -1 -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
       filterComplex = `[1:v]scale=216:384:force_original_aspect_ratio=increase,crop=216:384,boxblur=10:10,scale=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
     }
