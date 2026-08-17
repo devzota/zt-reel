@@ -10,6 +10,7 @@ export interface ZTTeamFanpage {
   avatar?: string;
   ownerName?: string;
   status?: string;
+  isActive?: boolean;
   targetSiteId?: string;
   targetCategoryId?: string;
   reelFrequencyCron?: string;

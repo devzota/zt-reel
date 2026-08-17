@@ -123,7 +123,7 @@ export default function Layout() {
                                     {/* Sub-menu for Facebook Pages */}
                                     {isFbSubmenuOpen && (
                                         <div className="pl-6 space-y-1 border-l-2 border-slate-100 ml-4 py-1">
-                                            {pages.map((page) => {
+                                            {pages.filter(page => page.isActive !== false).map((page) => {
                                                 const reportPath = `/facebook/pages/${page.id}/report`;
                                                 const isReportActive = location.pathname === reportPath;
                                                 return (
@@ -142,7 +142,7 @@ export default function Layout() {
                                                     </Link>
                                                 );
                                             })}
-                                            {pages.length === 0 && (
+                                            {pages.filter(page => page.isActive !== false).length === 0 && (
                                                 <div className="px-3 py-1.5 text-xs text-slate-400 italic">
                                                     Chưa có Fanpage nào
                                                 </div>

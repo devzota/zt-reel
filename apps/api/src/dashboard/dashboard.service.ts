@@ -26,7 +26,7 @@ export class ZTTeamDashboardService {
     });
     const accountIds = fbAccounts.map(a => a.id);
 
-    const pageWhere: any = { fb_account_id: { in: accountIds } };
+    const pageWhere: any = { fb_account_id: { in: accountIds }, is_active: true };
     if (pageId) pageWhere.id = pageId;
 
     const pages = await this.prisma.ztteam_pages.findMany({
@@ -243,7 +243,7 @@ export class ZTTeamDashboardService {
     const accountIds = fbAccounts.map(a => a.id);
     
     let pages = await this.prisma.ztteam_pages.findMany({
-      where: { fb_account_id: { in: accountIds } },
+      where: { fb_account_id: { in: accountIds }, is_active: true },
       select: { id: true, name: true, avatar: true, fb_page_id: true, page_token_encrypted: true },
     });
 
@@ -270,6 +270,7 @@ export class ZTTeamDashboardService {
       const sitePages = await this.prisma.ztteam_pages.findMany({
         where: {
           fb_account_id: { in: accountIds },
+          is_active: true,
           sources: { some: { target_site_id: siteId } }
         },
         select: { id: true }

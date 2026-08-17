@@ -4,12 +4,27 @@ import { useZTTeamFacebookStore } from '../stores/facebookStore';
 import { useUIStore } from '../stores/uiStore';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 import { ztteam_decodeHtmlEntity } from '../utils/stringUtils';
+import api from '../services/api';
 
-function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
+function FanpageRow({ page, isExpired, testingPageId, handleTestPost, handleToggleActive }: any) {
   const navigate = useNavigate();
   const { ztteam_getPageReport, ztteam_deletePage } = useZTTeamFacebookStore();
   const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
   const [insights, setInsights] = useState<any>(null);
+
+  const isCurrentlyActive = page.isActive !== false;
+
+  const handleToggleActiveClick = async () => {
+    const confirm = await ztteam_showConfirm(
+      isCurrentlyActive ? 'Tắt Fanpage' : 'Bật lại Fanpage',
+      isCurrentlyActive 
+        ? `Bạn có chắc muốn tắt Fanpage "${page.name}"? Fanpage sẽ được chuyển sang Tab "Fanpage Đã Tắt" và ẩn khỏi menu sidebar, thống kê & 100% quy trình tự động.`
+        : `Bạn muốn bật lại Fanpage "${page.name}"? Fanpage sẽ khôi phục về Tab "Fanpage Đang Hoạt Động" và xuất hiện lại trên menu & thống kê.`
+    );
+    if (confirm && handleToggleActive) {
+      handleToggleActive(page.id, !isCurrentlyActive);
+    }
+  };
 
   useEffect(() => {
     if (!isExpired) {
@@ -248,6 +263,18 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
           >
             <span className="material-symbols-outlined text-[18px]">open_in_new</span>
           </a>
+          <button
+            onClick={handleToggleActiveClick}
+            className={`px-2.5 py-1 text-xs font-bold rounded-full transition-colors flex items-center gap-1 cursor-pointer ${
+              isCurrentlyActive
+                ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60'
+            }`}
+            title={isCurrentlyActive ? 'Tắt Fanpage (Chuyển vào Tab trang đã tắt)' : 'Bật lại Fanpage này'}
+          >
+            <span className="material-symbols-outlined text-[15px]">power_settings_new</span>
+            {isCurrentlyActive ? 'Tắt Page' : 'Bật lại'}
+          </button>
           <button 
             onClick={handleDeletePage}
             className="w-8 h-8 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors ml-0.5" 
@@ -365,11 +392,25 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost }: any) {
   );
 }
 
-function FanpageMobileCard({ page, isExpired, testingPageId, handleTestPost }: any) {
+function FanpageMobileCard({ page, isExpired, testingPageId, handleTestPost, handleToggleActive }: any) {
   const navigate = useNavigate();
   const { ztteam_getPageReport, ztteam_deletePage } = useZTTeamFacebookStore();
   const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
   const [insights, setInsights] = useState<any>(null);
+
+  const isCurrentlyActive = page.isActive !== false;
+
+  const handleToggleActiveClick = async () => {
+    const confirm = await ztteam_showConfirm(
+      isCurrentlyActive ? 'Tắt Fanpage' : 'Bật lại Fanpage',
+      isCurrentlyActive 
+        ? `Bạn có chắc muốn tắt Fanpage "${page.name}"? Fanpage sẽ được chuyển sang Tab "Fanpage Đã Tắt" và ẩn khỏi menu sidebar, thống kê & 100% quy trình tự động.`
+        : `Bạn muốn bật lại Fanpage "${page.name}"? Fanpage sẽ khôi phục về Tab "Fanpage Đang Hoạt Động" và xuất hiện lại trên menu & thống kê.`
+    );
+    if (confirm && handleToggleActive) {
+      handleToggleActive(page.id, !isCurrentlyActive);
+    }
+  };
 
   useEffect(() => {
     if (!isExpired) {
@@ -539,6 +580,18 @@ function FanpageMobileCard({ page, isExpired, testingPageId, handleTestPost }: a
           >
             <span className="material-symbols-outlined text-base">open_in_new</span>
           </a>
+          <button
+            onClick={handleToggleActiveClick}
+            className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors flex items-center gap-1 cursor-pointer ${
+              isCurrentlyActive
+                ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60'
+            }`}
+            title={isCurrentlyActive ? 'Tắt Fanpage' : 'Bật lại Fanpage'}
+          >
+            <span className="material-symbols-outlined text-sm">power_settings_new</span>
+            {isCurrentlyActive ? 'Tắt Page' : 'Bật lại'}
+          </button>
           <button 
             onClick={handleDeletePage}
             className="w-9 h-9 flex items-center justify-center text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors" 
@@ -567,6 +620,8 @@ export default function FacebookPages() {
   const navigate = useNavigate();
 
   const [testingPageId, setTestingPageId] = useState<string | null>(null);
+  const [pageTab, setPageTab] = useState<'active' | 'deactivated'>('active');
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   
   /** Lọc dữ liệu */
   const [filterOwner, setFilterOwner] = useState('');
@@ -581,6 +636,10 @@ export default function FacebookPages() {
     if (filterTag && (!p.tags || !p.tags.includes(filterTag))) match = false;
     return match;
   });
+
+  const activePages = filteredPages.filter(p => p.isActive !== false);
+  const deactivatedPages = filteredPages.filter(p => p.isActive === false);
+  const currentTabPages = pageTab === 'active' ? activePages : deactivatedPages;
 
   useEffect(() => {
     const handleSDKLoad = () => {
@@ -608,8 +667,35 @@ export default function FacebookPages() {
     }
   };
 
+  const handleCheckHealth = async () => {
+    try {
+      setIsCheckingHealth(true);
+      const res = await api.post('/facebook/accounts/check-health');
+      if (res.data?.success) {
+        ztteam_showToast('Đã kiểm tra xong sức khỏe Token Nick FB & Fanpage!', 'success');
+        ztteam_fetchPages();
+      }
+    } catch (e: any) {
+      ztteam_showToast('Lỗi kiểm tra Token Nick FB', 'error');
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
+  const handleTogglePageActive = async (pageId: string, isActive: boolean) => {
+    try {
+      const res = await api.put(`/facebook/pages/${pageId}/toggle-active`, { isActive });
+      if (res.data?.success) {
+        ztteam_showToast(res.data.message || 'Cập nhật trạng thái Fanpage thành công', 'success');
+        ztteam_fetchPages();
+      }
+    } catch (e: any) {
+      ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra', 'error');
+    }
+  };
+
   const expiredPagesCount = pages.filter(p => p.status === 'expired').length;
-  const totalFollowers = pages.reduce((acc, p) => acc + (p.followersCount || 0), 0);
+  const totalFollowers = activePages.reduce((acc, p) => acc + (p.followersCount || 0), 0);
   const formattedFollowers = totalFollowers > 1000000 ? (totalFollowers / 1000000).toFixed(1) + 'M' : 
                              totalFollowers > 1000 ? (totalFollowers / 1000).toFixed(1) + 'k' : totalFollowers;
 
@@ -623,19 +709,53 @@ export default function FacebookPages() {
         </div>
         
         {/* Highlighted CTA */}
-        <button
-          onClick={ztteam_loginWithFacebook}
-          disabled={isLoading}
-          className="bg-[#1877F2] hover:bg-[#166fe5] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50"
-        >
-          {isLoading ? (
-            <span className="material-symbols-outlined animate-spin text-[24px]">sync</span>
-          ) : (
-            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
-          )}
-          {isConnected ? 'Kết nối thêm' : 'Kết nối Facebook'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleCheckHealth}
+            disabled={isCheckingHealth}
+            className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+            title="Kiểm tra trực tiếp Token tài khoản Facebook & Fanpage"
+          >
+            <span className={`material-symbols-outlined text-lg text-primary ${isCheckingHealth ? 'animate-spin' : ''}`}>health_and_safety</span>
+            Kiểm tra Nick FB
+          </button>
+          <button
+            onClick={ztteam_loginWithFacebook}
+            disabled={isLoading}
+            className="bg-[#1877F2] hover:bg-[#166fe5] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isLoading ? (
+              <span className="material-symbols-outlined animate-spin text-[24px]">sync</span>
+            ) : (
+              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
+            )}
+            {isConnected ? 'Kết nối thêm' : 'Kết nối Facebook'}
+          </button>
+        </div>
       </div>
+
+      {/* Early Warning Banner */}
+      {expiredPagesCount > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-xl">error</span>
+            </div>
+            <div>
+              <p className="font-extrabold text-sm text-red-900">🚨 CẢNH BÁO: Phát hiện {expiredPagesCount} Fanpage / Nick Facebook bị lỗi Token!</p>
+              <p className="text-xs text-red-700">Token bị hết hạn hoặc Nick bị đổi mật khẩu/Checkpoint. Vui lòng kết nối lại tài khoản ngay để không làm gián đoạn tự động đăng bài.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleCheckHealth}
+            disabled={isCheckingHealth}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-xs shrink-0 flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50 cursor-pointer self-start md:self-auto"
+          >
+            <span className={`material-symbols-outlined text-sm ${isCheckingHealth ? 'animate-spin' : ''}`}>sync</span>
+            Kiểm tra ngay
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
@@ -647,10 +767,17 @@ export default function FacebookPages() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
         <div className="glass-card p-5 rounded-2xl flex flex-col">
-          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Tổng Fanpage</span>
+          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Fanpage Hoạt Động</span>
           <div className="flex items-end justify-between">
-            <span className="text-3xl font-bold text-gray-900">{pages.length}</span>
-            <span className="text-blue-600 font-bold text-sm bg-blue-50 px-2 py-1 rounded">All pages</span>
+            <span className="text-3xl font-bold text-gray-900">{pages.filter(p => p.isActive !== false).length}</span>
+            <span className="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-1 rounded">Active</span>
+          </div>
+        </div>
+        <div className="glass-card p-5 rounded-2xl flex flex-col">
+          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Fanpage Đã Tắt</span>
+          <div className="flex items-end justify-between">
+            <span className="text-3xl font-bold text-amber-700">{pages.filter(p => p.isActive === false).length}</span>
+            <span className="text-amber-700 font-bold text-sm bg-amber-50 px-2 py-1 rounded">Deactivated</span>
           </div>
         </div>
         <div className="glass-card p-5 rounded-2xl flex flex-col">
@@ -663,34 +790,45 @@ export default function FacebookPages() {
           </div>
         </div>
         <div className="glass-card p-5 rounded-2xl flex flex-col">
-          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Tổng Follower</span>
+          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Tổng Follower (Hoạt động)</span>
           <div className="flex items-end justify-between">
             <span className="text-3xl font-bold text-gray-900">{formattedFollowers}</span>
-            <span className="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-1 rounded">Reach</span>
-          </div>
-        </div>
-        <div className="glass-card p-5 rounded-2xl flex flex-col">
-          <span className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">Reels Đã đăng (24h)</span>
-          <div className="flex items-end justify-between">
-            <span className="text-3xl font-bold text-gray-900">0</span>
-            <span className="text-gray-500 font-bold text-sm bg-gray-100 px-2 py-1 rounded">Sắp tới</span>
+            <span className="text-purple-600 font-bold text-sm bg-purple-50 px-2 py-1 rounded">Followers</span>
           </div>
         </div>
       </div>
 
-      {/* Main Listing Section */}
-      <div className="glass-card rounded-2xl overflow-hidden shadow-sm">
-        {/* Filters & Toolbar */}
+      {/* TABS SWITCHER */}
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setPageTab('active')}
+          className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            pageTab === 'active'
+              ? 'bg-primary text-white shadow-md'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          Fanpage Đang Hoạt Động ({pages.filter(p => p.isActive !== false).length})
+        </button>
+        <button
+          onClick={() => setPageTab('deactivated')}
+          className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            pageTab === 'deactivated'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span className="material-symbols-outlined text-sm">power_off</span>
+          Fanpage Đã Tắt ({pages.filter(p => p.isActive === false).length})
+        </button>
+      </div>
+
+      {/* Main List Table */}
+      <div className="glass-card rounded-2xl overflow-hidden border border-slate-200/60 shadow-md">
+        {/* Table Filters */}
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <select className="appearance-none bg-slate-50 border-2 border-transparent focus:border-primary rounded-full pl-4 pr-10 py-2 text-sm font-medium focus:ring-0 outline-none">
-                <option>Tất cả trạng thái</option>
-                <option>Connected</option>
-                <option>Expired</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">expand_more</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
             {uniqueOwners.length > 0 && (
               <div className="relative">
                 <select 
@@ -732,14 +870,14 @@ export default function FacebookPages() {
 
         {/* Mobile View: Responsive Glass Cards */}
         <div className="block md:hidden p-4">
-          {filteredPages.length === 0 ? (
+          {currentTabPages.length === 0 ? (
             <div className="py-12 text-center">
               <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
-              <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào</p>
-              <p className="text-sm text-gray-500 mt-1">Thử thay đổi bộ lọc hoặc kết nối thêm Fanpage.</p>
+              <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào ({pageTab === 'active' ? 'Đang hoạt động' : 'Đã tắt'})</p>
+              <p className="text-sm text-gray-500 mt-1">Thử thay đổi bộ lọc hoặc chọn tab khác.</p>
             </div>
           ) : (
-            filteredPages.map(page => {
+            currentTabPages.map(page => {
               const isExpired = page.status === 'expired';
               return (
                 <FanpageMobileCard 
@@ -748,6 +886,7 @@ export default function FacebookPages() {
                   isExpired={isExpired} 
                   testingPageId={testingPageId} 
                   handleTestPost={handleTestPost} 
+                  handleToggleActive={handleTogglePageActive}
                 />
               );
             })
@@ -768,16 +907,16 @@ export default function FacebookPages() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredPages.length === 0 ? (
+              {currentTabPages.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
-                    <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào</p>
-                    <p className="text-sm text-gray-500 mt-1">Thử thay đổi bộ lọc hoặc kết nối thêm Fanpage.</p>
+                    <p className="text-gray-900 font-bold">Không tìm thấy Fanpage nào trong danh mục này</p>
+                    <p className="text-sm text-gray-500 mt-1">Chuyển sang Tab khác để quản lý Fanpage của bạn.</p>
                   </td>
                 </tr>
               ) : (
-                filteredPages.map(page => {
+                currentTabPages.map(page => {
                   const isExpired = page.status === 'expired';
                   
                   return (
@@ -787,6 +926,7 @@ export default function FacebookPages() {
                       isExpired={isExpired} 
                       testingPageId={testingPageId} 
                       handleTestPost={handleTestPost} 
+                      handleToggleActive={handleTogglePageActive}
                     />
                   );
                 })
@@ -796,9 +936,9 @@ export default function FacebookPages() {
         </div>
 
         {/* Pagination placeholder */}
-        {filteredPages.length > 0 && (
+        {currentTabPages.length > 0 && (
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Hiển thị {filteredPages.length} / {pages.length} Fanpage</p>
+            <p className="text-sm text-gray-500">Hiển thị {currentTabPages.length} / {pages.length} Fanpage ({pageTab === 'active' ? 'Đang hoạt động' : 'Đã tắt'})</p>
           </div>
         )}
       </div>

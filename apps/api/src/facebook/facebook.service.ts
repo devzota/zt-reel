@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class ZTTeamFacebookService {
   constructor(
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
+    private readonly telegramService: TelegramService,
   ) { }
 
   async ztteam_exchangeLongLivedToken(shortToken: string, userId: string) {
@@ -293,6 +295,7 @@ export class ZTTeamFacebookService {
         avatar: p.avatar,
         ownerName: p.fb_account.name,
         status: p.token_status,
+        isActive: p.is_active,
         tags: p.tags,
         postFormat: p.post_format,
         scheduleMode: p.schedule_mode,
@@ -997,6 +1000,139 @@ export class ZTTeamFacebookService {
     return { 
       message: 'Đã dọn dẹp và gộp thành công các Fanpage trùng lặp!', 
       details: results 
+    };
+  }
+
+  async ztteam_togglePageActive(pageId: string, userId: string, isActive: boolean) {
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: { fb_page_id: pageId, fb_account: { owner_user_id: userId } }
+    });
+
+    if (!page) {
+      throw new BadRequestException('Fanpage không tồn tại hoặc bạn không có quyền truy cập');
+    }
+
+    const updated = await this.prisma.ztteam_pages.update({
+      where: { id: page.id },
+      data: { is_active: isActive }
+    });
+
+    return {
+      success: true,
+      message: isActive ? `Đã bật hoạt động cho Fanpage ${page.name}` : `Đã tắt Fanpage ${page.name}`,
+      data: { id: updated.fb_page_id, isActive: updated.is_active }
+    };
+  }
+
+  async ztteam_checkAccountHealth(userId: string, accountId?: string) {
+    const whereAccount: any = { owner_user_id: userId };
+    if (accountId) whereAccount.id = accountId;
+
+    const accounts = await this.prisma.ztteam_fb_accounts.findMany({
+      where: whereAccount,
+      include: { pages: true }
+    });
+
+    const results: any[] = [];
+
+    for (const acc of accounts) {
+      let isAccValid = true;
+      let accErrorMsg = '';
+
+      /** 1. Check FB User Token via Graph API */
+      try {
+        await firstValueFrom(
+          this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/me`, {
+            params: { access_token: acc.user_token_encrypted }
+          })
+        );
+      } catch (err: any) {
+        isAccValid = false;
+        accErrorMsg = err.response?.data?.error?.message || err.message || 'Token hết hạn hoặc Nick bị checkpoint/đổi MK';
+      }
+
+      /** If User Token is invalid */
+      if (!isAccValid) {
+        await this.prisma.ztteam_fb_accounts.update({
+          where: { id: acc.id },
+          data: { status: 'expired' }
+        });
+
+        await this.prisma.ztteam_pages.updateMany({
+          where: { fb_account_id: acc.id },
+          data: { token_status: 'expired' }
+        });
+
+        const affectedPages = acc.pages.map(p => p.name).join(', ');
+        const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages || 'Chưa có'}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
+        
+        await this.telegramService.ztteam_sendMessage(warnMsg);
+
+        results.push({
+          accountId: acc.id,
+          accountName: acc.name,
+          status: 'expired',
+          error: accErrorMsg,
+          pages: acc.pages.map(p => ({ pageId: p.fb_page_id, name: p.name, status: 'expired' }))
+        });
+
+        continue;
+      }
+
+      /** Account token valid */
+      await this.prisma.ztteam_fb_accounts.update({
+        where: { id: acc.id },
+        data: { status: 'active' }
+      });
+
+      /** 2. Check each Page Token */
+      const pageResults: any[] = [];
+      for (const p of acc.pages) {
+        let isPageValid = true;
+        let pageErrorMsg = '';
+
+        try {
+          await firstValueFrom(
+            this.httpService.get(`https://graph.facebook.com/${this.API_VERSION}/${p.fb_page_id}`, {
+              params: { fields: 'id,name', access_token: p.page_token_encrypted }
+            })
+          );
+        } catch (err: any) {
+          isPageValid = false;
+          pageErrorMsg = err.response?.data?.error?.message || err.message;
+        }
+
+        const newStatus = isPageValid ? 'active' : 'expired';
+        await this.prisma.ztteam_pages.update({
+          where: { id: p.id },
+          data: { token_status: newStatus, last_checked: new Date() }
+        });
+
+        if (!isPageValid) {
+          const warnMsg = `🚨 *[CẢNH BÁO TOKEN FANPAGE BỊ HẾT HẠN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Fanpage*: ${p.name}\n❌ *Chi tiết*: ${pageErrorMsg}\n\n⚠️ Vui lòng kết nối lại tài khoản Facebook để lấy Token mới cho Fanpage!`;
+          await this.telegramService.ztteam_sendMessage(warnMsg);
+        }
+
+        pageResults.push({
+          pageId: p.fb_page_id,
+          name: p.name,
+          status: newStatus,
+          error: pageErrorMsg || null
+        });
+      }
+
+      results.push({
+        accountId: acc.id,
+        accountName: acc.name,
+        status: 'active',
+        pages: pageResults
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Đã kiểm tra xong sức khỏe Token tài khoản Facebook và Fanpage',
+      data: results
     };
   }
 }

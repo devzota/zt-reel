@@ -64,6 +64,7 @@ model ztteam_pages {
   fb_account_id             String
   default_reel_template_id  String?
   default_image_template_id String?
+  is_active                 Boolean  @default(true)
   
   /** Tab 1 & 2 */
   tags                           String[] @default([])
