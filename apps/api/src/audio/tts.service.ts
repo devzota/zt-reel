@@ -26,11 +26,20 @@ export class ZTTeamTTSService {
   async ztteam_textToSpeech(
     text: string,
     voiceId: string = '3001',
-    workDir: string,
+    workDirOrPath: string,
     voiceSpeed: number = 1.0,
   ): Promise<string> {
-    const outputPath = path.join(workDir, 'voice.mp3');
-    this.logger.log(`TTS: voice=${voiceId}, speed=${voiceSpeed}, workDir=${workDir}`);
+    let outputPath: string;
+    if (workDirOrPath.endsWith('.mp3')) {
+      outputPath = workDirOrPath;
+      const parentDir = path.dirname(outputPath);
+      if (!fs.existsSync(parentDir)) fs.mkdirSync(parentDir, { recursive: true });
+    } else {
+      const filename = `voice_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.mp3`;
+      outputPath = path.join(workDirOrPath, filename);
+      if (!fs.existsSync(workDirOrPath)) fs.mkdirSync(workDirOrPath, { recursive: true });
+    }
+    this.logger.log(`TTS: voice=${voiceId}, speed=${voiceSpeed}, outputPath=${outputPath}`);
 
     /** Determine if voiceId belongs to Revid API (numeric IDs like 3001 or 'Linh') */
     const isNumericVoice = /^\d+$/.test(voiceId) || voiceId.toLowerCase().includes('linh') || voiceId === '3001';
