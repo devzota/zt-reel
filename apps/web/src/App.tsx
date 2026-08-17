@@ -11,7 +11,6 @@ import SystemSettingsPage from './pages/SystemSettingsPage'
 import Login from './pages/Login'
 import FanpageReport from './pages/FanpageReport'
 import UserManagement from './pages/UserManagement'
-import YoutubeTest from './pages/YoutubeTest'
 import YoutubeSources from './pages/YoutubeSources'
 import TiktokClone from './pages/TiktokClone'
 import { useZTTeamAuthStore } from './stores/authStore'
@@ -50,7 +49,6 @@ function App() {
           <Route path="reel-factory" element={<ReelFactory />} />
           <Route path="image-factory" element={<ImageFactory />} />
           <Route path="statistics" element={<StatisticsPage />} />
-          <Route path="youtube-test" element={<YoutubeTest />} />
           <Route path="settings" element={<SystemSettingsPage />} />
           <Route path="users" element={<UserManagement />} />
         </Route>
