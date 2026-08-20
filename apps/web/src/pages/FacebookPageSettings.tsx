@@ -261,7 +261,7 @@ export default function FacebookPageSettings() {
       return;
     }
 
-    const template = createTemplateId || (manualCreateFormat === 'image' ? defaultImageTemplateId : defaultReelTemplateId);
+    const template = createTemplateId || (manualCreateFormat === 'image' ? 'auto' : defaultReelTemplateId);
     if (!template) {
       ztteam_showToast(`Chưa có Giao diện ${manualCreateFormat === 'image' ? 'Ảnh' : 'Reel'} nào khả dụng. Vui lòng chọn ở màn hình cấu hình.`, 'error');
       return;
@@ -298,7 +298,13 @@ export default function FacebookPageSettings() {
   useEffect(() => {
     if (createSiteId) {
       setIsLoadingPosts(true);
-      api.get(`wordpress/sites/${createSiteId}/posts`)
+      const sourceConfig = sources.find(s => s.target_site_id === createSiteId);
+      const params = new URLSearchParams();
+      if (sourceConfig?.target_category_id) params.append('categoryId', sourceConfig.target_category_id);
+      if (sourceConfig?.target_tags) params.append('targetTags', sourceConfig.target_tags);
+      const qs = params.toString();
+
+      api.get(`wordpress/sites/${createSiteId}/posts${qs ? '?' + qs : ''}`)
         .then(res => {
           setCreatePosts(res.data || []);
           if (res.data && res.data.length > 0) {

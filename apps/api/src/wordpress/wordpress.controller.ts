@@ -48,8 +48,13 @@ export class ZTTeamWordpressController {
   }
 
   @Get('sites/:siteId/posts')
-  ztteam_getPosts(@Param('siteId') siteId: string, @Request() req: any) {
-    return this.wordpressService.ztteam_getPosts(siteId, req.user.sub);
+  ztteam_getPosts(
+    @Param('siteId') siteId: string, 
+    @Request() req: any,
+    @Query('categoryId') categoryId?: string,
+    @Query('targetTags') targetTags?: string
+  ) {
+    return this.wordpressService.ztteam_getPosts(siteId, req.user.sub, categoryId, targetTags);
   }
 
   @Get('sites/:siteId/sample-post')
