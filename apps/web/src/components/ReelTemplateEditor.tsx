@@ -173,29 +173,25 @@ export default function ReelTemplateEditor({ initialData, onSave, onCancel, onCh
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
     
-    /** Only upload if it is an actual template, not in override mode */
-    /** Wait, in override mode, we should also allow uploading a custom BG for this specific page! */
-    /** But our API endpoint is `/templates/:id/upload-bg`. We can just use the template's ID. */
-    if (!formData.id) {
-      ztteam_showToast('Không tìm thấy ID template', 'error');
-      return;
-    }
-
     try {
       setIsUploading(true);
       const fd = new FormData();
       fd.append('file', file);
-      const res = await api.post(`templates/${formData.id}/upload-bg`, fd, {
+      
+      const endpoint = formData.id ? `templates/${formData.id}/upload-bg` : `templates/upload-bg`;
+      const res = await api.post(endpoint, fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       const newUrl = res.data.url;
-      setFormData({
+      const updatedData = {
         ...formData,
         layout: {
           ...(formData.layout || {}),
           bg_image_url: newUrl
         }
-      });
+      };
+      setFormData(updatedData);
+      if (onChange) onChange(updatedData);
       ztteam_showToast('Tải ảnh nền thành công', 'success');
     } catch (err) {
       ztteam_showToast('Lỗi khi tải ảnh', 'error');

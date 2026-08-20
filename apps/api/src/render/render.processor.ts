@@ -692,10 +692,21 @@ export class ZTTeamRenderProcessor implements OnModuleInit {
     if (bgImageUrl && bgImageUrl.startsWith('/storage/')) {
       const relativePath = bgImageUrl.replace(/^\/storage\//, '');
       bgImagePath = path.join(ztteam_getStorageRoot(), relativePath);
+      if (fs.existsSync(bgImagePath)) {
+        const base64 = fs.readFileSync(bgImagePath, { encoding: 'base64' });
+        const ext = path.extname(bgImagePath).toLowerCase().replace('.', '') || 'png';
+        const mime = ext === 'jpg' ? 'jpeg' : ext;
+        bgImageUrl = `data:image/${mime};base64,${base64}`;
+      }
     }
 
-    htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, '');
-    htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');
+    if (bgImageUrl) {
+      htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, bgImageUrl);
+      htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, '');
+    } else {
+      htmlContent = htmlContent.replace(/{{layout\.bg_image_url}}/g, '');
+      htmlContent = htmlContent.replace(/{{#unless layout\.bg_image_url}}display:none;{{\/unless}}/g, 'display:none;');
+    }
 
     htmlContent = htmlContent.replace(/{{{fontFace}}}/g, '');
 

@@ -49,10 +49,14 @@ export default function FacebookPageSettings() {
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [templates, setTemplates] = useState<any[]>([]);
 
+
+
   const [isTestingPrompt, setIsTestingPrompt] = useState(false);
   const [testPromptResult, setTestPromptResult] = useState<any>(null);
   const [showTestModal, setShowTestModal] = useState(false);
   const [testPostContent, setTestPostContent] = useState('');
+
+
 
   /** Scheduler Status states */
   const [lastRenderTime, setLastRenderTime] = useState<string | null>(null);
@@ -234,6 +238,8 @@ export default function FacebookPageSettings() {
     setTestPostContent('Hôm nay là một ngày tuyệt vời để khám phá những tính năng mới của công nghệ AI. Sự phát triển của AI giúp tiết kiệm hàng ngàn giờ làm việc mỗi tuần cho các nhà sáng tạo nội dung. Bạn đã sẵn sàng để ứng dụng AI vào hệ thống của mình chưa?');
   };
 
+
+
   const ztteam_handleCreateReel = async () => {
     if (!createSiteId || !createPostId) {
       ztteam_showToast('Vui lòng chọn nguồn và bài viết', 'error');
@@ -351,6 +357,8 @@ export default function FacebookPageSettings() {
       setDefaultReelTemplateId(data.default_reel_template_id || '');
       setDefaultImageTemplateId(data.default_image_template_id || '');
 
+
+
       setLastRenderTime(data.last_render_time || null);
       setNextRenderTime(data.next_render_time || null);
       setLastPublishTime(data.last_publish_time || null);
@@ -418,6 +426,7 @@ export default function FacebookPageSettings() {
         ai_caption_length: aiCaptionLength,
         ai_custom_prompt: aiCustomPrompt,
         voice_speed: voiceSpeed,
+
         default_reel_template_id: defaultReelTemplateId,
         default_image_template_id: defaultImageTemplateId,
         sources,
@@ -1105,6 +1114,8 @@ export default function FacebookPageSettings() {
                       </div>
                     </div>
                   </div>
+
+
                 </>
               )}
             </div>
@@ -1629,6 +1640,8 @@ export default function FacebookPageSettings() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

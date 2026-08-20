@@ -18,7 +18,12 @@ export class ZTTeamAIService {
     const records = await this.prisma.ztteam_settings.findMany({
       where: {
         key: {
-          in: ['active_ai_provider', 'openai_api_key', 'deepseek_api_key', 'gemini_api_key']
+          in: [
+            'active_ai_provider',
+            'openai_api_key',
+            'deepseek_api_key',
+            'gemini_api_key',
+          ]
         }
       }
     });
@@ -29,7 +34,7 @@ export class ZTTeamAIService {
       activeProvider: settings['active_ai_provider'] || 'openai',
       openaiKey: settings['openai_api_key'] || process.env.OPENAI_API_KEY,
       deepseekKey: settings['deepseek_api_key'] || process.env.DEEPSEEK_API_KEY,
-      geminiKey: settings['gemini_api_key'] || process.env.GEMINI_API_KEY
+      geminiKey: settings['gemini_api_key'] || process.env.GEMINI_API_KEY,
     };
   }
 

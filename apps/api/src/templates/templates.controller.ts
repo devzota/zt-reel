@@ -55,7 +55,7 @@ export class ZTTeamTemplatesController {
     return this.templatesService.ztteam_duplicateTemplate(id);
   }
 
-  @Post(':id/bg')
+  @Post([':id/bg', ':id/upload-bg', 'upload-bg'])
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: (req: any, file: any, cb: any) => {

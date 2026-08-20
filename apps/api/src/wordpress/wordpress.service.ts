@@ -353,7 +353,7 @@ export class ZTTeamWordpressService {
     let wpUrl = site.wp_url.replace(/\/$/, '');
 
     try {
-      const params: any = { per_page: 20, _fields: 'id,title,date,link' };
+      const params: any = { per_page: 20, _embed: 1 };
       if (categoryId) params.categories = categoryId;
       if (targetTags) params.tags = targetTags;
       
@@ -361,16 +361,35 @@ export class ZTTeamWordpressService {
         this.httpService.get(`${wpUrl}/wp-json/wp/v2/posts`, {
           headers: { Authorization: authHeader },
           params,
-          timeout: 10000,
+          timeout: 12000,
         })
       );
       
-      return response.data.map((p: any) => ({
-        id: p.id,
-        title: p.title?.rendered || 'No Title',
-        date: p.date,
-        link: p.link
-      }));
+      return response.data.map((p: any) => {
+        const rawContent = p.content?.rendered || p.title?.rendered || '';
+        const cleanContent = rawContent.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+        const rawExcerpt = p.excerpt?.rendered || cleanContent.substring(0, 180);
+        const cleanExcerpt = rawExcerpt.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+
+        /** Extract image URL */
+        let imageUrl: string | null = null;
+        if (p._embedded?.['wp:featuredmedia']?.[0]?.source_url) {
+          imageUrl = p._embedded['wp:featuredmedia'][0].source_url;
+        } else {
+          const imgMatch = p.content?.rendered?.match(/<img[^>]+(?:src|data-src)="([^"]+)"/i);
+          if (imgMatch) imageUrl = imgMatch[1];
+        }
+
+        return {
+          id: p.id,
+          title: (p.title?.rendered || 'No Title').replace(/<[^>]*>?/gm, ''),
+          date: p.date,
+          link: p.link,
+          content: cleanContent,
+          excerpt: cleanExcerpt,
+          imageUrl: imageUrl,
+        };
+      });
     } catch (e: any) {
       this.logger.error('Failed to get posts from WP', e.response?.data || e.message);
       throw new HttpException(

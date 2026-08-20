@@ -92,6 +92,7 @@ model ztteam_pages {
   ai_custom_prompt               String?  @db.Text
   voice_speed                    Float    @default(1.0)
 
+
   token_status              String   @default("active")
   last_checked              DateTime @default(now())
   

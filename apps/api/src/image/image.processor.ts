@@ -281,6 +281,7 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     const outputPath = path.join(workDir, 'output.png');
     let finalHtml = template.html_content;
     
+
     /** Xử lý template thay thế biến */
     finalHtml = finalHtml.replace(/\{\{title\}\}/g, () => (post.title || ''));
     finalHtml = finalHtml.replace(/\{\{excerpt\}\}/g, () => (post.excerpt || ''));
