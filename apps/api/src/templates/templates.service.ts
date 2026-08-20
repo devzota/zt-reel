@@ -12,25 +12,65 @@ export class ZTTeamTemplatesService implements OnModuleInit {
 
   async ztteam_seedDefaultTemplates() {
     try {
-      /** Auto-fix mojibake templates from database imports */
+      /** Auto-fix mojibake templates from database imports (only system templates) */
       await this.prisma.ztteam_templates.updateMany({
-        where: { name: { contains: '2' }, format: 'image' },
+        where: { name: { contains: '2' }, format: 'image', fb_page_id: null },
         data: { name: 'Ghép 2 Ảnh (Nửa trái / Nửa phải)' }
       });
       await this.prisma.ztteam_templates.updateMany({
-        where: { name: { contains: '3' }, format: 'image' },
+        where: { name: { contains: '3' }, format: 'image', fb_page_id: null },
         data: { name: 'Ghép 3 Ảnh (1 Trên, 2 Dưới)' }
       });
       await this.prisma.ztteam_templates.updateMany({
-        where: { name: { contains: '4' }, format: 'image' },
+        where: { name: { contains: '4' }, format: 'image', fb_page_id: null },
         data: { name: 'Ghép 4 Ảnh (Lưới 2x2)' }
       });
       const templates = seedTemplates();
       for (const t of templates) {
-        const existing = await this.prisma.ztteam_templates.findFirst({
-          where: { content_type: t.content_type, format: t.format, fb_page_id: null }
+        const duplicates = await this.prisma.ztteam_templates.findMany({
+          where: { name: t.name, format: t.format, fb_page_id: null },
+          orderBy: { id: 'asc' }
         });
-        if (!existing) {
+
+        if (duplicates.length > 0) {
+          const original = duplicates[0];
+          
+          /** Always update the html_content and content_type of default templates to ensure they have the latest design */
+          await this.prisma.ztteam_templates.update({
+            where: { id: original.id },
+            data: { 
+              content_type: t.content_type,
+              html_content: t.html_content,
+              is_default: t.is_default
+            }
+          });
+
+          if (duplicates.length > 1) {
+            const duplicateIds = duplicates.slice(1).map(d => d.id);
+            
+            /** Re-link pages that were using the duplicates */
+            await this.prisma.ztteam_pages.updateMany({
+              where: { default_image_template_id: { in: duplicateIds } },
+              data: { default_image_template_id: original.id }
+            });
+            await this.prisma.ztteam_pages.updateMany({
+              where: { default_reel_template_id: { in: duplicateIds } },
+              data: { default_reel_template_id: original.id }
+            });
+
+            /** Re-link images that were using the duplicates */
+            await this.prisma.ztteam_images.updateMany({
+              where: { template_id: { in: duplicateIds } },
+              data: { template_id: original.id }
+            });
+
+            /** Delete the duplicates safely */
+            await this.prisma.ztteam_templates.deleteMany({
+              where: { id: { in: duplicateIds } }
+            });
+            console.log(`Cleaned up ${duplicateIds.length} duplicate templates for ${t.name}`);
+          }
+        } else {
           console.log(`Seeding missing template: ${t.name}`);
           await this.prisma.ztteam_templates.create({
             data: {
@@ -44,12 +84,6 @@ export class ZTTeamTemplatesService implements OnModuleInit {
               layout: t.layout as any,
               is_default: t.is_default
             }
-          });
-        } else {
-          /** Always update the html_content of default templates to ensure they have the latest design */
-          await this.prisma.ztteam_templates.update({
-            where: { id: existing.id },
-            data: { html_content: t.html_content }
           });
         }
       }
