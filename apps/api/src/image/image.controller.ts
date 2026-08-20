@@ -69,6 +69,12 @@ export class ZTTeamImageController {
     return { success: true, imageId: image.id, jobId };
   }
 
+  @Post('test-render')
+  async ztteam_testRender(@Body() body: { templateId: string, title: string, images: string[] }) {
+    const url = await this.imageProcessor.ztteam_testRender(body.templateId, body.title, body.images);
+    return { success: true, url };
+  }
+
   @Get('list')
   @UseGuards(ZTTeamAuthGuard)
   async ztteam_listImages(
@@ -295,6 +301,17 @@ export class ZTTeamImageController {
     this.eventEmitter.emit('image.updated', updatedImage);
 
     return { success: true, fbPostId };
+  }
+
+  @Post(':id/test-render-queue')
+  @UseGuards(ZTTeamAuthGuard)
+  async ztteam_testRenderQueue(@Param('id') id: string) {
+    try {
+      const imageUrl = await this.imageProcessor.ztteam_testRenderQueueItem(id);
+      return { success: true, imageUrl };
+    } catch (error: any) {
+      throw new Error(error.message || 'Lỗi tạo ảnh test');
+    }
   }
 
   @Put(':id/save-caption')

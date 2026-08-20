@@ -30,7 +30,7 @@ export default function ReelFactory() {
           if (exists) return prevReels.map(r => r.id === payload.id ? { ...r, ...payload } : r);
           return [payload, ...prevReels];
         });
-      } catch (err) {}
+      } catch (err) { }
     };
     return () => sse.close();
   }, []);
@@ -181,7 +181,7 @@ export default function ReelFactory() {
                       </a>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-1.5">
                     {reel.video_url === 'DELETED' && (
                       <span className="text-[11px] bg-red-50 text-red-600 px-2 py-1 rounded-md font-medium border border-red-100 flex items-center gap-1">
@@ -246,13 +246,13 @@ export default function ReelFactory() {
                     <div className="text-[10px] text-gray-500 flex flex-col mt-0.5 leading-tight">
                       <span className="truncate">Tạo: {ztteam_formatDate(reel.created_at)}</span>
                       <span className={`font-semibold truncate ${reel.status === 'POSTED' ? 'text-emerald-600' : (reel.scheduled_at ? 'text-primary' : 'text-amber-600')}`}>
-                        {reel.status === 'POSTED' ? 'Đã đăng: ' : (reel.scheduled_at ? 'Tiếp theo: ' : '')} 
+                        {reel.status === 'POSTED' ? 'Đã đăng: ' : (reel.scheduled_at ? 'Tiếp theo: ' : '')}
                         {reel.status === 'POSTED' && reel.posted_at ? ztteam_formatDate(reel.posted_at) : (reel.scheduled_at ? ztteam_formatDate(reel.scheduled_at) : 'Chưa cấu hình')}
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* FB Caption */}
                 {reel.final_caption ? (
                   <div className="px-3 pb-2 text-[12px] text-gray-800 whitespace-pre-wrap break-words leading-relaxed overflow-y-auto max-h-32 custom-scrollbar">
@@ -263,7 +263,7 @@ export default function ReelFactory() {
                     Script: {reel.ai_script}
                   </div>
                 ) : null}
-                
+
                 {/* FB Video Preview (Thumb) */}
                 <div className="mt-auto relative aspect-[4/5] bg-black flex items-center justify-center border-y border-gray-100 overflow-hidden group">
                   {reel.status === 'RENDERING' ? (
@@ -282,15 +282,15 @@ export default function ReelFactory() {
                   ) : (
                     <>
                       {reel.thumbnail_url ? (
-                        <img 
-                          src={reel.thumbnail_url} 
-                          alt="Reel thumb" 
-                          className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity" 
+                        <img
+                          src={reel.thumbnail_url}
+                          alt="Reel thumb"
+                          className="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition-opacity"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const parent = e.currentTarget.parentElement;
                             if (parent && !parent.querySelector('.broken-icon')) {
-                               parent.insertAdjacentHTML('afterbegin', '<span class="material-symbols-outlined text-4xl text-gray-500 broken-icon">broken_image</span>');
+                              parent.insertAdjacentHTML('afterbegin', '<span class="material-symbols-outlined text-4xl text-gray-500 broken-icon">broken_image</span>');
                             }
                           }}
                         />
@@ -314,7 +314,7 @@ export default function ReelFactory() {
                     </>
                   )}
                 </div>
-                
+
                 {/* FB Comment Preview */}
                 {reel.final_comment && (
                   <div className="px-3 py-2 bg-gray-50 flex gap-2">

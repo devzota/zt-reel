@@ -133,7 +133,7 @@ export class ZTTeamImageRenderCron implements OnApplicationBootstrap {
               wp_post_id: post.id.toString(),
               wp_post_title: post.title,
               wp_post_url: post.link,
-              template_id: page.default_image_template_id || 'default',
+              template_id: 'auto',
               status: 'QUEUED',
             },
           });
@@ -148,7 +148,7 @@ export class ZTTeamImageRenderCron implements OnApplicationBootstrap {
             imageId: image.id,
             pageId: page.id,
             wpPostId: post.id.toString(),
-            templateId: page.default_image_template_id || 'default',
+            templateId: 'auto',
           });
 
           processedCount++;

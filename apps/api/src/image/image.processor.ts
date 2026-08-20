@@ -197,15 +197,6 @@ export class ZTTeamImageProcessor implements OnModuleInit {
           post.images.push(match[1]);
         }
 
-        if (wpPost.featured_media) {
-          try {
-            const mediaRes = await axios.get(`${wpUrl}/wp-json/wp/v2/media/${wpPost.featured_media}`, { timeout: 10000 });
-            if (mediaRes.data?.source_url) {
-              post.images.unshift(mediaRes.data.source_url);
-            }
-          } catch (e) { }
-        }
-
         /** Lọc trùng lặp ảnh */
         post.images = [...new Set(post.images)];
       } catch (error) {
@@ -220,15 +211,35 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     let finalTemplateId = templateId;
     if (templateId === 'auto' || templateId === 'default' || !templateId) {
       const imgCount = post.images.length;
-      let searchStr = '2';
-      if (imgCount === 3) searchStr = '3';
-      if (imgCount >= 4) searchStr = '4';
-
-      const foundTemplate = await this.prisma.ztteam_templates.findFirst({
-        where: { name: { contains: searchStr }, format: 'image' },
+      
+      const allImageTemplates = await this.prisma.ztteam_templates.findMany({
+        where: { format: 'image' }
       });
-      if (foundTemplate) {
-        finalTemplateId = foundTemplate.id;
+      
+      if (allImageTemplates.length > 0) {
+        const validTemplates = allImageTemplates.filter(t => {
+          let needed = 3; /** split_2 needs 3 images (2 + 1 inset) */
+          if (t.content_type === 'split_3' || t.name.includes('3')) needed = 4;
+          if (t.content_type === 'split_4' || t.name.includes('4')) needed = 5;
+          return needed <= imgCount;
+        });
+
+        if (validTemplates.length > 0) {
+          const randomTemplate = validTemplates[Math.floor(Math.random() * validTemplates.length)];
+          finalTemplateId = randomTemplate.id;
+        } else {
+          /** Fallback to the smallest template if post has too few images */
+          const fallback = allImageTemplates.find(t => t.content_type === 'split_2' || t.name.includes('2')) || allImageTemplates[0];
+          finalTemplateId = fallback.id;
+        }
+      }
+
+      /** Shuffle images to ensure random selection each time to avoid duplicating layouts */
+      if (post.images.length > 0) {
+        for (let i = post.images.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [post.images[i], post.images[j]] = [post.images[j], post.images[i]];
+        }
       }
     }
 
@@ -270,8 +281,15 @@ export class ZTTeamImageProcessor implements OnModuleInit {
     }
     
     /** Padding missing images with placeholders if the template uses them */
-    while (localPaths.length < 5) {
-      localPaths.push('https://placehold.co/1080x1080/f1f5f9/9ca3af?text=No+Image');
+    if (localPaths.length > 0) {
+      while (localPaths.length < 5) {
+        const randomExisting = localPaths[Math.floor(Math.random() * localPaths.length)];
+        localPaths.push(randomExisting);
+      }
+    } else {
+      while (localPaths.length < 5) {
+        localPaths.push('https://placehold.co/1080x1080/f1f5f9/9ca3af?text=No+Image');
+      }
     }
     
     return localPaths;
@@ -318,10 +336,198 @@ export class ZTTeamImageProcessor implements OnModuleInit {
       finalHtml = finalHtml.replace(new RegExp(`\\{\\{image_${i + 1}\\}\\}`, 'g'), images[i]);
     }
 
-    const width = template.layout?.width || 1080;
-    const height = template.layout?.height || 1080;
+    /** RANDOMIZE INSET AND ARROW POSITIONS */
+    if (template.format === 'image') {
+      const insetRegex = /<div class="inset">[\s\S]*?<\/div>/;
+      const arrowRegex = /<svg class="arrow"[\s\S]*?<\/svg>/;
+      
+      const matchInset = finalHtml.match(insetRegex);
+      const matchArrow = finalHtml.match(arrowRegex);
+
+      if (matchInset && matchArrow) {
+        finalHtml = finalHtml.replace(insetRegex, '');
+        finalHtml = finalHtml.replace(arrowRegex, '');
+        
+        const positions = [
+          /** 1: Center */
+          { cluster: 'top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); transform-origin: center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          /** 2: Top-Center */
+          { cluster: 'top: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: top center;', arrow: 'bottom: 5px !important; right: -124px !important; transform: scaleX(-1) scaleY(-1) rotate(15deg) !important;' },
+          /** 3: Bottom-Center */
+          { cluster: 'bottom: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: bottom center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          /** 4: Left-Center */
+          { cluster: 'top: 50%; left: 20px; transform: translateY(-50%) scale(0.8); transform-origin: left center;', arrow: 'top: 5px !important; right: -124px !important; transform: scaleX(-1) rotate(-15deg) !important;' },
+          /** 5: Right-Center */
+          { cluster: 'top: 50%; right: 20px; transform: translateY(-50%) scale(0.8); transform-origin: right center;', arrow: 'bottom: 5px !important; left: -124px !important; transform: scaleY(-1) rotate(-15deg) !important;' },
+        ];
+        const randomPos = positions[Math.floor(Math.random() * positions.length)];
+        
+        finalHtml += `
+        <div class="random-cluster" style="position: absolute; width: 400px; height: 400px; z-index: 20; ${randomPos.cluster}">
+          ${matchInset[0]}
+          ${matchArrow[0]}
+        </div>
+        <style>
+          .random-cluster .inset { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; transform: none !important; margin: 0 !important; border-color: #ff0033 !important; }
+          .random-cluster .arrow { position: absolute !important; top: auto !important; bottom: auto !important; left: auto !important; right: auto !important; width: 200px !important; height: 200px !important; margin: 0 !important; ${randomPos.arrow} }
+        </style>
+        `;
+      }
+    }
+
+    const width = (template.layout as any)?.width || 1080;
+    const height = (template.layout as any)?.height || 1080;
     
     await this.puppeteerService.ztteam_renderOverlay(finalHtml, outputPath, width, height);
     return outputPath;
+  }
+
+  async ztteam_testRender(templateId: string, title: string, images: string[]): Promise<string> {
+    const template = await this.prisma.ztteam_templates.findUnique({ where: { id: templateId } });
+    if (!template) throw new Error('Template not found');
+
+    const fileName = `test_render_${Date.now()}.png`;
+    const outputPath = path.join(ztteam_getImagesPath(), fileName);
+
+    let finalHtml = template.html_content;
+
+    /** Pad images to 5 using existing images or placeholders */
+    if (images.length > 0) {
+      while (images.length < 5) {
+        const randomExisting = images[Math.floor(Math.random() * images.length)];
+        images.push(randomExisting);
+      }
+    } else {
+      while (images.length < 5) {
+        images.push('https://placehold.co/1080x1080/f1f5f9/9ca3af?text=No+Image');
+      }
+    }
+
+    finalHtml = finalHtml.replace(/\{\{title\}\}/g, () => (title || ''));
+    finalHtml = finalHtml.replace(/\{\{excerpt\}\}/g, () => (title || ''));
+    finalHtml = finalHtml.replace(/\{\{site_name\}\}/g, () => ('Test Page'));
+    finalHtml = finalHtml.replace(/\{\{logo_url\}\}/g, () => (''));
+
+    for (let i = 0; i < images.length; i++) {
+      finalHtml = finalHtml.replace(new RegExp(`\\{\\{image_${i + 1}\\}\\}`, 'g'), images[i]);
+    }
+
+    /** RANDOMIZE INSET AND ARROW POSITIONS */
+    if (template.format === 'image') {
+      const insetRegex = /<div class="inset">[\s\S]*?<\/div>/;
+      const arrowRegex = /<svg class="arrow"[\s\S]*?<\/svg>/;
+      
+      const matchInset = finalHtml.match(insetRegex);
+      const matchArrow = finalHtml.match(arrowRegex);
+
+      if (matchInset && matchArrow) {
+        finalHtml = finalHtml.replace(insetRegex, '');
+        finalHtml = finalHtml.replace(arrowRegex, '');
+        
+        const positions = [
+          { cluster: 'top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); transform-origin: center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          { cluster: 'top: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: top center;', arrow: 'bottom: 5px !important; right: -124px !important; transform: scaleX(-1) scaleY(-1) rotate(15deg) !important;' },
+          { cluster: 'bottom: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: bottom center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          { cluster: 'top: 50%; left: 20px; transform: translateY(-50%) scale(0.8); transform-origin: left center;', arrow: 'top: 5px !important; right: -124px !important; transform: scaleX(-1) rotate(-15deg) !important;' },
+          { cluster: 'top: 50%; right: 20px; transform: translateY(-50%) scale(0.8); transform-origin: right center;', arrow: 'bottom: 5px !important; left: -124px !important; transform: scaleY(-1) rotate(-15deg) !important;' },
+        ];
+        const randomPos = positions[Math.floor(Math.random() * positions.length)];
+        
+        finalHtml += `
+        <div class="random-cluster" style="position: absolute; width: 400px; height: 400px; z-index: 20; ${randomPos.cluster}">
+          ${matchInset[0]}
+          ${matchArrow[0]}
+        </div>
+        <style>
+          .random-cluster .inset { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; transform: none !important; margin: 0 !important; border-color: #ff0033 !important; }
+          .random-cluster .arrow { position: absolute !important; top: auto !important; bottom: auto !important; left: auto !important; right: auto !important; width: 200px !important; height: 200px !important; margin: 0 !important; ${randomPos.arrow} }
+        </style>
+        `;
+      }
+    }
+
+    const width = (template.layout as any)?.width || 1080;
+    const height = (template.layout as any)?.height || 1080;
+
+    await this.puppeteerService.ztteam_renderOverlay(finalHtml, outputPath, width, height);
+    return `/storage/images/${fileName}`;
+  }
+
+  async ztteam_testRenderQueueItem(imageId: string): Promise<string> {
+    const image = await this.prisma.ztteam_images.findUnique({ where: { id: imageId } });
+    if (!image) throw new Error('Queue item not found');
+
+    const page = await this.prisma.ztteam_pages.findUnique({ where: { id: image.page_id } });
+    if (!page) throw new Error('Page not found');
+
+    const { template, post } = await this.ztteam_step1_fetchData(image.page_id, image.wp_post_id, image.template_id);
+    
+    let imageUrls: string[] = post.images || [];
+
+    const fileName = `test_render_${Date.now()}.png`;
+    const outputPath = path.join(ztteam_getImagesPath(), fileName);
+
+    let finalHtml = template.html_content;
+
+    /** Pad images to 5 using existing images or placeholders */
+    if (imageUrls.length > 0) {
+      while (imageUrls.length < 5) {
+        const randomExisting = imageUrls[Math.floor(Math.random() * imageUrls.length)];
+        imageUrls.push(randomExisting);
+      }
+    } else {
+      while (imageUrls.length < 5) {
+        imageUrls.push('https://placehold.co/1080x1080/f1f5f9/9ca3af?text=No+Image');
+      }
+    }
+
+    finalHtml = finalHtml.replace(/\{\{title\}\}/g, () => (post.title || ''));
+    finalHtml = finalHtml.replace(/\{\{excerpt\}\}/g, () => (post.excerpt || ''));
+    finalHtml = finalHtml.replace(/\{\{site_name\}\}/g, () => (page.name || 'Test Page'));
+    finalHtml = finalHtml.replace(/\{\{logo_url\}\}/g, () => (page.avatar || ''));
+
+    for (let i = 0; i < imageUrls.length; i++) {
+      finalHtml = finalHtml.replace(new RegExp(`\\{\\{image_${i + 1}\\}\\}`, 'g'), imageUrls[i]);
+    }
+
+    /** RANDOMIZE INSET AND ARROW POSITIONS */
+    if (template.format === 'image') {
+      const insetRegex = /<div class="inset">[\s\S]*?<\/div>/;
+      const arrowRegex = /<svg class="arrow"[\s\S]*?<\/svg>/;
+      
+      const matchInset = finalHtml.match(insetRegex);
+      const matchArrow = finalHtml.match(arrowRegex);
+
+      if (matchInset && matchArrow) {
+        finalHtml = finalHtml.replace(insetRegex, '');
+        finalHtml = finalHtml.replace(arrowRegex, '');
+        
+        const positions = [
+          { cluster: 'top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); transform-origin: center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          { cluster: 'top: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: top center;', arrow: 'bottom: 5px !important; right: -124px !important; transform: scaleX(-1) scaleY(-1) rotate(15deg) !important;' },
+          { cluster: 'bottom: 20px; left: 50%; transform: translateX(-50%) scale(0.8); transform-origin: bottom center;', arrow: 'top: 5px !important; left: -124px !important; transform: rotate(15deg) !important;' },
+          { cluster: 'top: 50%; left: 20px; transform: translateY(-50%) scale(0.8); transform-origin: left center;', arrow: 'top: 5px !important; right: -124px !important; transform: scaleX(-1) rotate(-15deg) !important;' },
+          { cluster: 'top: 50%; right: 20px; transform: translateY(-50%) scale(0.8); transform-origin: right center;', arrow: 'bottom: 5px !important; left: -124px !important; transform: scaleY(-1) rotate(-15deg) !important;' },
+        ];
+        const randomPos = positions[Math.floor(Math.random() * positions.length)];
+        
+        finalHtml += `
+        <div class="random-cluster" style="position: absolute; width: 400px; height: 400px; z-index: 20; ${randomPos.cluster}">
+          ${matchInset[0]}
+          ${matchArrow[0]}
+        </div>
+        <style>
+          .random-cluster .inset { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; transform: none !important; margin: 0 !important; border-color: #ff0033 !important; }
+          .random-cluster .arrow { position: absolute !important; top: auto !important; bottom: auto !important; left: auto !important; right: auto !important; width: 200px !important; height: 200px !important; margin: 0 !important; ${randomPos.arrow} }
+        </style>
+        `;
+      }
+    }
+
+    const width = (template.layout as any)?.width || 1080;
+    const height = (template.layout as any)?.height || 1080;
+
+    await this.puppeteerService.ztteam_renderOverlay(finalHtml, outputPath, width, height);
+    return `/storage/images/${fileName}`;
   }
 }

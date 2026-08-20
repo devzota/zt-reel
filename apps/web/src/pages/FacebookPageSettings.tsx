@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useWordpressStore } from '../stores/wordpressStore';
 import { useUIStore } from '../stores/uiStore';
 import { useZTTeamFacebookStore } from '../stores/facebookStore';
-import ReelTemplateEditor, { TemplateMiniPreview } from '../components/ReelTemplateEditor';
+import ReelTemplateEditor, { TemplateMiniPreview, ztteam_buildTemplateHtml } from '../components/ReelTemplateEditor';
 
 export default function FacebookPageSettings() {
   const { id } = useParams<{ id: string }>();
@@ -13,7 +13,14 @@ export default function FacebookPageSettings() {
   const { sites, ztteam_fetchSites, ztteam_fetchCategories, ztteam_fetchTags } = useWordpressStore();
   const { pages, ztteam_fetchPagesFromDB } = useZTTeamFacebookStore();
 
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab] = useState(() => {
+    const hashMatch = window.location.hash.match(/tab=(\d+)/);
+    return hashMatch ? parseInt(hashMatch[1], 10) : 1;
+  });
+
+  useEffect(() => {
+    window.history.replaceState(null, '', `#tab=${activeTab}`);
+  }, [activeTab]);
   const [manualCreateFormat, setManualCreateFormat] = useState('video');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -206,6 +213,14 @@ export default function FacebookPageSettings() {
 
   const [isFetchingSample, setIsFetchingSample] = useState(false);
 
+  /** --- NEW TEST IMAGE URL STATES --- */
+  const [testImageUrl, setTestImageUrl] = useState('');
+  const [isTestingImageUrl, setIsTestingImageUrl] = useState(false);
+  const [testImageResult, setTestImageResult] = useState<{ title: string, images: string[] } | null>(null);
+  const [testRenderedImageUrl, setTestRenderedImageUrl] = useState<string | null>(null);
+  
+  /** --- PREVIEW TEMPLATE MODAL STATE --- */
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
   const ztteam_openTestPromptModal = async () => {
     setTestPromptResult(null);
     setTestPostContent('');
@@ -670,9 +685,107 @@ export default function FacebookPageSettings() {
                     </div>
                   </div>
 
-                  {/* IMAGE TEMPLATE SECTION REMOVED AS PER USER REQUEST */}
+                  {/* IMAGE TEMPLATES SECTION */}
+                  <div className="mt-8">
+                    <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-1">
+                      <span className="material-symbols-outlined text-pink-500">image</span>
+                      Giao diện Ảnh (Dành cho Auto Image)
+                    </h4>
+                    <p className="text-gray-500 text-sm mb-4">Chọn giao diện Ảnh ghép kịch tính mặc định cho Fanpage này.</p>
+                    
+                    {/* TEST IMAGE TEMPLATE FEATURE */}
+                    <div className="mb-6 bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/30">
+                      <h5 className="font-bold text-sm mb-2 text-slate-800">Kiểm tra Giao diện Ảnh với Link thực tế</h5>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          className="flex-1 px-4 py-2 bg-white border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none rounded-full text-sm" 
+                          placeholder="Nhập link bài viết (VD: https://vnexpress.net/...)"
+                          value={testImageUrl}
+                          onChange={e => setTestImageUrl(e.target.value)}
+                        />
+                        <button 
+                          className="px-6 py-2 bg-primary text-white rounded-full text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
+                          disabled={isTestingImageUrl || !testImageUrl}
+                          onClick={async () => {
+                            try {
+                              setIsTestingImageUrl(true);
+                              const res = await api.post('crawler/test-scrape', { url: testImageUrl });
+                              if(res.data) {
+                                 setTestImageResult(res.data);
+                                 ztteam_showToast('Đã lấy dữ liệu thành công! Bản Xem trước của giao diện ĐANG CHỌN đã được cập nhật.', 'success');
+                              }
+                            } catch(e) {
+                              ztteam_showToast('Lỗi khi bóc tách link này', 'error');
+                            } finally {
+                              setIsTestingImageUrl(false);
+                            }
+                          }}
+                        >
+                          {isTestingImageUrl ? <span className="material-symbols-outlined animate-spin text-[18px]">sync</span> : <span className="material-symbols-outlined text-[18px]">travel_explore</span>}
+                          {isTestingImageUrl ? 'Đang bóc tách...' : 'Test Ngay'}
+                        </button>
+                        {testImageResult && (
+                          <button
+                            className="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-full text-sm font-bold transition-colors"
+                            onClick={() => { setTestImageResult(null); setTestImageUrl(''); }}
+                          >
+                            Xóa
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {templates.filter(t => t.format === 'image').map(t => {
+                        const isSelected = defaultImageTemplateId === t.id;
+                        const handleSelect = () => setDefaultImageTemplateId(t.id);
+                        
+                        /** Pass test data to the selected template */
+                        const templateDataForPreview = isSelected && testImageResult 
+                          ? { ...t, test_images: testImageResult.images, test_title: testImageResult.title } 
+                          : t;
 
+                        return (
+                        <div
+                          key={t.id}
+                          onClick={handleSelect}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex gap-4 items-start ${isSelected ? 'border-primary bg-blue-50/30 shadow-md shadow-blue-500/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'}`}
+                        >
+                          <TemplateMiniPreview templateData={templateDataForPreview} />
+                          <div className="flex-1 min-w-0 flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-1">
+                              <h5 className="font-bold text-gray-900 truncate">{t.name}</h5>
+                              {isSelected && <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0 ml-2">check_circle</span>}
+                            </div>
+                            <div className="flex gap-2 flex-wrap mb-2 mt-1">
+                              {t.is_default && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-semibold border border-amber-200">MẶC ĐỊNH</span>}
+                              {isSelected && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">ĐANG CHỌN</span>}
+                            </div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t.content_type}</p>
+
+                            <div className="flex gap-2 mt-auto" onClick={e => e.stopPropagation()}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewTemplate(templateDataForPreview);
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                  Xem trước lớn
+                                </button>
+                            </div>
+                          </div>
+                        </div>
+                      )})}
+                      {templates.filter(t => t.format === 'image').length === 0 && (
+                        <div className="col-span-full p-4 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">
+                          Chưa có giao diện Ảnh nào trong hệ thống.
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </>
               )}
             </div>
@@ -1423,6 +1536,23 @@ export default function FacebookPageSettings() {
                             )}
                             <button
                               onClick={async () => {
+                                try {
+                                  ztteam_showToast('Đang tạo ảnh test...', 'info');
+                                  const res = await api.post(`image/${img.id}/test-render-queue`);
+                                  if (res.data.imageUrl) {
+                                    window.open(res.data.imageUrl, '_blank');
+                                  }
+                                } catch (error: any) {
+                                  ztteam_showToast(error.response?.data?.message || 'Lỗi tạo ảnh test', 'error');
+                                }
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-full text-[11px] font-bold transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">science</span>
+                              Render Thật
+                            </button>
+                            <button
+                              onClick={async () => {
                                 const confirmed = await ztteam_showConfirm('Xác nhận xóa', 'Xóa mục này? Hành động không thể hoàn tác.');
                                 if (!confirmed) return;
                                 try {
@@ -1636,6 +1766,97 @@ export default function FacebookPageSettings() {
                 )}
                 Chạy Test
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW TEMPLATE MODAL */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="font-bold text-lg text-slate-800">Xem trước Giao diện</h3>
+                <p className="text-sm text-slate-500">{previewTemplate.name}</p>
+              </div>
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto bg-slate-100 flex items-center justify-center min-h-[500px]">
+              {testRenderedImageUrl ? (
+                <img 
+                  src={testRenderedImageUrl} 
+                  alt="Rendered Test"
+                  className="shadow-2xl rounded-lg"
+                  style={{
+                    width: previewTemplate.format === 'video' ? '405px' : '540px',
+                    height: previewTemplate.format === 'video' ? '720px' : '540px',
+                    objectFit: 'contain'
+                  }}
+                />
+              ) : (
+                <div 
+                  className="shadow-2xl rounded-lg overflow-hidden bg-white"
+                  style={{
+                    width: previewTemplate.format === 'video' ? '405px' : '540px',
+                    height: previewTemplate.format === 'video' ? '720px' : '540px'
+                  }}
+                >
+                  <div 
+                    className="stage"
+                    style={{
+                      width: '1080px',
+                      height: previewTemplate.format === 'video' ? '1920px' : '1080px',
+                      transform: previewTemplate.format === 'video' ? 'scale(0.375)' : 'scale(0.5)',
+                      transformOrigin: 'top left',
+                      pointerEvents: 'none',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: ztteam_buildTemplateHtml(previewTemplate) }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+              <p className="text-xs text-slate-400">
+                {testRenderedImageUrl ? 'Ảnh Render từ máy chủ.' : 'Lưu ý: Ảnh xem trước được thu nhỏ 50%.'}
+              </p>
+              <div className="flex gap-2">
+                {!testRenderedImageUrl && previewTemplate.format === 'image' && (
+                  <button
+                    className="px-4 py-2 rounded-full font-bold text-sm bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center gap-1"
+                    onClick={async () => {
+                      try {
+                        const res = await api.post('image/test-render', {
+                          templateId: previewTemplate.id,
+                          title: testImageResult?.title || 'Tiêu đề Test',
+                          images: testImageResult?.images || []
+                        });
+                        if (res.data?.url) {
+                          setTestRenderedImageUrl(res.data.url);
+                        }
+                      } catch (e) {
+                        ztteam_showToast('Lỗi render', 'error');
+                      }
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                    Render Thật
+                  </button>
+                )}
+                <button
+                  onClick={() => { setPreviewTemplate(null); setTestRenderedImageUrl(null); }}
+                  className="px-6 py-2 rounded-full font-bold text-sm bg-primary text-white hover:bg-blue-600 transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>

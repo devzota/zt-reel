@@ -6,6 +6,7 @@ import { parseHTML } from "linkedom";
 export interface ZTTeamFetchResult {
   title: string;
   image: string | null;
+  images?: string[];
   content: string;
   contentHtml: string;
   excerpt: string;
@@ -122,9 +123,35 @@ export class ZTTeamFetcherService {
       url,
     );
 
+    let images: string[] = [];
+    
+    const content$ = cheerio.load(contentHtml);
+    content$('img').each((_, el) => {
+      const src = content$(el).attr('src') || content$(el).attr('data-src');
+      if (src && src.startsWith('http')) {
+        images.push(src);
+      }
+    });
+
+    // Remove featured image (og:image) if it accidentally got captured in the body
+    // WordPress often serves different sizes of the same image (e.g. img-150x150.jpg vs img.jpg)
+    // We strip the size suffix and query strings to ensure accurate matching.
+    if (image) {
+      const getBaseImg = (u: string) => {
+        try {
+          const urlObj = new URL(u);
+          return urlObj.origin + urlObj.pathname.replace(/-\d+x\d+(?=\.[a-zA-Z0-9]+$)/, '');
+        } catch(e) { return u; }
+      };
+      
+      const baseOg = getBaseImg(image);
+      images = images.filter(img => getBaseImg(img) !== baseOg);
+    }
+
     return {
       title,
       image,
+      images: [...new Set(images)], // Unique images
       content,
       contentHtml,
       excerpt,

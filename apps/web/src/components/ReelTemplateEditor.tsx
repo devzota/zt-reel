@@ -59,11 +59,25 @@ export function ztteam_buildTemplateHtml(data: any): string {
 
   html = html.replace(/{{#each hook}}<span class="line{{#if @first}} accent{{\/if}}">{{this}}{{#unless @last}}&#32;{{\/unless}}<\/span>{{\/each}}/g, '<span class="line accent">Tin nóng hổi</span> <span class="line">vừa thổi vừa xem</span>');
   html = html.replace(/{{#each hook}}<span>{{this}} <\/span>{{\/each}}/g, '<span>Tin nóng hổi</span> <span>vừa thổi vừa xem</span>');
+
+  /** Image Template Fallbacks or External Data */
+  const img1 = data.test_images?.[0] || 'https://picsum.photos/seed/1/1080/1080';
+  const img2 = data.test_images?.[1] || 'https://picsum.photos/seed/2/1080/1080';
+  const img3 = data.test_images?.[2] || 'https://picsum.photos/seed/3/1080/1080';
+  const img4 = data.test_images?.[3] || 'https://picsum.photos/seed/4/1080/1080';
+  const img5 = data.test_images?.[4] || 'https://picsum.photos/seed/5/1080/1080';
+
+  html = html.replace(/{{image_1}}/g, img1);
+  html = html.replace(/{{image_2}}/g, img2);
+  html = html.replace(/{{image_3}}/g, img3);
+  html = html.replace(/{{image_4}}/g, img4);
+  html = html.replace(/{{image_5}}/g, img5);
+
   /** Handlebars syntax fallback for Breaking News Modern */
   html = html.replace(/{{#each hook}}<span class="line">{{this}}<\/span><br\/>{{\/each}}/g, '<span class="line">Tin nóng hổi</span><br/><span class="line">vừa thổi vừa xem</span>');
 
   /** Replace news variables for preview */
-  html = html.replace(/{{title}}/g, 'Tiêu đề bài viết nổi bật, thu hút sự chú ý của người xem ngay lập tức');
+  html = html.replace(/{{title}}/g, data.test_title || 'Tiêu đề bài viết nổi bật, thu hút sự chú ý của người xem ngay lập tức');
   html = html.replace(/{{excerpt}}/g, 'Đoạn mô tả ngắn gọn về nội dung bài viết, giúp người dùng nắm bắt thông tin cơ bản trước khi click vào xem chi tiết.');
   html = html.replace(/{{site_name}}/g, 'Kênh Tin Tức 24h');
 
@@ -122,6 +136,12 @@ export function ztteam_buildTemplateHtml(data: any): string {
  */
 export function TemplateMiniPreview({ templateData }: { templateData: any }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isImage = templateData.format === 'image';
+  const stageWidth = 1080;
+  const stageHeight = isImage ? 1080 : 1920;
+  const containerWidth = 108;
+  const containerHeight = isImage ? 108 : 192;
+
   const html = useMemo(() => ztteam_buildTemplateHtml(templateData), [
     templateData.html_content, templateData.video_y, templateData.video_radius,
     templateData.layout
@@ -133,16 +153,16 @@ export function TemplateMiniPreview({ templateData }: { templateData: any }) {
       if (!shadow) {
         shadow = ref.current.attachShadow({ mode: 'open' });
       }
-      shadow.innerHTML = `<div class="stage" style="width: 1080px; height: 1920px; position: relative;">${html}</div>`;
+      shadow.innerHTML = `<div class="stage" style="width: ${stageWidth}px; height: ${stageHeight}px; position: relative; overflow: hidden;">${html}</div>`;
     }
-  }, [html]);
+  }, [html, stageWidth, stageHeight]);
 
   return (
-    <div className="relative rounded-lg overflow-hidden bg-gray-800" style={{ width: '108px', height: '192px' }}>
+    <div className="relative rounded-lg overflow-hidden bg-gray-800" style={{ width: `${containerWidth}px`, height: `${containerHeight}px` }}>
       <div
         ref={ref}
         className="absolute top-0 left-0 template-preview-wrapper"
-        style={{ width: '1080px', height: '1920px', transform: 'scale(0.1)', transformOrigin: 'top left', pointerEvents: 'none' }}
+        style={{ width: `${stageWidth}px`, height: `${stageHeight}px`, transform: 'scale(0.1)', transformOrigin: 'top left', pointerEvents: 'none' }}
       />
     </div>
   );

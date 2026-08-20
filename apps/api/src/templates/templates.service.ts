@@ -28,7 +28,7 @@ export class ZTTeamTemplatesService implements OnModuleInit {
       const templates = seedTemplates();
       for (const t of templates) {
         const existing = await this.prisma.ztteam_templates.findFirst({
-          where: { name: t.name, format: t.format, fb_page_id: null }
+          where: { content_type: t.content_type, format: t.format, fb_page_id: null }
         });
         if (!existing) {
           console.log(`Seeding missing template: ${t.name}`);
