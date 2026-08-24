@@ -69,51 +69,6 @@ const teaserHtml = `
 </div>
 `;
 
-const basicHtml = `
-{{{fontFace}}}
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 1080px; height: 1920px; background: #111; }
-  body { font-family: 'Montserrat', 'Plus Jakarta Sans', 'Inter', 'DejaVu Sans', 'Liberation Sans', sans-serif; }
-  :root { --acc: {{#if colors.primary}}{{colors.primary}}{{else}}#1877f2{{/if}}; }
-  .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
-  .bg-img { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: -1; }
-  .video-frame {
-    position: absolute; left: {{video_area.x}}px; top: {{video_area.y}}px;
-    width: {{video_area.w}}px; height: {{video_area.h}}px;
-    border-radius: {{video_area.radius}}px; pointer-events: none;
-    border: 4px solid var(--acc);
-  }
-  .header {
-    position: absolute; left: {{layout.header.x}}px; top: {{layout.header.y}}px;
-    display: flex; align-items: center; gap: 20px; background: rgba(0,0,0,0.5); padding: 10px 30px; border-radius: 50px;
-  }
-  .header .pname { color: white; font-size: 40px; font-weight: bold; }
-  .hook {
-    position: absolute; left: {{layout.hook.x}}px; top: {{layout.hook.y}}px; width: 900px;
-    color: white; font-size: 60px; font-weight: 900; text-align: center; text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-  }
-  .verdict {
-    position: absolute; left: {{layout.verdict.x}}px; top: {{layout.verdict.y}}px; width: 900px;
-    background: var(--acc); color: white; font-size: 40px; font-weight: bold; padding: 30px; border-radius: 20px; text-align: center;
-  }
-</style>
-<div class="stage">
-  <img class="bg-img" src="{{layout.bg_image_url}}" style="{{#unless layout.bg_image_url}}display:none;{{/unless}}" />
-  <div class="video-frame"></div>
-  <div class="header" data-drag-id="header">
-    <span class="pname">{{fanpageName}}</span>
-  </div>
-  <div class="hook" data-drag-id="hook">
-    {{#each hook}}<span>{{this}} </span>{{/each}}
-  </div>
-  <div class="verdict" data-drag-id="verdict">
-    MẪU NỘI DUNG DEMO
-  </div>
-</div>
-`;
-
 export const seedTemplates = () => {
   const templates: any[] = [];
   
