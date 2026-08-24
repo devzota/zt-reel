@@ -1,17 +1,67 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useZTTeamFacebookStore } from '../stores/facebookStore';
+import { useUIStore } from '../stores/uiStore';
+import api from '../services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 export default function FanpageReport() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { pages, ztteam_getPageReport, ztteam_getTopPosts, ztteam_checkLoginStatus } = useZTTeamFacebookStore();
+  const { ztteam_showToast } = useUIStore();
   
   const [insights, setInsights] = useState<any[]>([]);
   const [topPosts, setTopPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [daysRange, setDaysRange] = useState<string>('7');
+  const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [modalPostId, setModalPostId] = useState<string | null>(null);
+  const [manualLinkInput, setManualLinkInput] = useState('');
+
+  const executeAutoComment = async (postId: string, manualLink: string = '') => {
+    if (!page) return;
+    try {
+      setCommentingPostId(postId);
+      const res = await api.post(
+        `/facebook/pages/${page.fb_page_id || page.id}/posts/${postId}/auto-comment`,
+        { manualLink }
+      );
+      ztteam_showToast(res.data.message || 'Đã thả comment thành công!', 'success');
+    } catch (error: any) {
+      ztteam_showToast(error.response?.data?.message || 'Có lỗi xảy ra khi thả comment', 'error');
+    } finally {
+      setCommentingPostId(null);
+    }
+  };
+
+  const handleAutoComment = (postId: string, hasLink: boolean) => {
+    if (!hasLink) {
+      setModalPostId(postId);
+      setManualLinkInput('');
+      setShowLinkModal(true);
+      return;
+    }
+    executeAutoComment(postId);
+  };
+
+  const confirmManualLink = () => {
+    if (!manualLinkInput.trim()) {
+      ztteam_showToast('Bạn chưa nhập link!', 'error');
+      return;
+    }
+    setShowLinkModal(false);
+    if (modalPostId) {
+      executeAutoComment(modalPostId, manualLinkInput.trim());
+    }
+  };
+
+  const cancelManualLink = () => {
+    setShowLinkModal(false);
+    setModalPostId(null);
+    setManualLinkInput('');
+  };
 
   useEffect(() => {
     if (pages.length === 0) {
@@ -349,12 +399,13 @@ export default function FanpageReport() {
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Hiển thị</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng tương tác</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Chi tiết tương tác</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {latestPosts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={7} className="px-6 py-12 text-center">
                         <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">sentiment_dissatisfied</span>
                         <p className="text-gray-500 font-medium">Chưa có bài viết nào.</p>
                       </td>
@@ -420,6 +471,21 @@ export default function FanpageReport() {
                             </span>
                           </div>
                         </td>
+                        <td className="px-6 py-4 align-top pt-4 text-right">
+                          <button
+                            onClick={() => handleAutoComment(post.id, !!post.wp_post_url)}
+                            disabled={commentingPostId === post.id}
+                            className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={post.wp_post_url ? `Bốc link: ${post.wp_post_url}` : "KHÔNG THỂ LIÊN KẾT TỰ ĐỘNG! Bấm vào đây để tự dán Link"}
+                          >
+                            {commentingPostId === post.id ? (
+                              <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[14px]">add_comment</span>
+                            )}
+                            Thả Link
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -453,12 +519,13 @@ export default function FanpageReport() {
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Hiển thị</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng tương tác</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Chi tiết tương tác</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {topEngagedPosts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={7} className="px-6 py-12 text-center">
                         <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">sentiment_dissatisfied</span>
                         <p className="text-gray-500 font-medium">Chưa có dữ liệu nội dung.</p>
                       </td>
@@ -524,6 +591,21 @@ export default function FanpageReport() {
                             </span>
                           </div>
                         </td>
+                        <td className="px-6 py-4 align-top pt-4 text-right">
+                          <button
+                            onClick={() => handleAutoComment(post.id, !!post.wp_post_url)}
+                            disabled={commentingPostId === post.id}
+                            className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={post.wp_post_url ? `Bốc link: ${post.wp_post_url}` : "KHÔNG THỂ LIÊN KẾT TỰ ĐỘNG! Bấm vào đây để tự dán Link"}
+                          >
+                            {commentingPostId === post.id ? (
+                              <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[14px]">add_comment</span>
+                            )}
+                            Thả Link
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -532,6 +614,45 @@ export default function FanpageReport() {
             </div>
           </div>
         </>
+      )}
+      {/** Manual Link Modal */}
+      {showLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Nhập Link Thủ Công</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Video này được đăng lúc máy chủ chưa lưu kịp hoặc đăng thủ công nên không thể tự động bốc link. Vui lòng dán Link từ trang Quản lý Reel vào đây:
+              </p>
+              <input
+                type="text"
+                value={manualLinkInput}
+                onChange={(e) => setManualLinkInput(e.target.value)}
+                placeholder="https://..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmManualLink();
+                  if (e.key === 'Escape') cancelManualLink();
+                }}
+              />
+            </div>
+            <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+              <button
+                onClick={cancelManualLink}
+                className="px-5 py-2 rounded-full font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmManualLink}
+                className="px-5 py-2 rounded-full font-semibold text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                Thả Comment
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

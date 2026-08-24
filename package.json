@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "scripts": {
-    "start:api": "npm run start:dev --workspace=apps/api",
+    "start:api": "npm run start --workspace=apps/api",
     "start:web": "npm run dev --workspace=apps/web"
   },
   "devDependencies": {

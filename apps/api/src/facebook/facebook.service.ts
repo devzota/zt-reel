@@ -128,8 +128,8 @@ export class ZTTeamFacebookService {
           token_status: 'active',
         };
         
-        if (page.picture?.data?.url) {
-          pageData.avatar = page.picture.data.url;
+        if (page.id) {
+          pageData.avatar = `https://graph.facebook.com/${page.id}/picture?type=large`;
         }
 
         const newCount = page.followers_count ?? page.fan_count;
@@ -715,6 +715,33 @@ export class ZTTeamFacebookService {
       /** Sắp xếp theo tương tác giảm dần */
       posts.sort((a, b) => b.engagements - a.engagements);
 
+      /** Lấy URL bài gốc để hiển thị trên frontend */
+      try {
+        const postIdsToSearch = posts.flatMap(p => p.id.includes('_') ? [p.id, p.id.split('_')[1]] : [p.id]);
+        
+        const [reels, images] = await Promise.all([
+          this.prisma.ztteam_reels.findMany({
+            where: { fb_post_id: { in: postIdsToSearch }, wp_post_url: { not: null } },
+            select: { fb_post_id: true, wp_post_url: true }
+          }),
+          this.prisma.ztteam_images.findMany({
+            where: { fb_post_id: { in: postIdsToSearch }, wp_post_url: { not: null } },
+            select: { fb_post_id: true, wp_post_url: true }
+          })
+        ]);
+
+        const urlMap = new Map<string, string>();
+        for (const r of reels) if (r.fb_post_id && r.wp_post_url) urlMap.set(r.fb_post_id, r.wp_post_url);
+        for (const i of images) if (i.fb_post_id && i.wp_post_url) urlMap.set(i.fb_post_id, i.wp_post_url);
+
+        for (const p of posts) {
+          const shortId = p.id.includes('_') ? p.id.split('_')[1] : p.id;
+          p.wp_post_url = urlMap.get(p.id) || urlMap.get(shortId) || null;
+        }
+      } catch (e: any) {
+        this.logger.warn(`Failed to attach wp_post_url: ${e.message}`);
+      }
+
       return posts;
     } catch (error: any) {
       this.logger.warn(`Failed to fetch top posts for page ${pageId}:`, error.response?.data || error.message);
@@ -1077,6 +1104,12 @@ export class ZTTeamFacebookService {
     const sentAccountAlerts = new Set<string>();
 
     for (const acc of accounts) {
+      const activePages = acc.pages.filter(p => p.is_active !== false);
+      if (activePages.length === 0) {
+        /** Skip checking account token if all pages are manually disabled */
+        continue;
+      }
+
       let isAccValid = true;
       let accErrorMsg = '';
 
@@ -1114,7 +1147,7 @@ export class ZTTeamFacebookService {
         if (!sentAccountAlerts.has(alertKey)) {
           sentAccountAlerts.add(alertKey);
 
-          const affectedPages = acc.pages.map(p => p.name).join(', ');
+          const affectedPages = activePages.map(p => p.name).join(', ');
           const warnMsg = `🚨 *[CẢNH BÁO NICK FACEBOOK BỊ LỖI TOKEN]*\n\n👤 *Nick quản lý*: ${acc.name}\n🚩 *Các Fanpage bị ảnh hưởng*: ${affectedPages}\n❌ *Chi tiết lỗi*: ${accErrorMsg}\n\n⚠️ *Hành động*: Vui lòng kết nối lại tài khoản Facebook trên giao diện Web để lấy Token mới!`;
           
           await this.telegramService.ztteam_sendMessage(warnMsg);
@@ -1224,5 +1257,57 @@ export class ZTTeamFacebookService {
       success: true,
       message: `Đã xóa tài khoản Facebook ${acc.name} thành công!`
     };
+  }
+
+  async ztteam_autoCommentLink(pageId: string, fbPostId: string, manualLink?: string) {
+    const page = await this.prisma.ztteam_pages.findFirst({
+      where: { fb_page_id: pageId }
+    });
+    if (!page) throw new BadRequestException('Không tìm thấy Fanpage trong hệ thống');
+
+    let trackingLink = '';
+    
+    /** Handle PAGEID_POSTID format from Facebook */
+    const shortId = fbPostId.includes('_') ? fbPostId.split('_')[1] : fbPostId;
+
+    if (manualLink) {
+      trackingLink = manualLink;
+      const utmCampaign = 'ztteam_auto_manual';
+      trackingLink = `${trackingLink}${trackingLink.includes('?') ? '&' : '?'}utm_source=facebook&utm_medium=manual&utm_campaign=${utmCampaign}`;
+    } else {
+      const reel = await this.prisma.ztteam_reels.findFirst({
+        where: { OR: [{ fb_post_id: fbPostId }, { fb_post_id: shortId }] }
+      });
+      const image = await this.prisma.ztteam_images.findFirst({
+        where: { OR: [{ fb_post_id: fbPostId }, { fb_post_id: shortId }] }
+      });
+
+      const record = reel || image;
+      if (!record) throw new BadRequestException('Bài viết này không được tạo từ hệ thống (Không tìm thấy trên Database)');
+      if (!record.wp_post_url) throw new BadRequestException('Bài viết này không có link nguồn (wp_post_url)');
+
+      trackingLink = record.wp_post_url;
+      const utmMedium = reel ? 'reel' : 'image';
+      const utmCampaign = 'ztteam_auto';
+      trackingLink = `${trackingLink}${trackingLink.includes('?') ? '&' : '?'}utm_source=facebook&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}`;
+    }
+
+    const prefixes = ['👉 See details here:', '🔗 Original article link:', '👇 Full article link:'];
+    const prefixIndex = Math.floor(Math.random() * prefixes.length);
+    const message = `${prefixes[prefixIndex]}\n${trackingLink}`;
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`https://graph.facebook.com/${this.API_VERSION}/${fbPostId}/comments`, null, {
+          params: {
+            message: message,
+            access_token: page.page_token_encrypted
+          }
+        })
+      );
+      return { success: true, message: 'Đã tự động bốc link và thả comment thành công!', id: response.data.id };
+    } catch (error: any) {
+      throw new BadRequestException(error.response?.data?.error?.message || error.message || 'Lỗi khi comment qua API Facebook');
+    }
   }
 }

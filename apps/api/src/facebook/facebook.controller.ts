@@ -76,4 +76,14 @@ export class ZTTeamFacebookController {
   ztteam_checkSingleAccountHealth(@Param('accountId') accountId: string, @Request() req: any) {
     return this.facebookService.ztteam_checkAccountHealth(req.user.sub, accountId);
   }
+
+  @Post('pages/:pageId/posts/:postId/auto-comment')
+  async autoComment(
+    @Param('pageId') pageId: string,
+    @Param('postId') postId: string,
+    @Request() req: any,
+    @Body('manualLink') manualLink?: string
+  ) {
+    return this.facebookService.ztteam_autoCommentLink(pageId, postId, manualLink);
+  }
 }
