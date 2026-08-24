@@ -40,7 +40,7 @@ export class ZTTeamImageRenderCron implements OnApplicationBootstrap {
     try {
       /** Find all pages that have auto create enabled and format is image */
       const pages = await this.prisma.ztteam_pages.findMany({
-        where: { auto_create_enabled: true, post_format: { in: ['image', 'mixed'] } },
+        where: { auto_create_enabled: true, is_active: true, post_format: { in: ['image', 'mixed'] } },
         include: { sources: true },
         orderBy: { last_auto_scan_at: 'asc' },
         take: 50,

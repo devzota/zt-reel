@@ -40,7 +40,7 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
     try {
       /** Find all pages that have auto create enabled and format is reel */
       const pages = await this.prisma.ztteam_pages.findMany({
-        where: { auto_create_enabled: true, post_format: { in: ['reel', 'mixed'] } },
+        where: { auto_create_enabled: true, is_active: true, post_format: { in: ['reel', 'mixed'] } },
         include: { sources: true },
         orderBy: { last_auto_scan_at: 'asc' },
         take: 50,

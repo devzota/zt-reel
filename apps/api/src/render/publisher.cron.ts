@@ -76,8 +76,8 @@ export class ZTTeamPublisherCron {
       for (const [pageId, page] of pagesMap.entries()) {
         const { auto_publish_enabled, schedule_mode, schedule_fixed_times, schedule_immediate_gap_minutes, post_format } = page;
 
-        /** Nếu Page đang tắt tự động đăng bài thì bỏ qua */
-        if (auto_publish_enabled === false) {
+        /** Nếu Page đang tắt tự động đăng bài hoặc bị vô hiệu hóa thì bỏ qua */
+        if (auto_publish_enabled === false || page.is_active === false) {
           continue;
         }
 

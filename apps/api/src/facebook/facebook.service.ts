@@ -1140,6 +1140,8 @@ export class ZTTeamFacebookService {
       /** 2. Check each Page Token */
       const pageResults: any[] = [];
       for (const p of acc.pages) {
+        if (p.is_active === false) continue;
+
         let isPageValid = true;
         let pageErrorMsg = '';
 
