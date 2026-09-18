@@ -91,200 +91,7 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost, handleTogg
     );
     if (confirm) {
       try {
-            <span className="material-symbols-outlined text-[18px]">delete</span>
-          </button>
-        </div>
-      </td>
-    </tr>
-
-  return (
-    <React.Fragment>
-      <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <input 
-            type="checkbox" 
-            checked={!!isSelected} 
-            onChange={() => onToggleSelect && onToggleSelect(page.id)}
-            className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
-          />
-          {page.avatar ? (
-            <img 
-              src={page.avatar} 
-              alt={page.name} 
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.dataset.fallback) {
-                  target.dataset.fallback = 'true';
-                  target.src = `https://graph.facebook.com/${page.fb_page_id || page.id}/picture?type=large`;
-                }
-              }}
-              className="w-11 h-11 rounded-2xl object-cover bg-slate-100 border border-slate-200/60 shadow-sm" 
-            />
-          ) : (
-            <div className="w-11 h-11 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined">pages</span>
-            </div>
-          )}
-          <div>
-            <p className="font-bold text-gray-900">{page.name}</p>
-            <div className="flex flex-col gap-1 mt-0.5">
-              <span className="text-[12px] text-gray-500">ID: {page.id}</span>
-              
-              {/* Mini Status Indicators under Page Name */}
-              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                {page.autoPublishEnabled !== false ? (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] leading-none">play_circle</span>
-                    ĐĂNG: BẬT
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] leading-none">pause_circle</span>
-                    ĐĂNG: TẮT
-                  </span>
-                )}
-
-                {page.autoCreateEnabled ? (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] leading-none">videocam</span>
-                    TẠO: BẬT
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200/60 rounded-full text-[10px] font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] leading-none">videocam_off</span>
-                    TẠO: TẮT
-                  </span>
-                )}
-
-                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px] leading-none">palette</span>
-                  {page.defaultReelTemplateName || 'Template Mặc định'}
-                </span>
-
-                {page.tags && page.tags.length > 0 && page.tags.map((t: string) => (
-                  <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-blue-700 font-bold">
-            {initials}
-          </div>
-          <span className="text-sm font-medium text-gray-700">{page.ownerName || 'Admin'}</span>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-gray-700">{page.followersCount?.toLocaleString() || 0}</span>
-          <span className="text-[11px] font-bold text-emerald-600">+{newFollowers} mới</span>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col gap-1 w-32 shrink-0">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-gray-500">Lượt xem:</span>
-              <span className="font-bold text-gray-900">{totalViews28d.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-gray-500">Tiếp cận:</span>
-              <span className="font-bold text-gray-900">{totalReach28d.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-gray-500">Tương tác:</span>
-              <span className="font-bold text-emerald-600">{totalEngagements28d.toLocaleString()}</span>
-            </div>
-          </div>
-          
-          <div className="w-24 h-10 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '6px 10px' }}
-                  labelStyle={{ color: '#64748b', fontWeight: '600', marginBottom: '4px' }}
-                  itemStyle={{ color: '#1877F2', fontWeight: 'bold', padding: 0 }}
-                  formatter={(value: any) => [`${value} lượt xem`, '']}
-                />
-                <Line type="monotone" dataKey="value" stroke="#1877F2" strokeWidth={2} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        {isExpired ? (
-          <div className="flex items-center gap-1.5 text-red-600 font-bold text-xs bg-red-50 px-2.5 py-1 rounded-full border border-red-200/60 w-fit">
-            <span className="material-symbols-outlined text-[14px] leading-none">error</span>
-            <span>Expired</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60 w-fit">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Connected</span>
-          </div>
-        )}
-      </td>
-      <td className="px-6 py-4 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <button 
-            onClick={() => handleTestPost(page.id)}
-            disabled={testingPageId === page.id || isExpired}
-            className="w-8 h-8 flex items-center justify-center text-primary hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50" 
-            title="Test đăng bài"
-          >
-            <span className={`material-symbols-outlined text-[18px] ${testingPageId === page.id ? 'animate-spin' : ''}`}>
-              {testingPageId === page.id ? 'sync' : 'send'}
-            </span>
-          </button>
-          <button 
-            onClick={() => navigate(`/facebook/pages/${page.id}/settings`)}
-            className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors" 
-            title="Cấu hình Fanpage"
-          >
-            <span className="material-symbols-outlined text-[18px]">settings</span>
-          </button>
-          <button 
-            onClick={() => navigate(`/facebook/pages/${page.id}/report`)}
-            className="w-8 h-8 flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded-full transition-colors" 
-            title="Thống kê"
-          >
-            <span className="material-symbols-outlined text-[18px]">query_stats</span>
-          </button>
-          <a 
-            href={`https://facebook.com/${page.fb_page_id || page.id}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-full transition-colors" 
-            title="Xem page"
-          >
-            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-          </a>
-          <button
-            onClick={handleToggleActiveClick}
-            className={`px-2.5 py-1 text-xs font-bold rounded-full transition-colors flex items-center gap-1 cursor-pointer ${
-              isCurrentlyActive
-                ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60'
-            }`}
-            title={isCurrentlyActive ? 'Tắt Fanpage (Chuyển vào Tab trang đã tắt)' : 'Bật lại Fanpage này'}
-          >
-            <span className="material-symbols-outlined text-[15px]">power_settings_new</span>
-            {isCurrentlyActive ? 'Tắt Page' : 'Bật lại'}
-          </button>
-          <button 
-            onClick={handleDeletePage}
-            className="w-8 h-8 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-full transition-colors ml-0.5" 
-            title="Xóa Fanpage"
-          >
-await ztteam_deletePage(page.id);
+        await ztteam_deletePage(page.id);
         ztteam_showToast(`Đã xóa Fanpage ${page.name} thành công`, 'success');
       } catch (error: any) {
         ztteam_showToast(error.message, 'error');
@@ -295,15 +102,7 @@ await ztteam_deletePage(page.id);
   return (
     <React.Fragment>
       <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-6 py-4 w-4">
-        <input 
-          type="checkbox" 
-          checked={!!isSelected} 
-          onChange={() => onToggleSelect && onToggleSelect(page.id)}
-          className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
-        />
-      </td>
-      <td className="px-2 py-4">
+      <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           {page.avatar ? (
             <img 
@@ -654,12 +453,6 @@ function FanpageMobileCard({ page, isExpired, testingPageId, handleTestPost, han
       {/* Top Bar: Avatar, Name, Owner, Status */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <input 
-            type="checkbox" 
-            checked={!!isSelected} 
-            onChange={() => onToggleSelect && onToggleSelect(page.id)}
-            className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
-          />
           {page.avatar ? (
             <img 
               src={page.avatar} 
@@ -833,7 +626,6 @@ export default function FacebookPages() {
   const [pageTab, setPageTab] = useState<'active' | 'deactivated'>('active');
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
-  const [selectedPages, setSelectedPages] = useState<string[]>([]);
   
   /** Lọc dữ liệu */
   const [filterOwner, setFilterOwner] = useState('');
@@ -910,28 +702,6 @@ export default function FacebookPages() {
       }
     } catch (e: any) {
       ztteam_showToast(e.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
-
-  const handleBulkToggleActive = async (isActive: boolean) => {
-    if (selectedPages.length === 0) return;
-    const confirm = await ztteam_showConfirm(
-      isActive ? 'Bật nhiều Fanpage' : 'Tắt nhiều Fanpage',
-      `Bạn có chắc chắn muốn ${isActive ? 'bật lại' : 'tắt'} ${selectedPages.length} Fanpage đã chọn?`
-    );
-    if (!confirm) return;
-
-    try {
-      ztteam_showToast(`Đang xử lý ${selectedPages.length} trang...`, 'info');
-      await Promise.all(
-        selectedPages.map(pageId => api.put(`/facebook/pages/${pageId}/toggle-active`, { isActive }))
-      );
-      ztteam_showToast(`Đã cập nhật trạng thái ${selectedPages.length} Fanpage thành công`, 'success');
-      setSelectedPages([]);
-      ztteam_fetchPages();
-    } catch (e: any) {
-      ztteam_showToast('Có lỗi xảy ra trong quá trình xử lý hàng loạt', 'error');
-      ztteam_fetchPages();
     }
   };
 
@@ -1065,49 +835,30 @@ export default function FacebookPages() {
         </div>
       </div>
 
-      {/* TABS SWITCHER & BULK ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setPageTab('active'); setSelectedPages([]); }}
-            className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
-              pageTab === 'active'
-                ? 'bg-primary text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">check_circle</span>
-            Fanpage Đang Hoạt Động ({pages.filter(p => p.isActive !== false).length})
-          </button>
-          <button
-            onClick={() => { setPageTab('deactivated'); setSelectedPages([]); }}
-            className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
-              pageTab === 'deactivated'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">power_off</span>
-            Fanpage Đã Tắt ({pages.filter(p => p.isActive === false).length})
-          </button>
-        </div>
-
-        {/* Bulk Actions */}
-        {selectedPages.length > 0 && (
-          <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 animate-in fade-in slide-in-from-right-4">
-            <span className="text-sm font-bold text-indigo-700">Đã chọn {selectedPages.length} trang</span>
-            <div className="w-px h-4 bg-indigo-200"></div>
-            <button onClick={() => handleBulkToggleActive(true)} className="text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer">
-              <span className="material-symbols-outlined text-[14px]">play_arrow</span> Bật
-            </button>
-            <button onClick={() => handleBulkToggleActive(false)} className="text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer">
-              <span className="material-symbols-outlined text-[14px]">pause</span> Tắt
-            </button>
-            <button onClick={() => setSelectedPages([])} className="text-xs font-bold text-slate-500 hover:bg-slate-200 px-2 py-1.5 rounded-lg transition-colors cursor-pointer ml-1">
-              Hủy
-            </button>
-          </div>
-        )}
+      {/* TABS SWITCHER */}
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setPageTab('active')}
+          className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            pageTab === 'active'
+              ? 'bg-primary text-white shadow-md'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          Fanpage Đang Hoạt Động ({pages.filter(p => p.isActive !== false).length})
+        </button>
+        <button
+          onClick={() => setPageTab('deactivated')}
+          className={`px-5 py-2.5 rounded-full font-extrabold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            pageTab === 'deactivated'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span className="material-symbols-outlined text-sm">power_off</span>
+          Fanpage Đã Tắt ({pages.filter(p => p.isActive === false).length})
+        </button>
       </div>
 
       {/* Main List Table */}
@@ -1173,12 +924,6 @@ export default function FacebookPages() {
                   testingPageId={testingPageId} 
                   handleTestPost={handleTestPost} 
                   handleToggleActive={handleTogglePageActive}
-                  isSelected={selectedPages.includes(page.id)}
-                  onToggleSelect={(id: string) => {
-                    setSelectedPages(prev => 
-                      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-                    );
-                  }}
                 />
               );
             })
@@ -1190,21 +935,7 @@ export default function FacebookPages() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50">
-                <th className="px-6 py-4 text-left w-4">
-                  <input 
-                    type="checkbox" 
-                    checked={currentTabPages.length > 0 && selectedPages.length === currentTabPages.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedPages(currentTabPages.map(p => p.id));
-                      } else {
-                        setSelectedPages([]);
-                      }
-                    }}
-                    className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
-                  />
-                </th>
-                <th className="px-2 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Fanpage</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Fanpage</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nick sở hữu</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Followers</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Hiệu suất (28 ngày)</th>
@@ -1233,12 +964,6 @@ export default function FacebookPages() {
                       testingPageId={testingPageId} 
                       handleTestPost={handleTestPost} 
                       handleToggleActive={handleTogglePageActive}
-                      isSelected={selectedPages.includes(page.id)}
-                      onToggleSelect={(id: string) => {
-                        setSelectedPages(prev => 
-                          prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-                        );
-                      }}
                     />
                   );
                 })
