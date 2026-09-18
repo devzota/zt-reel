@@ -91,13 +91,11 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost, handleTogg
     );
     if (confirm) {
       try {
-        await ztteam_deletePage(page.id);
-        ztteam_showToast(`Đã xóa Fanpage ${page.name} thành công`, 'success');
-      } catch (error: any) {
-        ztteam_showToast(error.message, 'error');
-      }
-    }
-  };
+            <span className="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>
 
   return (
     <React.Fragment>
