@@ -136,7 +136,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.8,
-            maxOutputTokens: Math.max(150, Math.round(maxWords * 2.5)),
+            maxOutputTokens: 1500,
           }
         });
 
@@ -166,7 +166,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
             { role: 'system', content: promptWithRules },
             { role: 'user', content: userContent },
           ],
-          max_tokens: Math.max(150, Math.round(maxWords * 2.5)),
+          max_tokens: 1500,
           temperature: 0.8,
         });
 
@@ -231,7 +231,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.8,
-            maxOutputTokens: 500,
+            maxOutputTokens: 1500,
           }
         });
 
@@ -259,7 +259,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
             { role: 'system', content: promptWithRules },
             { role: 'user', content: userContent },
           ],
-          max_tokens: 500,
+          max_tokens: 1500,
           temperature: 0.8,
         });
 
@@ -292,7 +292,7 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
     /** Clean text and split into words */
     const cleanedScript = script.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
     const words = cleanedScript.split(' ').filter(w => w.length > 0);
-    
+
     if (words.length === 0 || audioDuration <= 0) return [];
 
     const sentences: string[] = [];
@@ -343,15 +343,15 @@ YOU MUST RETURN EXACTLY ONE JSON OBJECT WITH THE FOLLOWING STRUCTURE:
     const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
     let currentTime = 0;
-    
+
     return sentences.map((text, i) => {
       const sentenceDuration = (weights[i] / totalWeight) * audioDuration;
-      
+
       const start = Math.round(currentTime * 100) / 100;
       const end = Math.round((currentTime + sentenceDuration) * 100) / 100;
-      
+
       currentTime = end;
-      
+
       return { start, end, text: text.trim() };
     });
   }
