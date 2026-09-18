@@ -102,7 +102,15 @@ function FanpageRow({ page, isExpired, testingPageId, handleTestPost, handleTogg
   return (
     <React.Fragment>
       <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-6 py-4">
+      <td className="px-6 py-4 w-4">
+        <input 
+          type="checkbox" 
+          checked={!!isSelected} 
+          onChange={() => onToggleSelect && onToggleSelect(page.id)}
+          className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
+        />
+      </td>
+      <td className="px-2 py-4">
         <div className="flex items-center gap-3">
           {page.avatar ? (
             <img 
