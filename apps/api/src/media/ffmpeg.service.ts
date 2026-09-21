@@ -174,13 +174,15 @@ export class ZTTeamFFmpegService {
     let inputs = '';
     let filterComplex = '';
 
+    const fontsDir = path.join(process.cwd(), 'assets').replace(/\\/g, '/').replace(/:/g, '\\:');
+
     if (options.bgImagePath && fs.existsSync(options.bgImagePath)) {
       inputs = `-loop 1 -t ${duration} -i "${options.bgImagePath}" -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
-      filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[1:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(Y,800),255,if(gt(Y,1280),0,255*pow((1280-Y)/480,2)))'[slide_faded];[bg][slide_faded]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
+      filterComplex = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];[1:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='255*(lt(Y,800)) + 255*(((1280-Y)/480)*((1280-Y)/480))*gte(Y,800)*lte(Y,1280)'[slide_faded];[bg][slide_faded]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir='${fontsDir}'[vout]`;
     } else {
       /** Dynamic blurred background from the slideshow itself. We add a dummy color input (0:v) to keep indices consistent. */
       inputs = `-f lavfi -i color=c=black:s=10x10 -stream_loop -1 -i "${slideshowPath}" -i "${overlayPath}" -i "${voicePath}"`;
-      filterComplex = `[1:v]scale=216:384:force_original_aspect_ratio=increase,crop=216:384,boxblur=10:10,scale=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir=assets[vout]`;
+      filterComplex = `[1:v]scale=216:384:force_original_aspect_ratio=increase,crop=216:384,boxblur=10:10,scale=1080:1920[bg];[bg][1:v]overlay=x=${videoX}:y=${videoY}[base];[base][2:v]overlay=0:0[withoverlay];[withoverlay]ass='${subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')}':fontsdir='${fontsDir}'[vout]`;
     }
     let audioMap = '';
 
@@ -198,8 +200,11 @@ export class ZTTeamFFmpegService {
       await this.ztteam_runFfmpeg(cmd, 180000);
       this.logger.log(`Final video rendered: ${outputPath}`);
     } catch (error: any) {
-      this.logger.error(`Final merge failed: ${error.message}`);
-      throw new Error(`Lỗi ghép video cuối: ${error.message}`);
+      const stderr = error.stderr || '';
+      const stdout = error.stdout || '';
+      this.logger.error(`Final merge failed. STDERR: ${stderr}`);
+      this.logger.error(`STDOUT: ${stdout}`);
+      throw new Error(`Lỗi ghép video cuối: ${error.message} - Chi tiết FFmpeg: ${stderr}`);
     }
   }
 
