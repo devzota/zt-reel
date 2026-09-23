@@ -83,6 +83,24 @@ export default function ReelFactory() {
     }
   };
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const ztteam_bulkDeleteReels = async () => {
+    if (selectedIds.length === 0) return;
+    const confirmed = await ztteam_showConfirm('Xác nhận xóa', `Xóa ${selectedIds.length} reels đã chọn?`);
+    if (!confirmed) return;
+    try {
+      setIsLoading(true);
+      await api.post('render/bulk-delete', { ids: selectedIds });
+      ztteam_showToast(`Đã xóa ${selectedIds.length} reels`, 'success');
+      setSelectedIds([]);
+      ztteam_loadReels();
+    } catch (error: any) {
+      ztteam_showToast(error.response?.data?.message || 'Lỗi xóa', 'error');
+      setIsLoading(false);
+    }
+  };
+
   const ztteam_getStatusIcon = (status: string) => {
     const map: Record<string, { icon: string; color: string; title: string }> = {
       QUEUED: { icon: 'hourglass_empty', color: 'text-amber-500 bg-amber-50', title: 'Đang chờ' },
@@ -153,6 +171,32 @@ export default function ReelFactory() {
       </div>
 
       <div className="space-y-6">
+        {selectedIds.length > 0 && (
+          <div className="glass-card bg-primary/5 border-primary/20 p-3 flex items-center justify-between sticky top-4 z-10">
+            <div className="flex items-center gap-3">
+              <span className="bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                {selectedIds.length}
+              </span>
+              <span className="text-sm font-semibold text-primary">Reels đang chọn</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-4 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+              >
+                Hủy chọn
+              </button>
+              <button
+                onClick={ztteam_bulkDeleteReels}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full text-sm font-bold shadow-sm transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">delete</span>
+                Xóa hàng loạt
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="glass-card p-16 text-center">
             <span className="material-symbols-outlined text-4xl animate-spin text-primary">progress_activity</span>
@@ -163,13 +207,41 @@ export default function ReelFactory() {
             <p className="text-gray-500 mt-4 text-xl font-bold">Chưa có Reel nào</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {reels.map(reel => (
-              <div key={reel.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
-                {/* Header Card (Action Bar) */}
-                <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {ztteam_getStatusIcon(reel.status)}
+          <div>
+            <div className="flex items-center gap-2 mb-4 px-2">
+              <input
+                type="checkbox"
+                checked={reels.length > 0 && selectedIds.length === reels.length}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedIds(reels.map(r => r.id));
+                  } else {
+                    setSelectedIds([]);
+                  }
+                }}
+                className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"
+              />
+              <span className="text-sm font-semibold text-gray-600">Chọn tất cả trên trang này</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {reels.map(reel => (
+                <div key={reel.id} className={`bg-white rounded-xl border ${selectedIds.includes(reel.id) ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200'} overflow-hidden shadow-sm flex flex-col h-full hover:shadow-md transition-shadow relative`}>
+                  {/* Header Card (Action Bar) */}
+                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(reel.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(prev => [...prev, reel.id]);
+                          } else {
+                            setSelectedIds(prev => prev.filter(id => id !== reel.id));
+                          }
+                        }}
+                        className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"
+                      />
+                      {ztteam_getStatusIcon(reel.status)}
                     {reel.wp_post_url && (
                       <a href={reel.wp_post_url} target="_blank" rel="noreferrer" title="Xem bài viết gốc" className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors">
                         <span className="material-symbols-outlined text-[16px]">link</span>
@@ -333,6 +405,7 @@ export default function ReelFactory() {
                 )}
               </div>
             ))}
+          </div>
           </div>
         )}
 

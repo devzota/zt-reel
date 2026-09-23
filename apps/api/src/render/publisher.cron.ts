@@ -32,7 +32,7 @@ export class ZTTeamPublisherCron {
     this.isRunning = true;
 
     try {
-      /** 1. Tìm các Reel đã render xong đang chờ đăng (xếp theo thời gian tạo cũ nhất trước) */
+      /** 1. Tìm các Reel đã render xong đang chờ đăng (xếp theo thời gian tạo MỚI nhất trước) */
       const pendingReels = await this.prisma.ztteam_reels.findMany({
         where: {
           status: 'COMPLETED',
@@ -40,17 +40,17 @@ export class ZTTeamPublisherCron {
           source_type: { not: 'TIKTOK_CLONE' }
         },
         include: { page: { include: { fb_account: true } } },
-        orderBy: { created_at: 'asc' },
+        orderBy: { created_at: 'desc' },
       });
 
-      /** 2. Tìm các Ảnh đã tạo xong đang chờ đăng (xếp theo thời gian tạo cũ nhất trước) */
+      /** 2. Tìm các Ảnh đã tạo xong đang chờ đăng (xếp theo thời gian tạo MỚI nhất trước) */
       const pendingImages = await this.prisma.ztteam_images.findMany({
         where: {
           status: 'COMPLETED',
           is_posted: false,
         },
         include: { page: { include: { fb_account: true } } },
-        orderBy: { created_at: 'asc' },
+        orderBy: { created_at: 'desc' },
       });
 
       if (pendingReels.length === 0 && pendingImages.length === 0) {

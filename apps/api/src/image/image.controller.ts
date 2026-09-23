@@ -352,6 +352,36 @@ export class ZTTeamImageController {
     return { success: true, jobId };
   }
 
+  @Post('bulk-delete')
+  @UseGuards(ZTTeamAuthGuard)
+  async ztteam_bulkDeleteImages(@Body() body: { ids: string[] }) {
+    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return { error: 'Không có danh sách ID' };
+    }
+
+    for (const id of body.ids) {
+      const image = await this.prisma.ztteam_images.findUnique({ where: { id } });
+      if (!image) continue;
+
+      const workDir = ztteam_getImagesPath(image.id);
+      if (fs.existsSync(workDir)) {
+        fs.rmSync(workDir, { recursive: true, force: true });
+      }
+
+      await this.prisma.ztteam_images.delete({ where: { id } });
+      
+      try {
+        await this.prisma.ztteam_image_history.deleteMany({
+          where: { page_id: image.page_id, wp_post_id: image.wp_post_id }
+        });
+      } catch (e) {
+        console.error(`Error deleting image history for ${id}`, e);
+      }
+    }
+
+    return { message: `Đã xóa ${body.ids.length} ảnh thành công` };
+  }
+
   @Delete(':id')
   @UseGuards(ZTTeamAuthGuard)
   async ztteam_deleteImage(@Param('id') id: string) {

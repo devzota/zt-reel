@@ -116,7 +116,16 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
             },
           });
 
-          if (history) continue; /** Already processed */
+          const imageHistory = await this.prisma.ztteam_image_history.findUnique({
+            where: {
+              page_id_wp_post_id: {
+                page_id: page.id,
+                wp_post_id: post.id.toString(),
+              },
+            },
+          });
+
+          if (history || imageHistory) continue; /** Already processed as either Reel or Image */
 
           /** Check queue limit */
           const queueCount = await this.prisma.ztteam_reels.count({

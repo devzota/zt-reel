@@ -347,7 +347,47 @@ export class ZTTeamRenderController {
 
   /**
    * Delete a reel record and its files.
+  /**
+   * Delete multiple reels and their physical files
    */
+  @Post('bulk-delete')
+  async ztteam_bulkDeleteReels(@Body() body: { ids: string[] }) {
+    if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return { error: 'Không có danh sách ID' };
+    }
+
+    const fs = require('fs');
+
+    for (const id of body.ids) {
+      const reel = await this.prisma.ztteam_reels.findUnique({ where: { id } });
+      if (!reel) continue;
+
+      /** Delete physical files */
+      try {
+        const reelDir = ztteam_getReelsPath(id);
+        if (fs.existsSync(reelDir)) {
+          fs.rmSync(reelDir, { recursive: true, force: true });
+        }
+      } catch (e) {
+        console.error(`Error deleting files for reel ${id}`, e);
+      }
+
+      /** Delete reel record */
+      await this.prisma.ztteam_reels.delete({ where: { id } });
+
+      /** Delete history */
+      try {
+        await this.prisma.ztteam_reel_history.deleteMany({
+          where: { page_id: reel.page_id, wp_post_id: reel.wp_post_id }
+        });
+      } catch (e) {
+        console.error(`Error deleting reel history for ${id}`, e);
+      }
+    }
+
+    return { message: `Đã xóa ${body.ids.length} reels thành công` };
+  }
+
   @Post('delete/:id')
   async ztteam_deleteReel(@Param('id') id: string) {
     const reel = await this.prisma.ztteam_reels.findUnique({ where: { id } });

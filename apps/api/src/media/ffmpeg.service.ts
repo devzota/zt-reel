@@ -129,7 +129,7 @@ export class ZTTeamFFmpegService {
     const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" -c:v libx264 -preset fast -t ${totalDuration} "${outputPath}"`;
 
     try {
-      await this.ztteam_runFfmpeg(cmd, 120000);
+      await this.ztteam_runFfmpeg(cmd, 300000);
       this.logger.log(`Slideshow created: ${outputPath}`);
     } catch (error: any) {
       this.logger.error(`Slideshow creation failed: ${error.message}`);
@@ -197,7 +197,7 @@ export class ZTTeamFFmpegService {
     const cmd = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[vout]" ${audioMap} -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -shortest -t ${duration} "${outputPath}"`;
 
     try {
-      await this.ztteam_runFfmpeg(cmd, 180000);
+      await this.ztteam_runFfmpeg(cmd, 600000);
       this.logger.log(`Final video rendered: ${outputPath}`);
     } catch (error: any) {
       const stderr = error.stderr || '';
