@@ -488,11 +488,20 @@ export class ZTTeamRenderController {
         throw new Error('Video Reel chưa được gán cho Fanpage nào');
       }
 
-      const response = await this.facebookService.ztteam_publishReel(
-        reel.page.fb_page_id,
-        videoPath,
-        description
-      );
+      let response;
+      try {
+        response = await this.facebookService.ztteam_publishReel(
+          reel.page.fb_page_id,
+          videoPath,
+          description
+        );
+      } catch (error: any) {
+        let errorMsg = error.message;
+        if (error.response && error.response.data && error.response.data.error) {
+          errorMsg = error.response.data.error.message || error.response.data.error.type || 'Facebook API Error';
+        }
+        throw new Error(`Lỗi từ Facebook: ${errorMsg}`);
+      }
 
       /** Check if we should add link to comment */
       if (reel.page.add_link_to_comment && trackingLinkManual && response.id) {

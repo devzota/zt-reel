@@ -398,15 +398,20 @@ export class ZTTeamPublisherCron {
       this.logger.log(`Successfully published image ${image.id} to page ${page.name}, Post ID: ${fbPostId}`);
       this.eventEmitter.emit('image.posted', { imageId: image.id, pageId: page.id });
     } catch (error: any) {
+      let errorMsg = error.message;
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMsg = error.response.data.error.message || error.response.data.error.type || 'Facebook API Error';
+      }
+
       const currentRetries = (image.post_retry_count || 0) + 1;
-      this.logger.error(`Failed to auto-publish image ${image.id} (Attempt ${currentRetries}/3): ${error.message}`);
+      this.logger.error(`Failed to auto-publish image ${image.id} (Attempt ${currentRetries}/3): ${errorMsg}`);
 
       if (currentRetries < 3) {
         await this.prisma.ztteam_images.update({
           where: { id: image.id },
           data: {
             post_retry_count: currentRetries,
-            error_log: `Lần thử ${currentRetries}/3 thất bại: ${error.message}`
+            error_log: `Lần thử ${currentRetries}/3 thất bại: ${errorMsg}`
           }
         });
         this.logger.log(`Image ${image.id} kept in COMPLETED status for next time slot retry (Attempt ${currentRetries}/3)`);
@@ -416,7 +421,7 @@ export class ZTTeamPublisherCron {
           data: {
             status: 'FAILED',
             post_retry_count: currentRetries,
-            error_log: `Lỗi đăng ảnh sau 3 lần thử: ${error.message}`
+            error_log: `Lỗi đăng ảnh sau 3 lần thử: ${errorMsg}`
           }
         });
 
@@ -431,7 +436,7 @@ export class ZTTeamPublisherCron {
           `👤 *Thành viên:* ${ownerEmail}\n` +
           `🚩 *Fanpage:* ${page.name || 'Không rõ'}\n` +
           `🖼 *Ảnh:* ${image.wp_post_title || 'Không rõ'}\n` +
-          `❌ *Chi tiết lỗi:* ${error.message}`
+          `❌ *Chi tiết lỗi:* ${errorMsg}`
         );
       }
     }

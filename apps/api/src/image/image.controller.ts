@@ -266,11 +266,20 @@ export class ZTTeamImageController {
       }
     }
 
-    const fbPostId = await this.facebookService.ztteam_publishPhoto(
-      image.page.fb_page_id,
-      absoluteImagePath,
-      description
-    );
+    let fbPostId;
+    try {
+      fbPostId = await this.facebookService.ztteam_publishPhoto(
+        image.page.fb_page_id,
+        absoluteImagePath,
+        description
+      );
+    } catch (error: any) {
+      let errorMsg = error.message;
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMsg = error.response.data.error.message || error.response.data.error.type || 'Facebook API Error';
+      }
+      throw new Error(`Lỗi từ Facebook: ${errorMsg}`);
+    }
 
     if (fbPostId && image.page.add_link_to_comment && trackingLinkManual) {
       const commentPrefixes = [
